@@ -1,0 +1,120 @@
+/* DashStack Modern Admin Theme Custom Styles */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #4880FF;
+  --primary-hover: #3568e6;
+  --success: #00B69B;
+  --danger: #EF3826;
+  --warning: #FFA756;
+  --purple: #884DFF;
+  --bg-light: #F5F6FA;
+  --bg-dark: #0F172A;
+  --card-light: #FFFFFF;
+  --card-dark: #1E293B;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
+
+/* Smooth view transitions */
+.tab-content {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+}
+
+.tab-content.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Glassmorphism & Shadow utilities */
+.dash-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dash-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+}
+
+.dark .dash-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+}
+
+/* Calendar styling polish */
+.calendar-day-cell {
+  min-height: 96px;
+  transition: all 0.15s ease-in-out;
+}
+
+.calendar-day-cell:hover {
+  background-color: rgba(72, 128, 255, 0.04);
+}
+
+.dark .calendar-day-cell:hover {
+  background-color: rgba(72, 128, 255, 0.08);
+}
+
+.calendar-day-cell.selected {
+  border-color: #4880FF !important;
+  background-color: rgba(72, 128, 255, 0.06);
+}
+
+.dark .calendar-day-cell.selected {
+  background-color: rgba(72, 128, 255, 0.12);
+}
+
+/* Badge pulse animation */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Modal animation */
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .calendar-day-cell {
+    min-height: 70px;
+  }
+}

@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinStack | Personal Finance & Expense Control Dashboard</title>
+  <meta name="description" content="Dashboard profesional y moderno de administración financiera personal, control de gastos, flujo de caja y calendario interactivo de transacciones.">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 Pro Icons via CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#EEF4FF',
+              100: '#E0EBFF',
+              500: '#4880FF',
+              600: '#3568E6',
+              700: '#2350C7',
+            },
+            dash: {
+              income: '#00B69B',
+              expense: '#EF3826',
+              warning: '#FFA756',
+              purple: '#884DFF',
+              darkBg: '#0F172A',
+              darkCard: '#1E293B',
+              darkBorder: '#334155'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-[#F5F6FA] dark:bg-[#0F172A] text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none"></div>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div id="sidebarOverlay" onclick="App.closeMobileSidebar()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden md:hidden transition-opacity"></div>
+
+  <!-- Main Container -->
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- ========================================== -->
+    <!-- 1. SIDEBAR (DashStack Modern Style) -->
+    <!-- ========================================== -->
+    <aside id="mainSidebar" class="fixed md:static inset-y-0 left-0 z-40 w-64 md:w-64 bg-white dark:bg-[#1E293B] border-r border-gray-100 dark:border-slate-800/80 flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+      
+      <!-- Logo & Brand Header -->
+      <div>
+        <div class="h-20 flex items-center justify-between px-6 border-b border-gray-100 dark:border-slate-800/80">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
+              <i class="fa-solid fa-shapes text-lg"></i>
+            </div>
+            <div>
+              <span class="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+                FinStack
+                <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">Pro</span>
+              </span>
+              <span class="text-[11px] text-slate-600 dark:text-slate-300 block -mt-1 font-medium">Gestión Financiera</span>
+            </div>
+          </div>
+          <!-- Close button on mobile -->
+          <button onclick="App.closeMobileSidebar()" class="md:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <!-- Sidebar Navigation Menu -->
+        <nav class="p-4 space-y-1.5">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 px-3 mb-2">
+            Menú Principal
+          </div>
+
+          <button 
+            onclick="App.switchView('dashboard')" 
+            data-view="dashboard" 
+            class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm bg-blue-600 text-white shadow-md shadow-blue-500/25 transition-all text-left"
+          >
+            <i class="fa-solid fa-chart-pie text-base w-5 text-center text-white"></i>
+            <span>Dashboard</span>
+          </button>
+
+          <button 
+            onclick="App.switchView('gastos')" 
+            data-view="gastos" 
+            class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+          >
+            <i class="fa-solid fa-arrow-trend-down text-base w-5 text-center text-rose-500"></i>
+            <span>Gastos</span>
+          </button>
+
+          <button 
+            onclick="App.switchView('ingresos')" 
+            data-view="ingresos" 
+            class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+          >
+            <i class="fa-solid fa-arrow-trend-up text-base w-5 text-center text-emerald-500"></i>
+            <span>Ingresos</span>
+          </button>
+
+          <button 
+            onclick="App.switchView('calendario')" 
+            data-view="calendario" 
+            class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+          >
+            <i class="fa-solid fa-calendar-days text-base w-5 text-center text-blue-500"></i>
+            <span>Calendario Histórico</span>
+          </button>
+
+          <button 
+            onclick="App.switchView('reportes')" 
+            data-view="reportes" 
+            class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+          >
+            <i class="fa-solid fa-chart-column text-base w-5 text-center text-purple-500"></i>
+            <span>Reportes & Backup</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Bottom Card: Budget & User status -->
+      <div class="p-4 border-t border-gray-100 dark:border-slate-800/80 space-y-3">
+        <!-- Budget Card -->
+        <div class="p-3.5 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/50 dark:from-slate-800/80 dark:to-blue-950/20 border border-gray-100 dark:border-slate-800">
+          <div class="flex items-center justify-between text-xs font-semibold mb-1.5">
+            <span class="text-slate-700 dark:text-slate-200">Presupuesto Mensual</span>
+            <span id="budgetProgressLabel" class="text-[11px] text-blue-600 dark:text-blue-400 font-bold">0%</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+            <div id="budgetProgressBar" class="h-2 rounded-full transition-all duration-500 bg-blue-600" style="width: 0%"></div>
+          </div>
+          <p class="text-[10px] text-slate-600 dark:text-slate-300 mt-1.5 leading-tight">
+            Control de gastos en tiempo real con límite mensual configurable.
+          </p>
+        </div>
+
+        <!-- Quick Demo Reset link -->
+        <div class="flex items-center justify-between px-1 text-[11px] text-slate-600 dark:text-slate-300">
+          <span>Modo Local (Offline)</span>
+          <button onclick="App.resetDemoData()" class="hover:text-blue-600 dark:hover:text-blue-400 font-medium underline">
+            Reset Demo
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ========================================== -->
+    <!-- 2. MAIN CONTENT AREA -->
+    <!-- ========================================== -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+      <!-- TOP HEADER BAR (DashStack Inspired) -->
+      <header class="h-20 bg-white dark:bg-[#1E293B] border-b border-gray-100 dark:border-slate-800/80 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20 transition-colors">
+        
+        <!-- Left: Mobile Hamburger & Search Bar -->
+        <div class="flex items-center gap-3 md:gap-4 flex-1 max-w-xl">
+          <button onclick="App.toggleMobileSidebar()" class="md:hidden w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
+            <i class="fa-solid fa-bars text-base"></i>
+          </button>
+
+          <!-- Search Input Pill -->
+          <div class="relative w-full">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input 
+              type="text" 
+              id="globalSearchInput" 
+              placeholder="Buscar transacción, categoría, notas..." 
+              class="w-full pl-9 pr-4 py-2 text-xs md:text-sm rounded-full bg-slate-100/80 dark:bg-slate-800/70 border-none text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            />
+          </div>
+        </div>
+
+        <!-- Right: Actions, Currency, Theme Switcher, Notifications, User Profile -->
+        <div class="flex items-center gap-2 md:gap-3.5 ml-3">
+          
+          <!-- "+ Nueva Transacción" CTA Button -->
+          <button 
+            onclick="App.openTransactionModal('gasto')" 
+            class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-semibold shadow-md shadow-blue-500/25 transition-all transform active:scale-95"
+          >
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>Nueva Transacción</span>
+          </button>
+
+          <!-- Currency Selector -->
+          <select 
+            id="currencySelector" 
+            onchange="App.changeCurrency(this.value)" 
+            class="hidden md:block text-xs font-semibold py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
+          >
+            <option value="USD">🇺🇸 USD ($)</option>
+            <option value="EUR">🇪🇺 EUR (€)</option>
+            <option value="MXN">🇲🇽 MXN ($)</option>
+          </select>
+
+          <!-- Dark / Light Mode Toggle Button -->
+          <button 
+            onclick="App.toggleTheme()" 
+            title="Cambiar tema Claro / Oscuro"
+            class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
+          >
+            <i id="themeToggleIcon" class="fa-solid fa-moon text-base"></i>
+          </button>
+
+          <!-- Notifications Bell -->
+          <div class="relative">
+            <button 
+              onclick="App.showToast('No tienes alertas financieras pendientes', 'info')" 
+              class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors relative"
+            >
+              <i class="fa-regular fa-bell text-base"></i>
+              <span class="w-2 h-2 rounded-full bg-rose-500 absolute top-2.5 right-2.5 pulse-subtle"></span>
+            </button>
+          </div>
+
+          <!-- Vertical Divider -->
+          <div class="hidden sm:block h-7 w-px bg-gray-200 dark:bg-slate-700 mx-1"></div>
+
+          <!-- User Profile Monogram / Avatar -->
+          <div class="flex items-center gap-2.5 pl-1">
+            <div class="relative">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm">
+                DR
+              </div>
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#1E293B] absolute bottom-0 right-0"></span>
+            </div>
+            <div class="hidden lg:block text-left">
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-100 block leading-tight">Dany Ramos</span>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium block">Senior Admin</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 1: DASHBOARD OVERVIEW -->
+      <!-- ======================================================== -->
+      <main id="view-dashboard" class="view-section p-4 md:p-8 space-y-6">
+
+        <!-- Header Title & Subtitle -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Dashboard General</h1>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300">Resumen integral del estado financiero y rendimiento de tus finanzas personales.</p>
+          </div>
+          <!-- Quick action mobile button -->
+          <button 
+            onclick="App.openTransactionModal('gasto')" 
+            class="sm:hidden inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold shadow-sm"
+          >
+            <i class="fa-solid fa-plus"></i> Nueva Transacción
+          </button>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 4 KPI METRIC CARDS (Exact DashStack layout) -->
+        <!-- ========================================== -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          
+          <!-- Card 1: Balance Total -->
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Balance Total</span>
+                <h3 id="kpiTotalBalance" class="text-2xl font-black text-slate-900 dark:text-white mt-1.5">$0.00</h3>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shadow-sm">
+                <i class="fa-solid fa-wallet"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-50 dark:border-slate-800/50 flex items-center text-xs">
+              <span class="inline-flex items-center text-emerald-500 font-semibold">
+                <i class="fa-solid fa-arrow-trend-up text-xs mr-1"></i>+12.4%
+              </span>
+              <span class="text-slate-600 dark:text-slate-300 ml-1.5 font-medium">patrimonio neto activo</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Ingresos Totales -->
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Ingresos Totales (Mes)</span>
+                <h3 id="kpiTotalIncome" class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1.5">$0.00</h3>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shadow-sm">
+                <i class="fa-solid fa-money-bill-trend-up"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-50 dark:border-slate-800/50 flex items-center text-xs">
+              <span id="kpiIncomeTrend" class="inline-flex items-center text-emerald-500 font-semibold">
+                <i class="fa-solid fa-arrow-trend-up text-xs mr-1"></i>+8.5%
+              </span>
+              <span class="text-slate-600 dark:text-slate-300 ml-1.5 font-medium">vs mes anterior</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Gastos Totales -->
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Gastos Totales (Mes)</span>
+                <h3 id="kpiTotalExpense" class="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1.5">$0.00</h3>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xl shadow-sm">
+                <i class="fa-solid fa-receipt"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-50 dark:border-slate-800/50 flex items-center text-xs">
+              <span id="kpiExpenseTrend" class="inline-flex items-center text-emerald-500 font-semibold">
+                <i class="fa-solid fa-arrow-trend-down text-xs mr-1"></i>-3.1%
+              </span>
+              <span class="text-slate-600 dark:text-slate-300 ml-1.5 font-medium">optimización de gasto</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Ahorro Neto -->
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Ahorro Neto (Mes)</span>
+                <h3 id="kpiNetSavings" class="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1.5">$0.00</h3>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl shadow-sm">
+                <i class="fa-solid fa-piggy-bank"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-50 dark:border-slate-800/50 flex items-center text-xs">
+              <span id="kpiSavingsRate" class="inline-flex items-center text-purple-600 dark:text-purple-400 font-semibold">
+                <i class="fa-solid fa-shield-halved text-xs mr-1"></i>Capacidad positiva
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- CHARTS SECTION: CASH FLOW & CATEGORIES -->
+        <!-- ========================================== -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Cash Flow Area Chart (2 Cols) -->
+          <div class="lg:col-span-2 bg-white dark:bg-[#1E293B] p-5 md:p-6 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 dark:border-slate-800/80">
+              <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Flujo de Fondos (Cash Flow)</h3>
+                <p class="text-xs text-slate-600 dark:text-slate-300">Comparativa temporal de ingresos percibidos frente a gastos realizados</p>
+              </div>
+
+              <!-- Timeframe Filters & Legend -->
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 text-xs font-semibold">
+                  <span class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#00B69B]"></span> Ingresos
+                  </span>
+                  <span class="inline-flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#EF3826]"></span> Gastos
+                  </span>
+                </div>
+                <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-[11px] font-semibold">
+                  <button onclick="ChartsManager.initCashFlowChart(7)" class="px-2.5 py-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors">7D</button>
+                  <button onclick="ChartsManager.initCashFlowChart(30)" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs transition-colors">30D</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="relative h-72 md:h-80 w-full pt-4">
+              <canvas id="cashFlowChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Category Expenses Donut Chart (1 Col) -->
+          <div class="bg-white dark:bg-[#1E293B] p-5 md:p-6 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col">
+            <div class="pb-3 border-b border-gray-100 dark:border-slate-800/80">
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Gastos por Categoría</h3>
+              <p class="text-xs text-slate-600 dark:text-slate-300">Distribución porcentual del presupuesto</p>
+            </div>
+
+            <div class="relative flex-1 flex flex-col items-center justify-center pt-2">
+              <div class="relative w-full h-60">
+                <canvas id="categoryChart"></canvas>
+                <!-- Centered Label -->
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none -mt-4">
+                  <span class="text-[11px] uppercase font-bold text-slate-600 dark:text-slate-300">Total Gastos</span>
+                  <span id="categoryChartTotal" class="text-base font-black text-slate-900 dark:text-white">$0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- RECENT TRANSACTIONS TABLE -->
+        <!-- ========================================== -->
+        <div class="bg-white dark:bg-[#1E293B] rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm overflow-hidden">
+          
+          <!-- Table Controls Header -->
+          <div class="p-5 md:p-6 border-b border-gray-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Historial de Transacciones Recientes</h3>
+              <p class="text-xs text-slate-600 dark:text-slate-300">Registro detallado de movimientos con soporte CRUD completo</p>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="flex items-center gap-2">
+              <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 text-xs font-semibold">
+                <button 
+                  onclick="App.setTableFilter('todos')" 
+                  data-filter="todos" 
+                  class="table-filter-btn px-3 py-1.5 rounded-lg bg-blue-600 text-white transition-all"
+                >
+                  Todos
+                </button>
+                <button 
+                  onclick="App.setTableFilter('ingreso')" 
+                  data-filter="ingreso" 
+                  class="table-filter-btn px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 transition-all"
+                >
+                  Ingresos
+                </button>
+                <button 
+                  onclick="App.setTableFilter('gasto')" 
+                  data-filter="gasto" 
+                  class="table-filter-btn px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 transition-all"
+                >
+                  Gastos
+                </button>
+              </div>
+
+              <!-- Export CSV shortcut -->
+              <button 
+                onclick="App.exportCSV()" 
+                title="Exportar listado a CSV" 
+                class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                <i class="fa-solid fa-file-arrow-down"></i>
+                <span class="hidden sm:inline">CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Table element -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/70 dark:bg-slate-800/50 text-[11px] uppercase tracking-wider font-bold text-slate-600 dark:text-slate-300 border-b border-gray-100 dark:border-slate-800">
+                  <th class="py-3 px-4">Concepto / Descripción</th>
+                  <th class="py-3 px-4">Categoría</th>
+                  <th class="py-3 px-4">Fecha</th>
+                  <th class="py-3 px-4">Método de Pago</th>
+                  <th class="py-3 px-4 text-right">Monto</th>
+                  <th class="py-3 px-4 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="transactionsTableBody" class="divide-y divide-gray-100 dark:divide-slate-800/80">
+                <!-- Dynamically generated rows -->
+              </tbody>
+            </table>
+
+            <!-- Empty State message -->
+            <div id="transactionsEmptyState" class="hidden py-16 text-center">
+              <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-3xl">
+                <i class="fa-regular fa-folder-open"></i>
+              </div>
+              <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">No se encontraron transacciones</h4>
+              <p class="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-sm mx-auto">
+                No hay movimientos registrados con los filtros aplicados o la búsqueda actual.
+              </p>
+              <button 
+                onclick="App.openTransactionModal('gasto')" 
+                class="mt-4 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold inline-flex items-center gap-2 shadow-sm"
+              >
+                <i class="fa-solid fa-plus"></i> Añadir Primera Transacción
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 2: GASTOS DETALLADOS -->
+      <!-- ======================================================== -->
+      <main id="view-gastos" class="view-section hidden p-4 md:p-8 space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Gestión de Gastos</h1>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300">Auditoría, clasificación y optimización de egresos.</p>
+          </div>
+          <button 
+            onclick="App.openTransactionModal('gasto')" 
+            class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs md:text-sm font-semibold shadow-sm inline-flex items-center gap-2"
+          >
+            <i class="fa-solid fa-plus"></i> Registrar Gasto
+          </button>
+        </div>
+
+        <div class="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-5 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-semibold text-rose-600 dark:text-rose-400 block uppercase tracking-wider">Total de Gastos Acumulados</span>
+            <h3 id="expenseViewTotal" class="text-3xl font-black text-rose-600 dark:text-rose-400 mt-1">$0.00</h3>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-xl shadow-md shadow-rose-500/20">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Listado de Gastos</h3>
+          <div id="expenseListContainer" class="space-y-3">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </main>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 3: INGRESOS DETALLADOS -->
+      <!-- ======================================================== -->
+      <main id="view-ingresos" class="view-section hidden p-4 md:p-8 space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Gestión de Ingresos</h1>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300">Registro de salarios, dividendos y fuentes de facturación.</p>
+          </div>
+          <button 
+            onclick="App.openTransactionModal('ingreso')" 
+            class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm font-semibold shadow-sm inline-flex items-center gap-2"
+          >
+            <i class="fa-solid fa-plus"></i> Registrar Ingreso
+          </button>
+        </div>
+
+        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 block uppercase tracking-wider">Total de Ingresos Acumulados</span>
+            <h3 id="incomeViewTotal" class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">$0.00</h3>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/20">
+            <i class="fa-solid fa-money-bill-wave"></i>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Listado de Ingresos</h3>
+          <div id="incomeListContainer" class="space-y-3">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </main>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 4: CALENDARIO HISTÓRICO INTERACTIVO (Requisito Clave) -->
+      <!-- ======================================================== -->
+      <main id="view-calendario" class="view-section hidden p-4 md:p-8 space-y-6">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Calendario Histórico de Movimientos</h1>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300">Explora tus ingresos y gastos día por día haciendo clic sobre cualquier fecha.</p>
+          </div>
+          <button 
+            onclick="App.openTransactionModal('gasto', CalendarManager.getSelectedDate())" 
+            class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-semibold shadow-sm inline-flex items-center gap-2"
+          >
+            <i class="fa-solid fa-plus"></i> Añadir en Día Seleccionado
+          </button>
+        </div>
+
+        <!-- Calendar Container: 2 Columns on desktop (Grid left, Inspector right) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- Left: Calendar Month Matrix (8 Cols) -->
+          <div class="lg:col-span-8 bg-white dark:bg-[#1E293B] p-5 md:p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-4">
+            
+            <!-- Calendar Navigation Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-slate-800">
+              <div class="flex items-center gap-3">
+                <h3 id="calendarCurrentMonth" class="text-base md:text-lg font-black text-slate-900 dark:text-white capitalize">
+                  Octubre 2026
+                </h3>
+                <div class="inline-flex items-center gap-1">
+                  <button 
+                    onclick="CalendarManager.prevMonth()" 
+                    title="Mes Anterior" 
+                    class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors"
+                  >
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                  </button>
+                  <button 
+                    onclick="CalendarManager.nextMonth()" 
+                    title="Mes Siguiente" 
+                    class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors"
+                  >
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                  </button>
+                  <button 
+                    onclick="CalendarManager.goToToday()" 
+                    class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 transition-colors"
+                  >
+                    Hoy
+                  </button>
+                </div>
+              </div>
+
+              <!-- Month Summary Mini Stats -->
+              <div id="calendarMonthSummary">
+                <!-- Dynamically injected -->
+              </div>
+            </div>
+
+            <!-- Days of Week Header (Lun - Dom) -->
+            <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 uppercase tracking-wider py-1">
+              <div>Lun</div>
+              <div>Mar</div>
+              <div>Mié</div>
+              <div>Jue</div>
+              <div>Vie</div>
+              <div>Sáb</div>
+              <div>Dom</div>
+            </div>
+
+            <!-- Calendar Days Grid (7 columns) -->
+            <div id="calendarDaysGrid" class="grid grid-cols-7 gap-2">
+              <!-- Dynamically rendered day cells -->
+            </div>
+
+            <!-- Calendar Legend Info -->
+            <div class="pt-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+              <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Ingresos diarios
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Gastos diarios
+                </span>
+              </div>
+              <span class="text-[11px] italic">Haz clic en cualquier celda para inspeccionar</span>
+            </div>
+          </div>
+
+          <!-- Right: Daily History Inspector Panel (4 Cols) -->
+          <div id="calendarDayInspector" class="lg:col-span-4 sticky top-24">
+            <!-- Dynamically rendered inspector panel for selected date -->
+          </div>
+
+        </div>
+
+      </main>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 5: REPORTES, ESTADÍSTICAS & BACKUP -->
+      <!-- ======================================================== -->
+      <main id="view-reportes" class="view-section hidden p-4 md:p-8 space-y-6">
+        <div>
+          <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Reportes y Auditoría Financiera</h1>
+          <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300">Análisis comparativo de los últimos 6 meses y gestión de respaldos.</p>
+        </div>
+
+        <!-- 6-Month Comparison Bar Chart -->
+        <div class="bg-white dark:bg-[#1E293B] p-5 md:p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Comparativa Histórica Mensual</h3>
+              <p class="text-xs text-slate-600 dark:text-slate-300">Ingresos vs Gastos en los últimos 6 meses</p>
+            </div>
+          </div>
+          <div class="relative h-72 w-full">
+            <canvas id="monthlyBarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Backup & Data Persistence Card -->
+        <div class="bg-white dark:bg-[#1E293B] p-5 md:p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Persistencia y Copias de Seguridad</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-300">Tus datos están guardados de forma segura en tu navegador vía <code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-blue-600 font-mono">localStorage</code>. Puedes exportar o importar tu información en cualquier momento.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+            <button 
+              onclick="App.exportCSV()" 
+              class="p-4 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/20 text-left transition-all group"
+            >
+              <i class="fa-solid fa-file-csv text-2xl text-emerald-500 mb-2 block"></i>
+              <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100">Exportar a CSV</h4>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Compatible con Excel y Google Sheets</p>
+            </button>
+
+            <button 
+              onclick="App.exportJSON()" 
+              class="p-4 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/20 text-left transition-all group"
+            >
+              <i class="fa-solid fa-file-code text-2xl text-blue-500 mb-2 block"></i>
+              <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100">Backup JSON</h4>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Copia íntegra de base de datos local</p>
+            </button>
+
+            <button 
+              onclick="App.triggerImportJSON()" 
+              class="p-4 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/20 text-left transition-all group"
+            >
+              <i class="fa-solid fa-cloud-arrow-up text-2xl text-purple-500 mb-2 block"></i>
+              <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100">Restaurar Backup</h4>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Importa un archivo JSON previamente guardado</p>
+            </button>
+
+            <button 
+              onclick="App.resetDemoData()" 
+              class="p-4 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-rose-500 hover:bg-rose-50/30 dark:hover:bg-rose-900/20 text-left transition-all group"
+            >
+              <i class="fa-solid fa-arrows-rotate text-2xl text-rose-500 mb-2 block"></i>
+              <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100">Resetear Demo</h4>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Restaura transacciones de ejemplo</p>
+            </button>
+          </div>
+
+          <input type="file" id="jsonFileInput" accept=".json" onchange="App.handleFileImport(event)" class="hidden" />
+        </div>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: AGREGAR / EDITAR TRANSACCIÓN -->
+  <!-- ======================================================== -->
+  <div id="transactionModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-lg rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+        <h3 id="txModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Nueva Transacción</h3>
+        <button onclick="App.closeTransactionModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Modal Form -->
+      <form id="txForm" class="p-6 space-y-4">
+        <input type="hidden" id="txType" value="gasto" />
+
+        <!-- Type Selector Tabs: Gasto vs Ingreso -->
+        <div class="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <button 
+            type="button" 
+            id="tabTypeGasto" 
+            onclick="App.setModalTypeTab('gasto')" 
+            class="flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-rose-500 text-white shadow-sm flex items-center justify-center gap-2"
+          >
+            <i class="fa-solid fa-arrow-up-right"></i> Gasto
+          </button>
+          <button 
+            type="button" 
+            id="tabTypeIngreso" 
+            onclick="App.setModalTypeTab('ingreso')" 
+            class="flex-1 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center gap-2"
+          >
+            <i class="fa-solid fa-arrow-down-left"></i> Ingreso
+          </button>
+        </div>
+
+        <!-- Concepto / Título -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Concepto o Descripción *</label>
+          <input 
+            type="text" 
+            id="txConcept" 
+            required 
+            placeholder="Ej. Supermercado semanal, Pago de nómina..." 
+            class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          />
+        </div>
+
+        <!-- Monto & Fecha (2 cols) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto ($) *</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
+              <input 
+                type="number" 
+                id="txAmount" 
+                step="0.01" 
+                min="0.01" 
+                required 
+                placeholder="0.00" 
+                class="w-full pl-8 pr-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-semibold"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Fecha *</label>
+            <input 
+              type="date" 
+              id="txDate" 
+              required 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+          </div>
+        </div>
+
+        <!-- Categoría & Método de Pago (2 cols) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Categoría *</label>
+            <select 
+              id="txCategory" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+            >
+              <!-- Filled dynamically by JavaScript -->
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Método de Pago</label>
+            <select 
+              id="txPaymentMethod" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+            >
+              <option value="Tarjeta Débito">Tarjeta Débito</option>
+              <option value="Tarjeta Crédito">Tarjeta Crédito</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Efectivo">Efectivo</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Notas opcionales -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Notas o Detalle (Opcional)</label>
+          <input 
+            type="text" 
+            id="txNotes" 
+            placeholder="Factura, lugar de compra, etiquetas..." 
+            class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          />
+        </div>
+
+        <!-- Buttons Footer -->
+        <div class="pt-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+          <button 
+            type="button" 
+            onclick="App.closeTransactionModal()" 
+            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25 transition-all"
+          >
+            Guardar Transacción
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CONFIRMACIÓN DE ELIMINACIÓN -->
+  <!-- ======================================================== -->
+  <div id="deleteConfirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-sm rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 text-center animate-in fade-in zoom-in-95 duration-200">
+      <div class="w-14 h-14 mx-auto mb-3.5 rounded-2xl bg-rose-100/80 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center text-2xl">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 class="text-base font-bold text-slate-900 dark:text-white">¿Eliminar Transacción?</h3>
+      <p class="text-xs text-slate-600 dark:text-slate-300 mt-1.5">
+        Esta acción borrará el registro de manera permanente de tu almacenamiento local.
+      </p>
+      <div class="mt-5 flex items-center justify-center gap-3">
+        <button 
+          onclick="App.closeDeleteModal()" 
+          class="flex-1 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button 
+          onclick="App.executeDelete()" 
+          class="flex-1 px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all"
+        >
+          Sí, Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="js/store.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,197 @@
+================================================================================
+                    FINSTACK PRO - GESTIÓN FINANCIERA PERSONAL
+                DOCUMENTO TÉCNICO Y MANUAL DE FUNCIONAMIENTO
+================================================================================
+
+1. ¿QUÉ ES FINSTACK PRO?
+--------------------------------------------------------------------------------
+FinStack Pro es una aplicación web integral de administración financiera personal
+y control de gastos, diseñada bajo la estética corporativa del UI Kit moderno
+"DashStack". Permite a los usuarios registrar, auditar, categorizar y visualizar
+sus ingresos, gastos, ahorros y flujo de dinero en tiempo real, operando de forma
+100% privada y local directamente en su navegador web.
+
+
+2. ¿QUÉ HACE LA APLICACIÓN? (MÓDULOS Y CAPACIDADES)
+--------------------------------------------------------------------------------
+
+A. PANEL DE CONTROL (DASHBOARD GENERAL)
+   - Tarjetas Métricas (KPIs Superiores):
+     * Balance Total: Patrimonio neto consolidado (todos los ingresos menos
+       todos los gastos registrados).
+     * Ingresos Totales del Mes: Con comparativa porcentual automática respecto
+       al mes anterior (ej. "+8.5% vs mes anterior").
+     * Gastos Totales del Mes: Con indicador visual de aumento o ahorro respecto
+       al mes anterior.
+     * Ahorro Neto del Mes: Margen libre disponible y tasa porcentual de ahorro
+       en relación a los ingresos.
+   - Gráfica Interactiva de Flujo de Fondos (Cash Flow):
+     * Curvas continuas (Bézier) con relleno translúcido en gradiente.
+     * Muestra la evolución temporal de ingresos (verde) vs gastos (rojo).
+     * Selector de período: 7 días o 30 días.
+   - Gráfica Donut de Gastos por Categoría:
+     * Distribución porcentual interactiva con indicación central del gasto total.
+   - Historial de Transacciones Recientes:
+     * Tabla con listado de movimientos, filtros rápidos (Todos, Ingresos,
+       Gastos), buscador dinámico y botones directos para editar o eliminar.
+
+B. MÓDULO DE GASTOS DEDICADO
+   - Vista especializada en la auditoría de egresos.
+   - Totalizador acumulado de gastos.
+   - Listado detallado con etiquetas de categoría, fecha, método de pago y notas.
+
+C. MÓDULO DE INGRESOS DEDICADO
+   - Vista orientada al seguimiento de salarios, ventas, proyectos freelance,
+     dividendos y rendimientos de inversiones.
+
+D. MÓDULO DE CALENDARIO HISTÓRICO (FUNCIONALIDAD CLAVE)
+   - Cuadrícula mensual completa de 7 columnas (Lunes a Domingo).
+   - Navegación entre meses (Mes anterior, Mes siguiente y botón "Hoy").
+   - Resumen del mes en la cabecera: Total Ingresos, Total Gastos y Balance neto.
+   - Micro-indicadores diarios:
+     * Cada día que posea movimientos muestra micro-chips con el monto
+       ingresado (+ verde) y/o el monto gastado (- rojo).
+   - Panel Inspector Diario:
+     * Al hacer clic sobre cualquier celda del calendario, este panel lateral
+       se actualiza en milisegundos mostrando:
+       1) El balance, ingresos y gastos de ese día exacto.
+       2) La lista detallada de movimientos de esa fecha.
+       3) Acciones para editar o eliminar directamente ahí.
+       4) Un botón de acceso rápido para registrar un nuevo movimiento
+          pre-fechado para ese día.
+
+E. REPORTES, AUDITORÍA Y COPIAS DE SEGURIDAD
+   - Gráfica de barras semestral con la comparativa de ingresos vs gastos
+     en los últimos 6 meses.
+   - Exportación a CSV: Genera un archivo `.csv` descargable compatible con
+     Excel, Google Sheets o LibreOffice Calc.
+   - Backup en JSON: Descarga una copia exacta de toda la base de datos local.
+   - Restauración de Backup: Permite subir un archivo `.json` previo para
+     recuperar toda la información.
+   - Reinicio a Datos Demo (Seed): Restaura transacciones de muestra realistas
+     adaptadas automáticamente al mes y año en curso.
+
+F. EXPERIENCIA DE USUARIO (UX/UI & PREFERENCIAS)
+   - Modo Oscuro / Claro (Dark & Light Mode): Alternancia con un clic. Todo el
+     diseño (incluidas las cuadrículas y etiquetas de Chart.js) se sincroniza.
+   - Selector de Moneda: Soporte para USD ($), EUR (€) y MXN ($).
+   - Barra de Presupuesto Mensual: Indicador de barra de progreso en el menú
+     lateral que avisa el porcentaje de presupuesto consumido.
+   - Notificaciones Flotantes (Toasts): Avisos visuales no invasivos al guardar,
+     editar, borrar o exportar datos.
+
+
+3. ¿CÓMO FUNCIONA POR DENTRO? (ARQUITECTURA TÉCNICA)
+--------------------------------------------------------------------------------
+La aplicación sigue una arquitectura desacoplada y orientada a eventos, basada
+en el patrón MVC (Modelo - Vista - Controlador) implementado en Vanilla JavaScript:
+
+                 +---------------------------------------+
+                 |            index.html (UI)            |
+                 |     (Estructura y Tailwind CSS)       |
+                 +-------------------+-------------------+
+                                     |
+                                     v
+                 +---------------------------------------+
+                 |               app.js                  |
+                 |   (Controlador Principal y Eventos)   |
+                 +---------+-------------------+---------+
+                           |                   |
+            +--------------v---+      +--------v--------------+
+            |     charts.js    |      |      calendar.js      |
+            | (Visualizaciones)|      | (Calendario e Inspect)|
+            +------------------+      +-----------------------+
+                           \                 /
+                            v               v
+                 +---------------------------------------+
+                 |               store.js                |
+                 |     (Modelo, Lógica y Cálculos)       |
+                 +-------------------+-------------------+
+                                     |
+                                     v
+                 +---------------------------------------+
+                 |       Navegador: localStorage         |
+                 |      (Almacenamiento Persistente)     |
+                 +---------------------------------------+
+
+
+A. js/store.js (La Capa de Datos / Modelo)
+   - Es el único módulo encargado de interactuar con `localStorage`.
+   - Claves de almacenamiento:
+     * `finstack_transactions_v2`: Guarda el array de objetos de transacciones.
+     * `finstack_settings_v2`: Guarda el tema (dark/light), moneda, presupuesto.
+   - Generador de Semilla Dinámico (`generateSeedData`): Si el usuario entra por
+     primera vez o no tiene registros, genera transacciones distribuidas en los
+     días del mes actual tomando `new Date()`. Esto evita dashboards vacíos.
+   - Métodos de Cálculo Estadístico:
+     * `getKPIStats()`: Recorre los registros, suma los ingresos y gastos del mes
+       actual, los del mes previo, calcula la tasa de variación porcentual y
+       el ahorro neto.
+     * `getCashFlowChartData(days)`: Genera las series temporales de datos
+       agrupadas por día para la gráfica de Chart.js.
+     * `getCategoryTotals(type)`: Agrupa los montos por categoría para el Donut.
+     * `exportToCSV()` y `exportToJSON()`: Transformación y serialización de datos.
+
+B. js/charts.js (La Capa de Visualización Gráfica)
+   - Gestiona las instancias de Chart.js en lienzos `<canvas>`.
+   - Utiliza la API Canvas 2D (`createLinearGradient`) para generar gradientes
+     suaves bajo las líneas.
+   - Función `getThemeColors()`: Detecta si la clase `dark` está presente en el
+     documento `<html>` para inyectar los colores adecuados en las cuadrículas,
+     textos y tooltips de las gráficas.
+
+C. js/calendar.js (El Motor del Calendario Interactivo)
+   - Realiza el cálculo del calendario mensual:
+     1) Determina qué día de la semana comienza el día 1 del mes (adaptando
+        el estándar dom=0 a lun=0).
+     2) Calcula cuántos días tuvo el mes anterior para pintar celdas de relleno.
+     3) Recorre los días del mes actual cruzando la fecha ISO `YYYY-MM-DD` con
+        el método `Store.getByDate(fecha)`.
+     4) Inyecta los chips de colores con los montos diarios.
+   - Controla la selección de fecha y ejecuta `renderDayInspector(fecha)` para
+     actualizar el panel lateral con el desglose exacto de ese día.
+
+D. js/app.js (El Orquestador / Controlador)
+   - Escucha los eventos del usuario (clics en menú, envíos de formulario,
+     tecleo en el buscador, cambios de moneda y tema).
+   - Controla la máquina de estados de las vistas:
+     Oculta y muestra secciones con clases CSS (`view-dashboard`, `view-gastos`,
+     `view-ingresos`, `view-calendario`, `view-reportes`).
+   - Modal de Transacciones:
+     Detecta si el usuario está creando una transacción nueva o editando una
+     existente a través de la variable `editingTxId`.
+   - Sincronización global (`refreshAllUI`):
+     Cada vez que se agrega, edita o elimina una transacción, se invoca esta
+     función central que refresca KPIs, tabla, gráficas y calendario en cascada.
+
+
+4. FLUJO DE VIDA DE UNA TRANSACCIÓN (EJEMPLO PASO A PASO)
+--------------------------------------------------------------------------------
+1. El usuario hace clic en "+ Nueva Transacción" (o en un día del calendario).
+2. Se abre el modal `transactionModal`. Las pestañas permiten seleccionar si
+   es "Gasto" (rojo) o "Ingreso" (verde). Al cambiar de pestaña, el desplegable
+   de categorías cambia dinámicamente (ej. Alimentación, Vivienda vs Salario,
+   Freelance).
+3. El usuario llena concepto ("Supermercado Fresko"), monto ("85.50"), fecha y
+   método de pago, y presiona "Guardar Transacción".
+4. El controlador `App.handleFormSubmit()` valida que los campos sean válidos.
+5. Se invoca `Store.add(...)`, el cual crea un ID único con timestamp y guarda
+   el registro en el array del `localStorage`.
+6. `App.refreshAllUI()` se dispara:
+   - Recalcula los 4 KPIs superiores.
+   - Agrega la fila a la tabla con su badge de categoría.
+   - Actualiza los puntos de la gráfica de flujo de fondos.
+   - Pinta el micro-chip en el día correspondiente del calendario.
+7. Se lanza un mensaje Toast animado en la esquina superior derecha:
+   "Transacción registrada con éxito".
+
+
+5. PRIVACIDAD Y RENDIMIENTO
+--------------------------------------------------------------------------------
+- Privacidad Absoluta: Ningún dato financiero sale a servidores externos; todo
+  reside en el almacenamiento privado del navegador del usuario.
+- Alta Velocidad: Al no depender de frameworks pesados ni de llamadas a APIs
+  remotas de red, la interfaz responde en menos de 16 milisegundos (60 FPS).
+- Portabilidad: Se puede llevar en una memoria USB o repositorio y abrir con un
+  doble clic en cualquier computadora con un navegador web moderno.
+================================================================================
