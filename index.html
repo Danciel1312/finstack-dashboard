@@ -258,17 +258,18 @@
             <span>Nueva Transacción</span>
           </button>
 
-          <!-- Role Switcher Dropdown (Admin / Cliente / Visita) -->
+          <!-- Role & Account Switcher Dropdown (Admin / Dany / Nuevos Usuarios) -->
           <div class="relative flex items-center">
             <select 
               id="userRoleSelector" 
-              onchange="App.switchUserRole(this.value)" 
-              title="Cambiar perfil de usuario"
+              onchange="App.switchUserAccount(this.value)" 
+              title="Cambiar de cuenta o perfil de usuario"
               class="text-xs font-bold py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer transition-all"
             >
-              <option value="cliente">💼 Personal (Mis Finanzas)</option>
-              <option value="admin">👑 Admin (Dev & Pruebas)</option>
-              <option value="visita">👁️ Visita (Modo Demo)</option>
+              <!-- Rellenado dinámicamente por App.setupRoleUI() con todos los usuarios registrados -->
+              <option value="usr_2">💼 Dany Ramos (Personal)</option>
+              <option value="usr_1">👑 Admin (Dev & Pruebas)</option>
+              <option value="usr_4">👁️ Visita (Modo Demo)</option>
             </select>
           </div>
 

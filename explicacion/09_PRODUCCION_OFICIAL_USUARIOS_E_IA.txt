@@ -46,6 +46,33 @@ B. CREACIÓN Y AUDITORÍA DE USUARIOS:
    - Presupuesto mensual asignado: Para controlar techos de gasto por cuenta.
    - Estado (Activo / Inactivo): El admin puede suspender cuentas con un solo clic.
 
+C. ¿CÓMO INICIAR SESIÓN O CAMBIAR ENTRE LAS CUENTAS CREADAS?
+   Cada usuario que crees en el sistema tiene su propia "bóveda" financiera
+   completamente aislada (`finstack_tx_user_${userId}`), con su propio saldo,
+   sus propias transacciones y su propio presupuesto mensual.
+
+   Tienes 2 formas muy fáciles e intuitivas de ingresar con cualquier cuenta:
+   1. **Desde el Selector en la Cabecera (Header):**
+      En la parte superior derecha hay un menú desplegable. Al abrirlo verás
+      automáticamente a todos los usuarios creados con su ícono y rol
+      (ej. `👑 Administrador`, `💼 Dany Ramos`, `👤 Carlos Mendoza`).
+      Solo haz clic en el usuario deseado y la aplicación cambiará de inmediato
+      a su cuenta, recargando su dinero, gráficas e historial.
+   2. **Desde la Tabla del Panel Admin ("Gestión Usuarios"):**
+      En cada fila de usuario encontrarás un botón azul con candado:
+      `[🔑 Ingresar]`. Al hacer clic, entrarás directo a la sesión de ese usuario.
+      El usuario activo actual se marcará con una etiqueta verde:
+      `[✓ Sesión Actual]`.
+
+   *¿Cómo regresar a tu cuenta de Administrador?*
+   En cualquier momento ve al selector superior y elige `👑 Administrador (Tú)`
+   para volver al modo laboratorio y gestión.
+
+   *Seguridad integrada:*
+   - No es posible eliminar ni suspender la cuenta que tienes activa en ese instante.
+   - Si una cuenta está marcada como "Inactivo", el sistema bloquea el acceso
+     y muestra una notificación de advertencia hasta que el Admin la reactive.
+
 
 3. ¿CÓMO FUNCIONA EL ASISTENTE DE INTELIGENCIA ARTIFICIAL (FINSTACK AI)?
 --------------------------------------------------------------------------------

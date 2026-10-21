@@ -341,10 +341,14 @@ const Store = (function () {
     return sampleData;
   }
 
-  function getCurrentStorageKey() {
+  function getCurrentUserId() {
     const settings = loadSettings();
-    const role = settings.activeRole || 'cliente';
-    return ROLE_STORAGE_KEYS[role] || ROLE_STORAGE_KEYS.cliente;
+    return settings.currentUserId || 'usr_2';
+  }
+
+  function getCurrentStorageKey() {
+    const userId = getCurrentUserId();
+    return `finstack_tx_user_${userId}`;
   }
 
   function loadTransactions() {
@@ -353,19 +357,54 @@ const Store = (function () {
       const data = localStorage.getItem(key);
 
       if (!data) {
-        const settings = loadSettings();
-        if ((settings.activeRole === 'cliente' || !settings.activeRole)) {
-          const legacy = localStorage.getItem(STORAGE_KEY_LEGACY);
-          if (legacy) {
-            localStorage.setItem(key, legacy);
-            return JSON.parse(legacy);
+        const userId = getCurrentUserId();
+        
+        // Migrate legacy keys if present
+        if (userId === 'usr_2') {
+          const personalV3 = localStorage.getItem('finstack_tx_personal_v3') || localStorage.getItem(STORAGE_KEY_LEGACY);
+          if (personalV3) {
+            localStorage.setItem(key, personalV3);
+            return JSON.parse(personalV3);
+          }
+        } else if (userId === 'usr_1') {
+          const adminV3 = localStorage.getItem('finstack_tx_admin_v3');
+          if (adminV3) {
+            localStorage.setItem(key, adminV3);
+            return JSON.parse(adminV3);
+          }
+        } else if (userId === 'usr_4') {
+          const visitaV3 = localStorage.getItem('finstack_tx_visita_v3');
+          if (visitaV3) {
+            localStorage.setItem(key, visitaV3);
+            return JSON.parse(visitaV3);
           }
         }
 
-        const isTest = settings.activeRole === 'admin';
-        const seed = generateSeedData(isTest);
-        saveTransactions(seed);
-        return seed;
+        const users = loadUsers();
+        const user = users.find(u => u.id === userId) || { name: 'Usuario', role: 'cliente', budget: 3000 };
+        
+        let initialData;
+        if (userId === 'usr_1' || userId === 'usr_2' || userId === 'usr_4') {
+          initialData = generateSeedData(user.role === 'admin');
+        } else {
+          // Newly created user starts with an active opening balance
+          initialData = [
+            {
+              id: 'tx_init_' + Date.now(),
+              type: 'ingreso',
+              concept: 'Depósito Inicial de Cuenta',
+              amount: user.budget || 2500,
+              category: 'Salario',
+              date: formatDateISO(new Date()),
+              paymentMethod: 'Transferencia',
+              notes: `Apertura de cuenta oficial para ${user.name}`,
+              createdAt: new Date().toISOString()
+            }
+          ];
+        }
+
+        saveTransactions(initialData);
+        return initialData;
       }
       return JSON.parse(data);
     } catch (e) {
@@ -684,8 +723,40 @@ const Store = (function () {
       return Object.values(ROLES_INFO);
     },
 
+    getCurrentUserId: function () {
+      return getCurrentUserId();
+    },
+
+    getCurrentUser: function () {
+      const users = loadUsers();
+      const currentId = getCurrentUserId();
+      return users.find(u => u.id === currentId) || users[0];
+    },
+
+    switchUser: function (userId) {
+      const users = loadUsers();
+      const user = users.find(u => u.id === userId);
+      if (!user) return null;
+
+      const settings = loadSettings();
+      settings.currentUserId = user.id;
+      settings.userName = user.name;
+      settings.userEmail = user.email;
+      settings.activeRole = user.role;
+      settings.monthlyBudget = user.budget || 3500;
+      settings.userRole = ROLES_INFO[user.role] ? ROLES_INFO[user.role].badge : 'Cliente';
+      saveSettings(settings);
+
+      return user;
+    },
+
     switchRole: function (newRoleId) {
       if (!ROLES_INFO[newRoleId]) return null;
+      const users = loadUsers();
+      const targetUser = users.find(u => u.role === newRoleId && u.status === 'Activo') || users.find(u => u.role === newRoleId);
+      if (targetUser) {
+        return this.switchUser(targetUser.id);
+      }
       const settings = loadSettings();
       settings.activeRole = newRoleId;
       settings.userName = ROLES_INFO[newRoleId].name;
@@ -729,6 +800,17 @@ const Store = (function () {
         budget: updatedData.budget !== undefined ? parseFloat(updatedData.budget) : users[index].budget
       };
       saveUsers(users);
+
+      // Keep active session synchronized if modifying current user
+      if (id === getCurrentUserId()) {
+        const settings = loadSettings();
+        settings.userName = users[index].name;
+        settings.userEmail = users[index].email;
+        settings.activeRole = users[index].role;
+        settings.monthlyBudget = users[index].budget;
+        saveSettings(settings);
+      }
+
       return users[index];
     },
 

@@ -101,9 +101,16 @@ const App = (function () {
     showToast(`Moneda cambiada a ${val}`, 'info');
   }
 
-  // --- MULTI-ROLE SYSTEM UI ---
+  // --- MULTI-ROLE & MULTI-USER SYSTEM UI ---
   function setupRoleUI() {
-    const activeRole = Store.getActiveRole();
+    const currentUser = Store.getCurrentUser() || {
+      id: 'usr_2',
+      name: 'Dany Ramos (Personal)',
+      role: 'cliente',
+      email: 'dany@finstack.local',
+      status: 'Activo'
+    };
+    const activeRole = currentUser.role || Store.getActiveRole();
     const info = Store.getRoleInfo(activeRole);
 
     const roleBadgeEl = document.getElementById('userRoleBadge');
@@ -114,22 +121,42 @@ const App = (function () {
     const adminOnlyNav = document.getElementById('adminOnlyNavUsers');
 
     if (roleBadgeEl) {
-      roleBadgeEl.textContent = info.badge;
-      roleBadgeEl.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${info.color}`;
+      roleBadgeEl.textContent = info ? info.badge : (activeRole.toUpperCase());
+      roleBadgeEl.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${info ? info.color : 'bg-blue-100 text-blue-700'}`;
     }
-    if (userNameEl) userNameEl.textContent = info.name;
-    if (roleSelector) roleSelector.value = activeRole;
+    if (userNameEl) {
+      userNameEl.textContent = currentUser.name;
+    }
 
+    // Populate user / role selector dynamically with all registered users
+    if (roleSelector) {
+      const users = Store.getUsers();
+      roleSelector.innerHTML = users.map(u => {
+        let icon = '💼';
+        if (u.role === 'admin') icon = '👑';
+        else if (u.role === 'visita') icon = '👁️';
+        else icon = '👤';
+        const isSelected = u.id === currentUser.id ? 'selected' : '';
+        const statusNote = u.status === 'Inactivo' ? ' (Inactivo)' : '';
+        return `<option value="${u.id}" ${isSelected}>${icon} ${escapeHtml(u.name)}${statusNote}</option>`;
+      }).join('');
+      roleSelector.value = currentUser.id;
+    }
+
+    // Avatar initials and gradient
     if (roleAvatar) {
+      const nameParts = (currentUser.name || 'Usuario').trim().split(/\s+/);
+      const initials = nameParts.length > 1
+        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+        : nameParts[0].substring(0, 2).toUpperCase();
+      roleAvatar.textContent = initials;
+
       if (activeRole === 'admin') {
         roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm';
-        roleAvatar.textContent = 'DEV';
       } else if (activeRole === 'visita') {
         roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center shadow-sm';
-        roleAvatar.textContent = 'VIS';
       } else {
         roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm';
-        roleAvatar.textContent = 'DR';
       }
     }
 
@@ -141,7 +168,7 @@ const App = (function () {
         roleBanner.innerHTML = `
           <div class="flex items-center gap-2">
             <i class="fa-solid fa-shield-halved"></i>
-            <span><strong>Modo Admin / Laboratorio:</strong> Tienes control de usuarios y pruebas. Tus finanzas reales están aisladas y seguras.</span>
+            <span><strong>Modo Admin / Laboratorio:</strong> Tienes control de usuarios y pruebas. Tus finanzas personales están aisladas.</span>
           </div>
           <button onclick="App.switchUserRole('cliente')" class="underline font-semibold hover:text-purple-900 dark:hover:text-purple-100">Pasar a Mis Finanzas</button>
         `;
@@ -167,15 +194,47 @@ const App = (function () {
     }
   }
 
-  function switchUserRole(newRole) {
-    const roleInfo = Store.switchRole(newRole);
+  // Switch between individual user accounts
+  function switchUserAccount(userId) {
+    const users = Store.getUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) {
+      showToast('No se encontró el usuario seleccionado.', 'danger');
+      return;
+    }
+
+    if (user.status === 'Inactivo') {
+      showToast(`El usuario "${user.name}" está suspendido/inactivo. Actívalo en el Panel Admin antes de ingresar.`, 'warning');
+      setupRoleUI(); // Revert selector to active user
+      return;
+    }
+
+    Store.switchUser(userId);
     setupRoleUI();
     refreshAllUI();
-    showToast(`Cambiado a: ${roleInfo.badge}`, 'info');
+    showToast(`Sesión activa: ${user.name} (${user.role.toUpperCase()})`, 'success');
 
-    // If leaving admin while in users view, redirect to dashboard
-    if (currentView === 'usuarios' && newRole !== 'admin') {
+    // If leaving admin while viewing admin users management, redirect to dashboard
+    if (currentView === 'usuarios' && user.role !== 'admin') {
       switchView('dashboard');
+    }
+  }
+
+  // Switch by role name (finds matching user)
+  function switchUserRole(newRole) {
+    const users = Store.getUsers();
+    const targetUser = users.find(u => u.role === newRole && u.status === 'Activo') || users.find(u => u.role === newRole);
+    if (targetUser) {
+      switchUserAccount(targetUser.id);
+    } else {
+      const roleInfo = Store.switchRole(newRole);
+      setupRoleUI();
+      refreshAllUI();
+      showToast(`Cambiado a: ${roleInfo ? roleInfo.badge : newRole}`, 'info');
+
+      if (currentView === 'usuarios' && newRole !== 'admin') {
+        switchView('dashboard');
+      }
     }
   }
 
@@ -186,9 +245,11 @@ const App = (function () {
 
     const users = Store.getUsers();
     const settings = Store.getSettings();
+    const currentUserId = Store.getCurrentUserId();
     const currency = settings.currencySymbol || '$';
 
     tableBody.innerHTML = users.map(user => {
+      const isCurrent = user.id === currentUserId;
       const isAdmin = user.role === 'admin';
       const isClient = user.role === 'cliente';
       const roleBadge = isAdmin
@@ -201,15 +262,23 @@ const App = (function () {
         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
         : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
 
+      const nameParts = (user.name || 'Usuario').trim().split(/\s+/);
+      const initials = nameParts.length > 1
+        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+        : nameParts[0].substring(0, 2).toUpperCase();
+
       return `
-        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 border-b border-gray-100 dark:border-slate-800 transition-colors">
+        <tr class="${isCurrent ? 'bg-blue-50/50 dark:bg-blue-950/30' : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'} border-b border-gray-100 dark:border-slate-800 transition-colors">
           <td class="py-3.5 px-4">
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-gradient-to-tr ${isAdmin ? 'from-purple-600 to-indigo-600' : 'from-blue-600 to-cyan-600'} text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
-                ${user.name.charAt(0).toUpperCase()}
+              <div class="w-9 h-9 rounded-full bg-gradient-to-tr ${isAdmin ? 'from-purple-600 to-indigo-600' : (user.role === 'visita' ? 'from-amber-500 to-orange-500' : 'from-blue-600 to-cyan-600')} text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
+                ${initials}
               </div>
               <div>
-                <span class="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-100 block">${escapeHtml(user.name)}</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-100 block">${escapeHtml(user.name)}</span>
+                  ${isCurrent ? '<span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">Sesión Actual</span>' : ''}
+                </div>
                 <span class="text-[11px] text-slate-500 dark:text-slate-400 block">${escapeHtml(user.email)}</span>
               </div>
             </div>
@@ -232,7 +301,21 @@ const App = (function () {
             ${user.createdAt}
           </td>
           <td class="py-3.5 px-4 text-center">
-            <div class="flex items-center justify-center gap-1.5">
+            <div class="flex items-center justify-center gap-2">
+              ${isCurrent ? `
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100/70 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs font-bold border border-emerald-300 dark:border-emerald-700">
+                  <i class="fa-solid fa-circle-check text-xs"></i> Activo
+                </span>
+              ` : `
+                <button 
+                  onclick="App.switchUserAccount('${user.id}')" 
+                  title="Iniciar sesión como este usuario" 
+                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white dark:bg-blue-900/40 dark:hover:bg-blue-600 dark:text-blue-300 text-xs font-bold transition-all shadow-xs border border-blue-200 dark:border-blue-800"
+                >
+                  <i class="fa-solid fa-right-to-bracket text-xs"></i>
+                  <span>Ingresar</span>
+                </button>
+              `}
               <button 
                 onclick="App.toggleUserStatus('${user.id}')" 
                 title="${user.status === 'Activo' ? 'Suspender usuario' : 'Activar usuario'}" 
@@ -315,26 +398,45 @@ const App = (function () {
       Store.updateUser(editingUserId, { name, email, role, budget });
       showToast('Usuario actualizado con éxito', 'success');
     } else {
-      Store.addUser({ name, email, role, budget });
-      showToast('Usuario creado con éxito', 'success');
+      const newUser = Store.addUser({ name, email, role, budget });
+      showToast(`Usuario "${newUser.name}" creado con éxito`, 'success');
     }
 
     closeUserModal();
+    setupRoleUI();
     renderUsersTable();
   }
 
   function deleteUser(id) {
+    const currentId = Store.getCurrentUserId();
+    if (id === currentId) {
+      showToast('No puedes eliminar el usuario con el que tienes la sesión iniciada actualmente.', 'warning');
+      return;
+    }
+    const users = Store.getUsers();
+    if (users.length <= 1) {
+      showToast('No puedes eliminar el único usuario del sistema.', 'warning');
+      return;
+    }
+
     if (confirm('¿Estás seguro de que deseas eliminar este usuario del sistema?')) {
       Store.deleteUser(id);
-      showToast('Usuario eliminado', 'info');
+      showToast('Usuario eliminado del sistema', 'info');
+      setupRoleUI();
       renderUsersTable();
     }
   }
 
   function toggleUserStatus(id) {
+    const currentId = Store.getCurrentUserId();
+    if (id === currentId) {
+      showToast('No puedes suspender tu propia sesión activa.', 'warning');
+      return;
+    }
     const updated = Store.toggleUserStatus(id);
     if (updated) {
       showToast(`Usuario ${updated.name} ahora está ${updated.status}`, 'info');
+      setupRoleUI();
       renderUsersTable();
     }
   }
@@ -1006,6 +1108,7 @@ const App = (function () {
     switchView,
     toggleTheme,
     changeCurrency,
+    switchUserAccount,
     switchUserRole,
     setupRoleUI,
     renderChangelog,
