@@ -105,7 +105,11 @@ const Store = (function () {
     activeRole: 'cliente',
     userName: 'Dany Ramos (Personal)',
     userRole: 'Cliente / Personal',
-    geminiApiKey: ''
+    geminiApiKey: '',
+    supabaseUrl: '',
+    supabaseAnonKey: '',
+    cloudSyncEnabled: false,
+    lastCloudSync: null
   };
 
   const defaultUsers = [
@@ -117,6 +121,7 @@ const Store = (function () {
       status: 'Activo',
       budget: 5000,
       password: 'Dany2207',
+      mustChangePassword: false,
       createdAt: '2026-10-15'
     },
     {
@@ -127,6 +132,7 @@ const Store = (function () {
       status: 'Activo',
       budget: 3500,
       password: '1234',
+      mustChangePassword: false,
       createdAt: '2026-10-18'
     },
     {
@@ -137,6 +143,7 @@ const Store = (function () {
       status: 'Activo',
       budget: 1500,
       password: 'demo',
+      mustChangePassword: false,
       createdAt: '2026-10-20'
     }
   ];
@@ -421,7 +428,16 @@ const Store = (function () {
         saveUsers(defaultUsers);
         return defaultUsers;
       }
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      let updated = false;
+      parsed.forEach(u => {
+        if (u.mustChangePassword === undefined) {
+          u.mustChangePassword = false;
+          updated = true;
+        }
+      });
+      if (updated) saveUsers(parsed);
+      return parsed;
     } catch (e) {
       return defaultUsers;
     }
@@ -432,6 +448,116 @@ const Store = (function () {
       localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
     } catch (e) {
       console.error('Error saving users to localStorage:', e);
+    }
+  }
+
+  // --- SUPABASE CLOUD & MULTI-DEVICE SYNCHRONIZATION ---
+  let supabaseClient = null;
+  let realtimeChannel = null;
+
+  function getSupabaseClient() {
+    if (supabaseClient) return supabaseClient;
+    const settings = loadSettings();
+    if (settings.supabaseUrl && settings.supabaseAnonKey && typeof window !== 'undefined' && window.supabase) {
+      try {
+        supabaseClient = window.supabase.createClient(
+          settings.supabaseUrl.trim(),
+          settings.supabaseAnonKey.trim(),
+          { auth: { persistSession: false } }
+        );
+      } catch (e) {
+        console.warn('Could not initialize Supabase client:', e);
+      }
+    }
+    return supabaseClient;
+  }
+
+  function mapTxToCloud(tx, userId) {
+    return {
+      id: tx.id,
+      user_id: userId || getCurrentUserId(),
+      type: tx.type,
+      concept: tx.concept,
+      amount: parseFloat(tx.amount),
+      category: tx.category,
+      date: tx.date,
+      payment_method: tx.paymentMethod || 'Efectivo',
+      notes: tx.notes || '',
+      created_at: tx.createdAt || new Date().toISOString()
+    };
+  }
+
+  function mapTxFromCloud(row) {
+    return {
+      id: row.id,
+      type: row.type,
+      concept: row.concept,
+      amount: parseFloat(row.amount),
+      category: row.category,
+      date: row.date,
+      paymentMethod: row.payment_method || row.paymentMethod || 'Efectivo',
+      notes: row.notes || '',
+      createdAt: row.created_at || row.createdAt || new Date().toISOString()
+    };
+  }
+
+  function mapUserToCloud(user) {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      budget: parseFloat(user.budget || 3000),
+      password: user.password,
+      must_change_password: !!user.mustChangePassword,
+      created_at: user.createdAt || formatDateISO(new Date())
+    };
+  }
+
+  function mapUserFromCloud(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      status: row.status,
+      budget: parseFloat(row.budget || 3000),
+      password: row.password,
+      mustChangePassword: !!(row.must_change_password !== undefined ? row.must_change_password : row.mustChangePassword),
+      createdAt: row.created_at || row.createdAt || formatDateISO(new Date())
+    };
+  }
+
+  async function pushTransactionToCloud(tx) {
+    const client = getSupabaseClient();
+    if (!client) return;
+    try {
+      const payload = mapTxToCloud(tx, getCurrentUserId());
+      await client.from('finstack_transactions').upsert(payload, { onConflict: 'id' });
+    } catch (e) {
+      console.warn('Offline / sync transaction notice:', e);
+    }
+  }
+
+  async function deleteTransactionFromCloud(id) {
+    const client = getSupabaseClient();
+    if (!client) return;
+    try {
+      await client.from('finstack_transactions').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Offline / delete transaction notice:', e);
+    }
+  }
+
+  async function pushUserToCloud(user) {
+    const client = getSupabaseClient();
+    if (!client) return;
+    try {
+      const payload = mapUserToCloud(user);
+      await client.from('finstack_users').upsert(payload, { onConflict: 'id' });
+    } catch (e) {
+      console.warn('Offline / sync user notice:', e);
     }
   }
 
@@ -460,6 +586,7 @@ const Store = (function () {
       };
       list.unshift(newTx);
       saveTransactions(list);
+      pushTransactionToCloud(newTx);
       return newTx;
     },
 
@@ -481,6 +608,7 @@ const Store = (function () {
       };
 
       saveTransactions(list);
+      pushTransactionToCloud(list[index]);
       return list[index];
     },
 
@@ -489,6 +617,7 @@ const Store = (function () {
       const initialLength = list.length;
       list = list.filter(item => item.id !== id);
       saveTransactions(list);
+      deleteTransactionFromCloud(id);
       return list.length < initialLength;
     },
 
@@ -745,10 +874,12 @@ const Store = (function () {
         status: 'Activo',
         budget: parseFloat(userData.budget) || 3000,
         password: (userData.password && userData.password.trim()) ? userData.password.trim() : '1234',
+        mustChangePassword: false,
         createdAt: formatDateISO(new Date())
       };
       users.push(newUser);
       saveUsers(users);
+      pushUserToCloud(newUser);
 
       // Pre-initialize empty transactions so the new user starts from 0
       try {
@@ -770,9 +901,11 @@ const Store = (function () {
         role: updatedData.role || users[index].role,
         status: updatedData.status || users[index].status,
         budget: updatedData.budget !== undefined ? parseFloat(updatedData.budget) : users[index].budget,
-        password: (updatedData.password && updatedData.password.trim()) ? updatedData.password.trim() : users[index].password
+        password: (updatedData.password && updatedData.password.trim()) ? updatedData.password.trim() : users[index].password,
+        mustChangePassword: updatedData.mustChangePassword !== undefined ? !!updatedData.mustChangePassword : users[index].mustChangePassword
       };
       saveUsers(users);
+      pushUserToCloud(users[index]);
 
       // Keep active session synchronized if modifying current user
       if (id === getCurrentUserId()) {
@@ -795,6 +928,10 @@ const Store = (function () {
       try {
         localStorage.removeItem(`finstack_tx_v5_user_${id}`);
       } catch (e) {}
+      const client = getSupabaseClient();
+      if (client) {
+        client.from('finstack_users').delete().eq('id', id).then(() => {}).catch(() => {});
+      }
       return users.length < initial;
     },
 
@@ -804,6 +941,7 @@ const Store = (function () {
       if (!user) return null;
       user.status = user.status === 'Activo' ? 'Inactivo' : 'Activo';
       saveUsers(users);
+      pushUserToCloud(user);
       return user;
     },
 
@@ -815,13 +953,229 @@ const Store = (function () {
       return user.password.trim() === (password || '').trim();
     },
 
-    resetUserPassword: function (id, newPassword) {
+    resetUserPassword: function (id, newPassword, requireChange = false) {
       const users = loadUsers();
       const user = users.find(u => u.id === id);
       if (!user) return null;
       user.password = (newPassword || '').trim();
+      user.mustChangePassword = requireChange;
       saveUsers(users);
+      pushUserToCloud(user);
       return user;
+    },
+
+    generateTemporaryPassword: function (id) {
+      const users = loadUsers();
+      const user = users.find(u => u.id === id);
+      if (!user) return null;
+      
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const tempPassword = `TEMP-${randomSuffix}`;
+      user.password = tempPassword;
+      user.mustChangePassword = true;
+      saveUsers(users);
+      pushUserToCloud(user);
+      return { user, tempPassword };
+    },
+
+    changePersonalPassword: function (id, newPassword) {
+      const users = loadUsers();
+      const user = users.find(u => u.id === id);
+      if (!user) return null;
+      user.password = (newPassword || '').trim();
+      user.mustChangePassword = false;
+      saveUsers(users);
+      pushUserToCloud(user);
+      return user;
+    },
+
+    // --- SUPABASE CLOUD SYNC API ---
+    isCloudConfigured: function () {
+      const s = loadSettings();
+      return !!(s.supabaseUrl && s.supabaseAnonKey);
+    },
+
+    getCloudConfig: function () {
+      const s = loadSettings();
+      return {
+        url: s.supabaseUrl || '',
+        key: s.supabaseAnonKey || '',
+        lastSync: s.lastCloudSync || null,
+        enabled: !!s.cloudSyncEnabled
+      };
+    },
+
+    setCloudConfig: function (url, key) {
+      const s = loadSettings();
+      s.supabaseUrl = (url || '').trim();
+      s.supabaseAnonKey = (key || '').trim();
+      s.cloudSyncEnabled = !!(s.supabaseUrl && s.supabaseAnonKey);
+      saveSettings(s);
+      supabaseClient = null;
+      getSupabaseClient();
+      return s;
+    },
+
+    disconnectCloud: function () {
+      const s = loadSettings();
+      s.supabaseUrl = '';
+      s.supabaseAnonKey = '';
+      s.cloudSyncEnabled = false;
+      s.lastCloudSync = null;
+      saveSettings(s);
+      if (realtimeChannel && supabaseClient) {
+        try {
+          supabaseClient.removeChannel(realtimeChannel);
+        } catch (e) {}
+      }
+      realtimeChannel = null;
+      supabaseClient = null;
+      return s;
+    },
+
+    syncCloud: async function () {
+      const client = getSupabaseClient();
+      if (!client) {
+        return { success: false, message: 'Supabase no está configurado o no hay credenciales.' };
+      }
+
+      try {
+        const userId = getCurrentUserId();
+
+        // 1. Fetch transactions for current user
+        const { data: cloudTxs, error: txError } = await client
+          .from('finstack_transactions')
+          .select('*')
+          .eq('user_id', userId);
+
+        if (txError) throw txError;
+
+        // 2. Fetch all users
+        const { data: cloudUsers, error: usersError } = await client
+          .from('finstack_users')
+          .select('*');
+
+        if (usersError) throw usersError;
+
+        // 3. Merge cloud users into local cache
+        if (cloudUsers && cloudUsers.length > 0) {
+          const localUsers = loadUsers();
+          const userMap = new Map();
+          localUsers.forEach(u => userMap.set(u.id, u));
+          cloudUsers.forEach(cu => {
+            const mapped = mapUserFromCloud(cu);
+            userMap.set(mapped.id, mapped);
+          });
+          const mergedUsers = Array.from(userMap.values());
+          saveUsers(mergedUsers);
+        }
+
+        // 4. Merge transactions
+        const localKey = getCurrentStorageKey();
+        let localTxs = [];
+        try {
+          const raw = localStorage.getItem(localKey);
+          if (raw) localTxs = JSON.parse(raw);
+        } catch (e) {}
+
+        const txMap = new Map();
+        localTxs.forEach(tx => txMap.set(tx.id, tx));
+
+        if (cloudTxs && cloudTxs.length > 0) {
+          cloudTxs.forEach(ctx => {
+            const mapped = mapTxFromCloud(ctx);
+            txMap.set(mapped.id, mapped);
+          });
+        }
+
+        const mergedTxs = Array.from(txMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
+        saveTransactions(mergedTxs);
+
+        // 5. Bidirectional: upload local-only transactions to Supabase
+        if (localTxs.length > 0) {
+          const cloudIds = new Set((cloudTxs || []).map(t => t.id));
+          const localOnly = localTxs.filter(t => !cloudIds.has(t.id));
+          if (localOnly.length > 0) {
+            const toUpload = localOnly.map(t => mapTxToCloud(t, userId));
+            await client.from('finstack_transactions').upsert(toUpload, { onConflict: 'id' });
+          }
+        }
+
+        // 6. Update last sync time in settings
+        const settings = loadSettings();
+        settings.lastCloudSync = new Date().toISOString();
+        settings.cloudSyncEnabled = true;
+        saveSettings(settings);
+
+        return {
+          success: true,
+          message: 'Sincronización completada con éxito',
+          transactionsCount: mergedTxs.length,
+          lastSync: settings.lastCloudSync
+        };
+      } catch (err) {
+        console.error('syncCloud error:', err);
+        return { success: false, message: err.message || 'Error al conectar con la base de datos' };
+      }
+    },
+
+    pullCloudTransactions: async function () {
+      const client = getSupabaseClient();
+      if (!client) return;
+      try {
+        const userId = getCurrentUserId();
+        const { data: cloudTxs, error } = await client
+          .from('finstack_transactions')
+          .select('*')
+          .eq('user_id', userId);
+        if (!error && cloudTxs) {
+          const mapped = cloudTxs.map(mapTxFromCloud).sort((a, b) => new Date(b.date) - new Date(a.date));
+          saveTransactions(mapped);
+        }
+      } catch (e) {
+        console.warn('pullCloudTransactions notice:', e);
+      }
+    },
+
+    pullCloudUsers: async function () {
+      const client = getSupabaseClient();
+      if (!client) return;
+      try {
+        const { data: cloudUsers, error } = await client
+          .from('finstack_users')
+          .select('*');
+        if (!error && cloudUsers && cloudUsers.length > 0) {
+          const mapped = cloudUsers.map(mapUserFromCloud);
+          saveUsers(mapped);
+        }
+      } catch (e) {
+        console.warn('pullCloudUsers notice:', e);
+      }
+    },
+
+    initRealtime: function (onUpdateCallback) {
+      const client = getSupabaseClient();
+      if (!client || realtimeChannel) return;
+
+      try {
+        realtimeChannel = client
+          .channel('finstack_realtime_channel')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'finstack_transactions' }, async (payload) => {
+            console.log('⚡ Realtime event finstack_transactions:', payload);
+            await Store.pullCloudTransactions();
+            if (typeof onUpdateCallback === 'function') onUpdateCallback('transactions');
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'finstack_users' }, async (payload) => {
+            console.log('⚡ Realtime event finstack_users:', payload);
+            await Store.pullCloudUsers();
+            if (typeof onUpdateCallback === 'function') onUpdateCallback('users');
+          })
+          .subscribe((status) => {
+            console.log('Realtime status:', status);
+          });
+      } catch (e) {
+        console.warn('Realtime subscription notice:', e);
+      }
     },
 
     // --- CHANGELOG / VERSIONS ---

@@ -75,6 +75,9 @@ documentos en este orden numerado:
   10. `10_GUIA_DESPLIEGUE_PRODUCCION_Y_NUBE.txt`
       Tutorial paso a paso para lanzar tu app a Vercel, GitHub Pages e instalarla en móvil.
 
+  11. `11_CONFIGURACION_BASE_DE_DATOS_SUPABASE.txt`
+      Guía de 2 minutos para conectar Supabase y sincronizar Celular, Laptop y PC en tiempo real.
+
 
 3. GLOSARIO RÁPIDO DE TÉRMINOS QUE VERÁS SEGUIDO
 --------------------------------------------------------------------------------

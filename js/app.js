@@ -51,7 +51,22 @@ const App = (function () {
     AIAssistant.init();
     initLockScreen();
 
-    console.log('FinStack Pro initialized with Strict Security & Admin Password Management.');
+    // Multi-Device Cloud Sync Initialization
+    if (Store.isCloudConfigured()) {
+      Store.syncCloud().then(res => {
+        if (res.success) {
+          refreshAllUI();
+          updateCloudSyncUI();
+        }
+      });
+      Store.initRealtime(() => {
+        refreshAllUI();
+        showToast('Actualización en tiempo real recibida de la nube', 'info');
+      });
+    }
+    updateCloudSyncUI();
+
+    console.log('FinStack Pro initialized with Strict Security, Temporary Passwords & Multi-Device Cloud Sync.');
   }
 
   // --- THEME MANAGEMENT (Dark / Light) ---
@@ -283,6 +298,20 @@ const App = (function () {
       return;
     }
 
+    // Intercept if temporary password is used: force new password creation
+    if (user.mustChangePassword) {
+      if (errorMsg) errorMsg.classList.add('hidden');
+      input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+      input.value = '';
+      const lockScreen = document.getElementById('authLockScreen');
+      if (lockScreen) {
+        lockScreen.classList.add('hidden');
+        lockScreen.classList.remove('flex');
+      }
+      openForceChangePasswordModal(userId);
+      return;
+    }
+
     // Success: unlock session
     if (errorMsg) errorMsg.classList.add('hidden');
     input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
@@ -428,7 +457,14 @@ const App = (function () {
     }
 
     const targetId = pendingSwitchUserId;
+    const targetUser = Store.getUsers().find(u => u.id === targetId);
     closeSwitchModal();
+
+    if (targetUser && targetUser.mustChangePassword) {
+      openForceChangePasswordModal(targetId);
+      return;
+    }
+
     switchUserAccount(targetId, true);
   }
 
@@ -441,7 +477,79 @@ const App = (function () {
     }
   }
 
-  // --- PASSWORD RESET MODAL (ADMIN ONLY) ---
+  // --- MANDATORY PASSWORD UPDATE MODAL (PRIMER INGRESO CON CLAVE TEMPORAL) ---
+  let pendingForcedChangeUserId = null;
+
+  function openForceChangePasswordModal(userId) {
+    pendingForcedChangeUserId = userId;
+    const user = Store.getUsers().find(u => u.id === userId);
+    if (!user) return;
+
+    const modal = document.getElementById('forceChangePasswordModal');
+    const welcomeEl = document.getElementById('forceChangeUserWelcome');
+    const p1 = document.getElementById('forceNewPasswordInput');
+    const p2 = document.getElementById('forceConfirmPasswordInput');
+    const err = document.getElementById('forceChangeErrorMsg');
+
+    if (welcomeEl) {
+      welcomeEl.textContent = `Hola ${user.name}, tu acceso fue restablecido con una clave temporal por el Administrador. Por tu privacidad y seguridad, define tu propia contraseña personal para acceder a tus finanzas.`;
+    }
+    if (p1) p1.value = '';
+    if (p2) p2.value = '';
+    if (err) err.classList.add('hidden');
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      if (p1) setTimeout(() => p1.focus(), 150);
+    }
+  }
+
+  function submitForceChangePassword(e) {
+    e.preventDefault();
+    if (!pendingForcedChangeUserId) return;
+
+    const p1 = document.getElementById('forceNewPasswordInput');
+    const p2 = document.getElementById('forceConfirmPasswordInput');
+    const err = document.getElementById('forceChangeErrorMsg');
+
+    const pass1 = p1 ? p1.value.trim() : '';
+    const pass2 = p2 ? p2.value.trim() : '';
+
+    if (!pass1 || pass1.length < 4) {
+      showToast('La nueva contraseña debe tener al menos 4 caracteres', 'warning');
+      return;
+    }
+
+    if (pass1 !== pass2) {
+      if (err) {
+        err.textContent = 'Las contraseñas no coinciden. Inténtalo de nuevo.';
+        err.classList.remove('hidden');
+      }
+      if (p2) p2.focus();
+      return;
+    }
+
+    const updatedUser = Store.changePersonalPassword(pendingForcedChangeUserId, pass1);
+    const modal = document.getElementById('forceChangePasswordModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    const targetUserId = pendingForcedChangeUserId;
+    pendingForcedChangeUserId = null;
+
+    Store.switchUser(targetUserId);
+    isSessionLocked = false;
+    setupRoleUI();
+    refreshAllUI();
+    showToast(`¡Contraseña establecida con éxito! Bienvenido, ${updatedUser.name}.`, 'success');
+  }
+
+  // --- PASSWORD RESET MODAL (ADMIN EXCLUSIVO) ---
+  let lastGeneratedTempPassword = '';
+
   function openResetPasswordModal(userId) {
     pendingResetUserId = userId;
     const user = Store.getUsers().find(u => u.id === userId);
@@ -449,18 +557,67 @@ const App = (function () {
 
     const modal = document.getElementById('resetPasswordModal');
     const userNameEl = document.getElementById('resetModalUserName');
-    const input = document.getElementById('resetNewPasswordInput');
-
     if (userNameEl) userNameEl.textContent = `Usuario: ${user.name} (${user.email})`;
-    if (input) {
-      input.value = '';
-      input.classList.remove('border-rose-500');
-    }
+
+    showResetOptions();
 
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-      if (input) setTimeout(() => input.focus(), 150);
+    }
+  }
+
+  function showResetOptions() {
+    const optCont = document.getElementById('resetOptionsContainer');
+    const resCont = document.getElementById('resetResultContainer');
+    const manForm = document.getElementById('resetManualForm');
+    if (optCont) optCont.classList.remove('hidden');
+    if (resCont) resCont.classList.add('hidden');
+    if (manForm) manForm.classList.add('hidden');
+  }
+
+  function showManualPasswordForm() {
+    const optCont = document.getElementById('resetOptionsContainer');
+    const resCont = document.getElementById('resetResultContainer');
+    const manForm = document.getElementById('resetManualForm');
+    const input = document.getElementById('resetNewPasswordInput');
+    if (optCont) optCont.classList.add('hidden');
+    if (resCont) resCont.classList.add('hidden');
+    if (manForm) manForm.classList.remove('hidden');
+    if (input) {
+      input.value = '';
+      setTimeout(() => input.focus(), 150);
+    }
+  }
+
+  function generateTempPasswordForUser() {
+    if (!pendingResetUserId) return;
+    const result = Store.generateTemporaryPassword(pendingResetUserId);
+    if (!result) return;
+
+    lastGeneratedTempPassword = result.tempPassword;
+
+    const optCont = document.getElementById('resetOptionsContainer');
+    const resCont = document.getElementById('resetResultContainer');
+    const codeEl = document.getElementById('generatedTempPasswordText');
+
+    if (codeEl) codeEl.textContent = result.tempPassword;
+    if (optCont) optCont.classList.add('hidden');
+    if (resCont) resCont.classList.remove('hidden');
+
+    showToast(`Clave temporal generada: ${result.tempPassword}`, 'info');
+  }
+
+  function copyTempPassword() {
+    if (!lastGeneratedTempPassword) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lastGeneratedTempPassword).then(() => {
+        showToast('¡Clave temporal copiada al portapapeles!', 'success');
+      }).catch(() => {
+        showToast(`Código: ${lastGeneratedTempPassword}`, 'info');
+      });
+    } else {
+      showToast(`Código: ${lastGeneratedTempPassword}`, 'info');
     }
   }
 
@@ -471,6 +628,7 @@ const App = (function () {
       modal.classList.remove('flex');
     }
     pendingResetUserId = null;
+    lastGeneratedTempPassword = '';
   }
 
   function submitResetPassword(e) {
@@ -484,12 +642,134 @@ const App = (function () {
       return;
     }
 
-    const user = Store.resetUserPassword(pendingResetUserId, newPassword);
+    const user = Store.resetUserPassword(pendingResetUserId, newPassword, false);
     if (user) {
-      showToast(`¡Contraseña de ${user.name} restablecida con éxito!`, 'success');
+      showToast(`¡Contraseña de ${user.name} actualizada con éxito!`, 'success');
     }
     closeResetPasswordModal();
     renderUsersTable();
+  }
+
+  // --- SUPABASE CLOUD SYNC UI HANDLERS ---
+  function openCloudSyncModal() {
+    const modal = document.getElementById('cloudSyncModal');
+    const urlInput = document.getElementById('supabaseUrlInput');
+    const keyInput = document.getElementById('supabaseKeyInput');
+    const config = Store.getCloudConfig();
+
+    if (urlInput) urlInput.value = config.url || '';
+    if (keyInput) keyInput.value = config.key || '';
+
+    updateCloudSyncUI();
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  }
+
+  function closeCloudSyncModal() {
+    const modal = document.getElementById('cloudSyncModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  function updateCloudSyncUI() {
+    const isConfigured = Store.isCloudConfigured();
+    const config = Store.getCloudConfig();
+
+    const dot = document.getElementById('cloudStatusDot');
+    const title = document.getElementById('cloudStatusTitle');
+    const sub = document.getElementById('cloudStatusSubtitle');
+    const btnSync = document.getElementById('btnManualSync');
+    const btnDisconnect = document.getElementById('btnDisconnectCloud');
+    const headerBtn = document.getElementById('cloudSyncHeaderBtn');
+    const headerLabel = document.getElementById('cloudSyncHeaderLabel');
+    const sidebarBadge = document.getElementById('cloudSidebarBadge');
+
+    if (isConfigured) {
+      if (dot) dot.className = 'w-3 h-3 rounded-full bg-emerald-500 animate-pulse';
+      if (title) title.textContent = '🟢 Conectado a Supabase Cloud';
+      if (sub) {
+        const last = config.lastSync ? new Date(config.lastSync).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Reciente';
+        sub.textContent = `Sincronización multi-dispositivo activa. Última sincronización: ${last}`;
+      }
+      if (btnSync) btnSync.classList.remove('hidden');
+      if (btnDisconnect) btnDisconnect.classList.remove('hidden');
+      if (headerBtn) {
+        headerBtn.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-sm';
+      }
+      if (headerLabel) headerLabel.textContent = 'En la Nube';
+      if (sidebarBadge) {
+        sidebarBadge.className = 'ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300';
+        sidebarBadge.textContent = 'CLOUD';
+      }
+    } else {
+      if (dot) dot.className = 'w-3 h-3 rounded-full bg-slate-400';
+      if (title) title.textContent = 'Modo Local (Sin sincronizar)';
+      if (sub) sub.textContent = 'Tus datos solo viven en este dispositivo. Conecta Supabase para sincronizar con tu celular y laptop.';
+      if (btnSync) btnSync.classList.add('hidden');
+      if (btnDisconnect) btnDisconnect.classList.add('hidden');
+      if (headerBtn) {
+        headerBtn.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-sky-400';
+      }
+      if (headerLabel) headerLabel.textContent = 'Nube';
+      if (sidebarBadge) {
+        sidebarBadge.className = 'ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
+        sidebarBadge.textContent = 'LOCAL';
+      }
+    }
+  }
+
+  async function saveCloudSyncSettings(e) {
+    e.preventDefault();
+    const urlInput = document.getElementById('supabaseUrlInput');
+    const keyInput = document.getElementById('supabaseKeyInput');
+    const url = urlInput ? urlInput.value.trim() : '';
+    const key = keyInput ? keyInput.value.trim() : '';
+
+    if (!url || !key) {
+      showToast('Por favor ingresa la URL y la Anon Key de Supabase', 'warning');
+      return;
+    }
+
+    showToast('Conectando con Supabase...', 'info');
+    Store.setCloudConfig(url, key);
+
+    const result = await Store.syncCloud();
+    if (result.success) {
+      showToast(`¡Conexión exitosa! Sincronizadas ${result.transactionsCount || 0} transacciones`, 'success');
+      Store.initRealtime(() => {
+        refreshAllUI();
+        showToast('Actualización en tiempo real recibida desde otro dispositivo', 'info');
+      });
+      updateCloudSyncUI();
+      refreshAllUI();
+      closeCloudSyncModal();
+    } else {
+      showToast(`Error al conectar: ${result.message}`, 'danger');
+      updateCloudSyncUI();
+    }
+  }
+
+  async function triggerCloudSync() {
+    showToast('Sincronizando con la nube...', 'info');
+    const result = await Store.syncCloud();
+    if (result.success) {
+      refreshAllUI();
+      updateCloudSyncUI();
+      showToast('¡Datos sincronizados con éxito!', 'success');
+    } else {
+      showToast(`Error: ${result.message}`, 'danger');
+    }
+  }
+
+  function disconnectCloudSync() {
+    Store.disconnectCloud();
+    updateCloudSyncUI();
+    showToast('Sincronización en la nube desactivada. Operando en modo local.', 'info');
   }
 
   function togglePasswordVisibility(inputId) {
@@ -1415,9 +1695,21 @@ const App = (function () {
     submitLockScreenLogin,
     submitSwitchPassword,
     closeSwitchModal,
+    openForceChangePasswordModal,
+    submitForceChangePassword,
     openResetPasswordModal,
     closeResetPasswordModal,
     submitResetPassword,
+    generateTempPasswordForUser,
+    copyTempPassword,
+    showResetOptions,
+    showManualPasswordForm,
+    openCloudSyncModal,
+    closeCloudSyncModal,
+    saveCloudSyncSettings,
+    triggerCloudSync,
+    disconnectCloudSync,
+    updateCloudSyncUI,
     togglePasswordVisibility,
     renderChangelog,
     openTransactionModal,

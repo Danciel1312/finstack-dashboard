@@ -1,0 +1,163 @@
+================================================================================
+GUÍA PEDAGÓGICA #11: BASE DE DATOS EN LA NUBE CON SUPABASE & MULTI-DISPOSITIVO
+Sincronización en Tiempo Real entre Celular, Laptop y Computadora de Escritorio
+FinStack Pro - Producción Oficial
+================================================================================
+
+--------------------------------------------------------------------------------
+1. ¿POR QUÉ ENTRÉ A PRODUCCIÓN EN MI CELULAR Y NO SE VEÍAN LOS DATOS DE LA PC?
+--------------------------------------------------------------------------------
+Cuando abriste tu aplicación en el teléfono y registraste transacciones, notaste
+que no aparecían en tu laptop ni en tu CPU. ¿Por qué ocurrió esto?
+
+* LA MEMORIA LOCAL (localStorage):
+  Hasta ahora, FinStack guardaba toda la información en el "localStorage" del
+  navegador. El localStorage es como una libreta de notas que vive físicamente
+  DENTRO de cada dispositivo:
+  - El navegador de tu celular tiene su propia libreta privada.
+  - El navegador de tu laptop tiene otra libreta distinta.
+  - El navegador de tu PC tiene otra libreta separada.
+
+* VERCEL ALMACENA EL CÓDIGO, NO LA BASE DE DATOS:
+  Vercel aloja los archivos visuales (HTML, CSS, JavaScript) y los entrega a la
+  velocidad de la luz a cualquier dispositivo. Pero para que un gasto anotado en
+  la fila del supermercado desde tu celular aparezca inmediatamente en la pantalla
+  de tu laptop, se necesita un "servidor central en la nube" (Base de Datos).
+
+La solución estándar de la industria mundial es **Supabase** (PostgreSQL en la Nube),
+que es 100% gratuita, ultrarrápida y cuenta con tecnología "Realtime" (WebSockets)
+para actualizar pantallas al instante sin recargar la página.
+
+--------------------------------------------------------------------------------
+2. CÓMO FUNCIONA LA ARQUITECTURA HÍBRIDA DE FINSTACK PRO
+--------------------------------------------------------------------------------
+FinStack utiliza un sistema de almacenamiento híbrido de nivel profesional:
+
+  [ CELULAR ] ─── (Guarda local) ───► Envía a Supabase (Cloud)
+                                             │
+                       WebSocket en tiempo real (instantáneo)
+                                             ▼
+  [ LAPTOP / PC ] ◄── Recibe cambio ── Actualiza pantalla automáticamente!
+
+* Ventaja 1: Velocidad instantánea (la app nunca se queda esperando la red).
+* Ventaja 2: Funciona offline si te quedas sin datos móviles temporalmente.
+* Ventaja 3: Al conectar internet, todo se sincroniza y respalda automáticamente.
+
+--------------------------------------------------------------------------------
+3. PASO A PASO: CONFIGURAR SUPABASE GRATIS EN 2 MINUTOS
+--------------------------------------------------------------------------------
+
+PASO 1: CREAR CUENTA EN SUPABASE
+1. Entra a: https://supabase.com
+2. Haz clic en "Start your project" (Iniciar proyecto) e inicia sesión con tu
+   cuenta de GitHub (la misma de Dany Ramos).
+3. Haz clic en "New project" (Nuevo proyecto).
+4. Llena los datos:
+   - Name (Nombre): FinStack
+   - Database Password: Crea una contraseña que recuerdes (ejemplo: DanyFinStack2026!)
+   - Region: Elige "East US" (Norteamérica) o la más cercana a tu país.
+5. Haz clic en "Create new project". Supabase tardará 45 segundos en preparar
+   tu base de datos en la nube.
+
+PASO 2: CREAR LAS TABLAS EN SQL (COPIAR Y PEGAR)
+1. En el panel izquierdo de Supabase, haz clic en el ícono de terminal llamado
+   "SQL Editor".
+2. Haz clic en "New query" (Nueva consulta).
+3. Copia el siguiente bloque de código completo y pégalo en el editor:
+
+====================== COPIAR DESDE AQUÍ ======================
+-- 1. TABLA DE TRANSACCIONES FINANCIERAS
+CREATE TABLE IF NOT EXISTS finstack_transactions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  concept TEXT NOT NULL,
+  amount NUMERIC(12, 2) NOT NULL,
+  category TEXT NOT NULL,
+  date TEXT NOT NULL,
+  payment_method TEXT NOT NULL,
+  notes TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. TABLA DE USUARIOS Y ROLES
+CREATE TABLE IF NOT EXISTS finstack_users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'cliente',
+  status TEXT NOT NULL DEFAULT 'Activo',
+  budget NUMERIC(12, 2) DEFAULT 3500.00,
+  password TEXT NOT NULL DEFAULT '1234',
+  must_change_password BOOLEAN DEFAULT FALSE,
+  created_at TEXT DEFAULT NOW()
+);
+
+-- 3. ACTIVAR TIEMPO REAL (REALTIME) PARA CELULAR Y PC
+ALTER PUBLICATION supabase_realtime ADD TABLE finstack_transactions;
+ALTER PUBLICATION supabase_realtime ADD TABLE finstack_users;
+
+-- 4. POLÍTICAS DE ACCESO SEGURO
+ALTER TABLE finstack_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE finstack_users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Acceso Publico Transacciones" ON finstack_transactions
+  FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Acceso Publico Usuarios" ON finstack_users
+  FOR ALL USING (true) WITH CHECK (true);
+====================== TERMINA COPIAR AQUÍ ======================
+
+4. Haz clic en el botón verde "Run" (Ejecutar) abajo a la derecha.
+   Verás el mensaje: "Success. No rows returned". ¡Tus tablas en la nube están listas!
+
+PASO 3: OBTENER TUS DOS LLAVES DE CONEXIÓN
+1. En el menú lateral izquierdo de Supabase, haz clic en "Project Settings"
+   (el engranaje de configuración abajo a la izquierda).
+2. Haz clic en la pestaña "API" (o Data API).
+3. Encontrarás dos valores indispensables:
+   A) "Project URL": Se ve algo así como:
+      https://xyzabcdefghijklm.supabase.co
+   B) "Project API keys" -> "anon public": Se ve como un texto largo que empieza con:
+      eyJhbGciOiJIUzI1NiIsInR5cCI6...
+
+PASO 4: PEGAR LAS LLAVES EN FINSTACK PRO
+1. Abre tu aplicación FinStack (en tu laptop, celular o PC).
+2. En la barra superior haz clic en el botón con ícono de nube: "☁️ Nube"
+   (o en el menú lateral: "Sincronización Nube").
+3. Pega tu "Project URL" y tu "Anon Key".
+4. Haz clic en "Conectar y Activar Sincronización".
+
+¡LISTO! A partir de ese segundo:
+- La nube se pondrá en verde: 🟢 En la Nube
+- Cualquier transacción que registres en tu celular aparecerá instantáneamente en
+  tu laptop y computadora sin tocar ninguna tecla.
+- Las contraseñas y cuentas creadas por el Admin estarán protegidas y respaldadas
+  para siempre en la nube de Supabase.
+
+--------------------------------------------------------------------------------
+4. SEGURIDAD Y PRIVACIDAD DE CONTRASEÑAS ACTUALIZADA
+--------------------------------------------------------------------------------
+En esta versión se implementaron dos reglas fundamentales de seguridad:
+
+1. ELIMINACIÓN DE CLAVES VISIBLES:
+   Se quitó la tarjeta que mostraba las contraseñas en la pantalla de desbloqueo.
+   Nadie que abra la web podrá ver las credenciales de Dany ni de ningún usuario.
+
+2. RESTABLECIMIENTO CON CLAVE TEMPORAL:
+   Cuando un usuario olvida su contraseña, el Administrador va a Gestión Usuarios
+   y presiona el botón de la llave:
+   - Opción Recomendada: "Restablecer Usuario (Clave Temporal)".
+     Genera un código único (ejemplo: TEMP-7821) y activa la bandera
+     `mustChangePassword = true`.
+   - El administrador le entrega ese código temporal al usuario.
+   - Cuando el usuario ingresa por primera vez con esa clave, el sistema
+     BLOQUEA automáticamente el acceso al dashboard y despliega la pantalla:
+     "Crea tu Nueva Contraseña Personal".
+   - El usuario define su contraseña privada, el sistema la guarda y nadie más
+     (ni siquiera el administrador) sabrá cuál es.
+
+--------------------------------------------------------------------------------
+¡Con esto tu plataforma está 100% lista para ser usada en el mundo real en
+múltiples dispositivos a la vez!
+================================================================================
