@@ -451,6 +451,12 @@ const Store = (function () {
     }
   }
 
+  // Default project cloud credentials (allows all devices to connect automatically out-of-the-box)
+  const DEFAULT_SUPABASE_CONFIG = {
+    url: '',
+    anonKey: ''
+  };
+
   // --- SUPABASE CLOUD & MULTI-DEVICE SYNCHRONIZATION ---
   let supabaseClient = null;
   let realtimeChannel = null;
@@ -458,11 +464,14 @@ const Store = (function () {
   function getSupabaseClient() {
     if (supabaseClient) return supabaseClient;
     const settings = loadSettings();
-    if (settings.supabaseUrl && settings.supabaseAnonKey && typeof window !== 'undefined' && window.supabase) {
+    const url = (settings.supabaseUrl || DEFAULT_SUPABASE_CONFIG.url || '').trim();
+    const key = (settings.supabaseAnonKey || DEFAULT_SUPABASE_CONFIG.anonKey || '').trim();
+
+    if (url && key && typeof window !== 'undefined' && window.supabase) {
       try {
         supabaseClient = window.supabase.createClient(
-          settings.supabaseUrl.trim(),
-          settings.supabaseAnonKey.trim(),
+          url,
+          key,
           { auth: { persistSession: false } }
         );
       } catch (e) {
@@ -992,16 +1001,16 @@ const Store = (function () {
     // --- SUPABASE CLOUD SYNC API ---
     isCloudConfigured: function () {
       const s = loadSettings();
-      return !!(s.supabaseUrl && s.supabaseAnonKey);
+      return !!((s.supabaseUrl || DEFAULT_SUPABASE_CONFIG.url) && (s.supabaseAnonKey || DEFAULT_SUPABASE_CONFIG.anonKey));
     },
 
     getCloudConfig: function () {
       const s = loadSettings();
       return {
-        url: s.supabaseUrl || '',
-        key: s.supabaseAnonKey || '',
+        url: s.supabaseUrl || DEFAULT_SUPABASE_CONFIG.url || '',
+        key: s.supabaseAnonKey || DEFAULT_SUPABASE_CONFIG.anonKey || '',
         lastSync: s.lastCloudSync || null,
-        enabled: !!s.cloudSyncEnabled
+        enabled: !!s.cloudSyncEnabled || !!(DEFAULT_SUPABASE_CONFIG.url && DEFAULT_SUPABASE_CONFIG.anonKey)
       };
     },
 

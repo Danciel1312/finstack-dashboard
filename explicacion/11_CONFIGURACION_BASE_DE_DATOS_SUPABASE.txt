@@ -121,16 +121,23 @@ PASO 3: OBTENER TUS DOS LLAVES DE CONEXIÓN
    B) "Project API keys" -> "anon public": Se ve como un texto largo que empieza con:
       eyJhbGciOiJIUzI1NiIsInR5cCI6...
 
-PASO 4: PEGAR LAS LLAVES EN FINSTACK PRO
-1. Abre tu aplicación FinStack (en tu laptop, celular o PC).
-2. En la barra superior haz clic en el botón con ícono de nube: "☁️ Nube"
+PASO 4: PEGAR LAS LLAVES EN FINSTACK PRO (DESDE LA CUENTA ADMIN)
+1. Abre tu aplicación FinStack e ingresa como **Admin** (Dany Ramos - Dev/Admin).
+2. En la barra superior verás el botón con ícono de nube: "☁️ Nube (Admin)"
    (o en el menú lateral: "Sincronización Nube").
+   *NOTA: Este botón es visible y gestionable ÚNICAMENTE por el Administrador.
+   Los usuarios clientes y visitantes NO ven botones técnicos para evitar que
+   toquen o alteren la infraestructura.
 3. Pega tu "Project URL" y tu "Anon Key".
 4. Haz clic en "Conectar y Activar Sincronización".
 
 ¡LISTO! A partir de ese segundo:
-- La nube se pondrá en verde: 🟢 En la Nube
-- Cualquier transacción que registres en tu celular aparecerá instantáneamente en
+- La nube se pondrá en verde: 🟢 En la Nube (Admin).
+- **SINCRONIZACIÓN 100% AUTOMÁTICA PARA TODOS LOS USUARIOS**:
+  Cualquier usuario (Personal, nuevos clientes o visita) sincroniza sus
+  transacciones y cambios de saldo automáticamente en segundo plano sin ver
+  ni tocar ningún botón técnico.
+- Cualquier transacción que registres en tu celular se reflejará al segundo en
   tu laptop y computadora sin tocar ninguna tecla.
 - Las contraseñas y cuentas creadas por el Admin estarán protegidas y respaldadas
   para siempre en la nube de Supabase.

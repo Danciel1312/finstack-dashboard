@@ -182,14 +182,15 @@
             <span class="ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500 to-indigo-500 text-white">COPILOT</span>
           </button>
 
-          <!-- Sincronización Cloud Multi-Dispositivo -->
+          <!-- Sincronización Cloud Multi-Dispositivo (Admin Only) -->
           <button 
+            id="adminOnlyNavCloud"
             onclick="App.openCloudSyncModal()" 
-            class="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            class="w-full hidden flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
           >
             <i class="fa-solid fa-cloud text-base w-5 text-center text-sky-500"></i>
             <span>Sincronización Nube</span>
-            <span id="cloudSidebarBadge" class="ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">LOCAL</span>
+            <span id="cloudSidebarBadge" class="ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">ADMIN</span>
           </button>
 
           <!-- Cerrar Sesión / Bloquear -->
@@ -258,15 +259,15 @@
         <!-- Right: Actions, Currency, Role Switcher, AI, Theme, Notifications, User Profile -->
         <div class="flex items-center gap-2 md:gap-3 ml-3">
           
-          <!-- Cloud Sync Multi-Dispositivo Pill -->
+          <!-- Cloud Sync Multi-Dispositivo Pill (Admin Only) -->
           <button 
             id="cloudSyncHeaderBtn"
             onclick="App.openCloudSyncModal()" 
-            title="Sincronización multi-dispositivo en la nube (Celular / Laptop / PC)"
-            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-sky-400"
+            title="Sincronización multi-dispositivo en la nube (Celular / Laptop / PC) - Panel Admin"
+            class="hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-sky-400"
           >
             <i class="fa-solid fa-cloud text-xs text-sky-500"></i>
-            <span class="hidden sm:inline" id="cloudSyncHeaderLabel">Nube</span>
+            <span class="hidden sm:inline" id="cloudSyncHeaderLabel">Nube (Admin)</span>
           </button>
 
           <!-- FinStack AI Assistant Launcher Button -->

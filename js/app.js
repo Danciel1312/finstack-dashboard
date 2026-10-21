@@ -211,6 +211,9 @@ const App = (function () {
       if (activeRole === 'admin') adminOnlyNav.classList.remove('hidden');
       else adminOnlyNav.classList.add('hidden');
     }
+
+    // Cloud Sync UI (Only Admin manages the button, all users sync automatically)
+    updateCloudSyncUI();
   }
 
   // --- STRICT AUTH & LOCK SCREEN SYSTEM ---
@@ -329,6 +332,13 @@ const App = (function () {
     setupRoleUI();
     refreshAllUI();
     showToast(`¡Bienvenido, ${user.name}! Sesión iniciada.`, 'success');
+
+    // Automatic background cloud synchronization for any user
+    if (Store.isCloudConfigured()) {
+      Store.syncCloud().then(() => {
+        refreshAllUI();
+      });
+    }
   }
 
   function lockSession() {
@@ -384,6 +394,13 @@ const App = (function () {
 
       if (currentView === 'usuarios' && user.role !== 'admin') {
         switchView('dashboard');
+      }
+
+      // Automatic background cloud synchronization for any user
+      if (Store.isCloudConfigured()) {
+        Store.syncCloud().then(() => {
+          refreshAllUI();
+        });
       }
       return;
     }
@@ -545,6 +562,13 @@ const App = (function () {
     setupRoleUI();
     refreshAllUI();
     showToast(`¡Contraseña establecida con éxito! Bienvenido, ${updatedUser.name}.`, 'success');
+
+    // Automatic background cloud synchronization
+    if (Store.isCloudConfigured()) {
+      Store.syncCloud().then(() => {
+        refreshAllUI();
+      });
+    }
   }
 
   // --- PASSWORD RESET MODAL (ADMIN EXCLUSIVO) ---
@@ -652,6 +676,11 @@ const App = (function () {
 
   // --- SUPABASE CLOUD SYNC UI HANDLERS ---
   function openCloudSyncModal() {
+    if (Store.getActiveRole() !== 'admin') {
+      showToast('Solo el Administrador puede gestionar la infraestructura de la Nube.', 'warning');
+      return;
+    }
+
     const modal = document.getElementById('cloudSyncModal');
     const urlInput = document.getElementById('supabaseUrlInput');
     const keyInput = document.getElementById('supabaseKeyInput');
@@ -679,6 +708,8 @@ const App = (function () {
   function updateCloudSyncUI() {
     const isConfigured = Store.isCloudConfigured();
     const config = Store.getCloudConfig();
+    const activeRole = Store.getActiveRole();
+    const isAdmin = activeRole === 'admin';
 
     const dot = document.getElementById('cloudStatusDot');
     const title = document.getElementById('cloudStatusTitle');
@@ -687,7 +718,25 @@ const App = (function () {
     const btnDisconnect = document.getElementById('btnDisconnectCloud');
     const headerBtn = document.getElementById('cloudSyncHeaderBtn');
     const headerLabel = document.getElementById('cloudSyncHeaderLabel');
+    const sidebarBtn = document.getElementById('adminOnlyNavCloud');
     const sidebarBadge = document.getElementById('cloudSidebarBadge');
+
+    // ONLY the Admin sees and manages the cloud infrastructure buttons
+    if (headerBtn) {
+      if (isAdmin) {
+        headerBtn.classList.remove('hidden');
+      } else {
+        headerBtn.classList.add('hidden');
+      }
+    }
+
+    if (sidebarBtn) {
+      if (isAdmin) {
+        sidebarBtn.classList.remove('hidden');
+      } else {
+        sidebarBtn.classList.add('hidden');
+      }
+    }
 
     if (isConfigured) {
       if (dot) dot.className = 'w-3 h-3 rounded-full bg-emerald-500 animate-pulse';
@@ -699,9 +748,9 @@ const App = (function () {
       if (btnSync) btnSync.classList.remove('hidden');
       if (btnDisconnect) btnDisconnect.classList.remove('hidden');
       if (headerBtn) {
-        headerBtn.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-sm';
+        headerBtn.className = `${isAdmin ? 'inline-flex' : 'hidden'} items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-sm`;
       }
-      if (headerLabel) headerLabel.textContent = 'En la Nube';
+      if (headerLabel) headerLabel.textContent = 'En la Nube (Admin)';
       if (sidebarBadge) {
         sidebarBadge.className = 'ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300';
         sidebarBadge.textContent = 'CLOUD';
@@ -713,12 +762,12 @@ const App = (function () {
       if (btnSync) btnSync.classList.add('hidden');
       if (btnDisconnect) btnDisconnect.classList.add('hidden');
       if (headerBtn) {
-        headerBtn.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-sky-400';
+        headerBtn.className = `${isAdmin ? 'inline-flex' : 'hidden'} items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-sky-400`;
       }
-      if (headerLabel) headerLabel.textContent = 'Nube';
+      if (headerLabel) headerLabel.textContent = 'Nube (Admin)';
       if (sidebarBadge) {
-        sidebarBadge.className = 'ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
-        sidebarBadge.textContent = 'LOCAL';
+        sidebarBadge.className = 'ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300';
+        sidebarBadge.textContent = 'ADMIN';
       }
     }
   }
