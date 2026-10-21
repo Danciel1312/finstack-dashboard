@@ -106,9 +106,9 @@ const Store = (function () {
     userName: 'Dany Ramos (Personal)',
     userRole: 'Cliente / Personal',
     geminiApiKey: '',
-    supabaseUrl: '',
-    supabaseAnonKey: '',
-    cloudSyncEnabled: false,
+    supabaseUrl: 'https://ugsdetwtknzcnkammyry.supabase.co',
+    supabaseAnonKey: 'sb_publishable_cc0I61URp7pO5s3CGsy19w_ooGU8Ky5',
+    cloudSyncEnabled: true,
     lastCloudSync: null
   };
 
@@ -404,9 +404,17 @@ const Store = (function () {
           saveSettings(merged);
           return merged;
         }
+        saveSettings(defaultSettings);
         return { ...defaultSettings };
       }
-      return { ...defaultSettings, ...JSON.parse(data) };
+      const parsed = JSON.parse(data);
+      if (!parsed.supabaseUrl) {
+        parsed.supabaseUrl = defaultSettings.supabaseUrl;
+        parsed.supabaseAnonKey = defaultSettings.supabaseAnonKey;
+        parsed.cloudSyncEnabled = true;
+        saveSettings(parsed);
+      }
+      return { ...defaultSettings, ...parsed };
     } catch (e) {
       return { ...defaultSettings };
     }
@@ -451,10 +459,18 @@ const Store = (function () {
     }
   }
 
+  function cleanSupabaseUrl(url) {
+    if (!url) return '';
+    let cleaned = url.trim();
+    cleaned = cleaned.replace(/\/rest\/v1\/?$/, '');
+    cleaned = cleaned.replace(/\/+$/, '');
+    return cleaned;
+  }
+
   // Default project cloud credentials (allows all devices to connect automatically out-of-the-box)
   const DEFAULT_SUPABASE_CONFIG = {
-    url: '',
-    anonKey: ''
+    url: 'https://ugsdetwtknzcnkammyry.supabase.co',
+    anonKey: 'sb_publishable_cc0I61URp7pO5s3CGsy19w_ooGU8Ky5'
   };
 
   // --- SUPABASE CLOUD & MULTI-DEVICE SYNCHRONIZATION ---
@@ -464,7 +480,8 @@ const Store = (function () {
   function getSupabaseClient() {
     if (supabaseClient) return supabaseClient;
     const settings = loadSettings();
-    const url = (settings.supabaseUrl || DEFAULT_SUPABASE_CONFIG.url || '').trim();
+    const rawUrl = settings.supabaseUrl || DEFAULT_SUPABASE_CONFIG.url || '';
+    const url = cleanSupabaseUrl(rawUrl);
     const key = (settings.supabaseAnonKey || DEFAULT_SUPABASE_CONFIG.anonKey || '').trim();
 
     if (url && key && typeof window !== 'undefined' && window.supabase) {
@@ -1016,7 +1033,7 @@ const Store = (function () {
 
     setCloudConfig: function (url, key) {
       const s = loadSettings();
-      s.supabaseUrl = (url || '').trim();
+      s.supabaseUrl = cleanSupabaseUrl(url);
       s.supabaseAnonKey = (key || '').trim();
       s.cloudSyncEnabled = !!(s.supabaseUrl && s.supabaseAnonKey);
       saveSettings(s);
