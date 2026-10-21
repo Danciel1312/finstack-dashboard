@@ -194,4 +194,52 @@ D. js/app.js (El Orquestador / Controlador)
   remotas de red, la interfaz responde en menos de 16 milisegundos (60 FPS).
 - Portabilidad: Se puede llevar en una memoria USB o repositorio y abrir con un
   doble clic en cualquier computadora con un navegador web moderno.
+
+
+6. ARQUITECTURA MULTI-ROL (ADMIN, CLIENTE, VISITA)
+--------------------------------------------------------------------------------
+La aplicación cuenta con aislamiento de datos basado en roles para satisfacer
+los diferentes escenarios de uso de su creador:
+
+A. Rol Cliente (Personal):
+   - Almacena en `finstack_tx_personal_v3`.
+   - Es el entorno de producción privada del usuario. Tus gastos, salarios y
+     balances reales permanecen seguros y nunca se mezclan con pruebas.
+
+B. Rol Admin (Dev & Pruebas):
+   - Almacena en `finstack_tx_admin_v3`.
+   - Diseñado como sandbox/laboratorio. Permite probar cambios de código,
+     simular grandes volúmenes de transacciones y forzar errores sin riesgo
+     alguno de corromper tus finanzas verdaderas.
+
+C. Rol Visita (Showcase / Demostración):
+   - Almacena en `finstack_tx_visita_v3`.
+   - Diseñado para mostrar o prestar la aplicación a terceras personas. Carga
+     datos ficticios realistas para exhibir las capacidades del dashboard
+     manteniendo tu privacidad 100% blindada.
+
+
+7. HISTORIAL DE VERSIONES & ROADMAP (CHANGELOG)
+--------------------------------------------------------------------------------
+La aplicación integra una vista interactiva de versiones en el menú lateral:
+- v1.0.0: Lanzamiento inicial (Dashboard DashStack, Chart.js, Calendario).
+- v1.1.0: Documentación técnica y repositorio Git con Releases.
+- v1.2.0: Soporte Multi-Rol, Changelog en vivo y configuración PWA móvil.
+- Próximos hitos (Roadmap): Sincronización en la nube (Supabase) y empaquetado
+  móvil con Capacitor para Google Play Store.
+
+
+8. DESPLIEGUE COMO APLICACIÓN MÓVIL (PWA & APP NATIVA)
+--------------------------------------------------------------------------------
+A. Como PWA (Inmediata y Gratuita):
+   - Gracias al archivo `manifest.json` y meta-tags móviles ya implementados,
+     cualquier usuario en iPhone (Safari) o Android (Chrome) puede pulsar
+     "Compartir" -> "Agregar a pantalla de inicio".
+   - La app se instala con su propio icono, pantalla de carga y sin barra de
+     navegador web (modo standalone), funcionando exactamente como una app nativa.
+
+B. Como App Nativa para Play Store / App Store (CapacitorJS):
+   - El código es 100% compatible con Capacitor (`npx @capacitor/cli create`).
+   - Permite compilar un archivo `.apk` o proyecto Android Studio en minutos
+     utilizando la misma base de código HTML/CSS/JS.
 ================================================================================

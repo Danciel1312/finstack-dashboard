@@ -1,0 +1,126 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+                  01 - EXPLICACIÓN A FONDO DE INDEX.HTML
+================================================================================
+
+1. ¿QUÉ ES INDEX.HTML Y POR QUÉ SE LLAMA ASÍ?
+--------------------------------------------------------------------------------
+En el mundo del desarrollo web, `index.html` es el archivo principal por defecto.
+Cuando un navegador (Chrome, Edge, Safari) o un servidor web entra a una carpeta,
+siempre busca automáticamente un archivo llamado `index.html` para mostrarlo
+como la portada o página inicial.
+
+HTML significa "HyperText Markup Language" (Lenguaje de Marcas de Hipertexto).
+No es un lenguaje de programación con matemáticas, sino un lenguaje de ESTRUCTURA.
+Funciona mediante "etiquetas" que abren y cierran, como cajas dentro de cajas:
+`<nombre>` contenido `</nombre>`.
+
+
+2. ANATOMÍA DEL ARCHIVO (LÍNEA POR LÍNEA)
+--------------------------------------------------------------------------------
+
+A. LA CABECERA (HEAD) - La información oculta del documento:
+   - `<!DOCTYPE html>`:
+     Le avisa al navegador que este documento está escrito en el estándar moderno HTML5.
+   - `<html lang="es" class="scroll-smooth">`:
+     Indica que el contenido está en español y que los desplazamientos de scroll
+     serán suaves.
+   - `<meta charset="UTF-8">`:
+     Permite que se vean bien las letras con tildes (á, é, í), las eñes (ñ) y los
+     emojis sin que salgan símbolos raros.
+   - `<meta name="viewport" content="width=device-width, initial-scale=1.0...">`:
+     Esta línea es CRÍTICA. Le dice al celular o tablet que ajuste el ancho de
+     la página al tamaño exacto de su pantalla. Sin esto, la web se vería
+     diminuta como en una computadora vieja.
+   - `<link rel="manifest" href="manifest.json">`:
+     Conecta el archivo de configuración para que el celular reconozca esta web
+     como una aplicación móvil instalable (PWA).
+   - Enlaces a CDN (Content Delivery Network):
+     Son bibliotecas gratuitas que traemos desde internet en lugar de descargarlas:
+     1) Google Fonts: La tipografía elegante "Plus Jakarta Sans".
+     2) Font Awesome: Más de 2000 iconos modernos (billeteras, flechas, engranes).
+     3) Tailwind CSS: El framework que nos da miles de estilos prefabricados.
+     4) Chart.js: El motor matemático que dibuja las gráficas.
+
+B. EL CUERPO (BODY) - Todo lo que el usuario ve con sus ojos:
+   El `<body>` tiene clases como:
+   `bg-[#F5F6FA] dark:bg-[#0F172A]`
+   ¿Qué significa?
+   - En modo claro, el fondo será un gris azulado suave (`#F5F6FA`).
+   - Si la página tiene activa la clase `dark` (modo oscuro), el fondo se
+     convierte automáticamente en un azul pizarra oscuro (`#0F172A`).
+
+
+3. LAS PARTES VISUALES PRINCIPALES DE LA PÁGINA
+--------------------------------------------------------------------------------
+
+1. La Barra Lateral (Sidebar `<aside id="mainSidebar">`):
+   - Contiene el logo de "FinStack Pro".
+   - El menú con botones de navegación: Dashboard, Gastos, Ingresos, Calendario,
+     Reportes y Novedades.
+   - Fíjate en los atributos:
+     `onclick="App.switchView('dashboard')"`
+     `onclick` es un detector de clics. Le dice a JavaScript: "Cuando el usuario
+     haga clic aquí, ejecuta la función `switchView` pasándole la palabra 'dashboard'".
+
+2. La Barra Superior (Header `<header>`):
+   - El buscador global con `<input type="text" id="globalSearchInput">`.
+   - El selector de perfil/rol con `<select id="userRoleSelector">`:
+     Permite alternar entre "Personal", "Admin" y "Visita".
+   - El selector de moneda (USD, EUR, MXN).
+   - El botón de sol/luna para el modo claro y oscuro (`App.toggleTheme()`).
+   - El botón azul principal `+ Nueva Transacción`.
+
+3. El Banner de Rol (`<div id="roleStatusBanner">`):
+   - Una barra informativa que aparece si entras en modo "Admin" o "Visita",
+     avisándote si estás en el laboratorio de pruebas o en modo demo.
+
+4. Las Secciones de Contenido (Vistas `<main>`):
+   En lugar de tener 6 páginas HTML diferentes que tardan en cargar, tenemos
+   todas las vistas en este mismo archivo, pero ocultas con la clase `hidden`:
+   - `view-dashboard`: Visible al inicio.
+   - `view-gastos`: Se muestra al hacer clic en Gastos.
+   - `view-ingresos`: Se muestra al hacer clic en Ingresos.
+   - `view-calendario`: El calendario y el historial diario.
+   - `view-reportes`: Gráficas semestrales y botones de backup.
+   - `view-versiones`: El registro de versiones (Changelog) y roadmap.
+
+5. Las Ventanas Flotantes (Modales):
+   - `<div id="transactionModal">`: El formulario emergente para agregar o editar
+     gastos e ingresos.
+   - `<div id="deleteConfirmModal">`: El mensaje de alerta para confirmar si
+     realmente deseas borrar un movimiento.
+
+
+4. CÓMO SE ENLAZAN LOS SCRIPTS AL FINAL DEL ARCHIVO
+--------------------------------------------------------------------------------
+Al final de `index.html` verás:
+```html
+<script src="js/store.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/app.js"></script>
+```
+¿Por qué están al final y en ese orden?
+1. Se ponen al final para que el navegador primero dibuje toda la pantalla
+   rápidamente y no haga esperar al usuario mientras lee el código JavaScript.
+2. El orden importa:
+   - Primero se carga `store.js` (los datos).
+   - Luego `charts.js` y `calendar.js` (las herramientas).
+   - Al final `app.js` (el que coordina todo). Si pusieras `app.js` primero,
+     fallaría porque intentaría usar `Store` antes de que exista.
+
+
+5. DICCIONARIO RÁPIDO DE CLASES DE TAILWIND CSS QUE VES EN EL HTML
+--------------------------------------------------------------------------------
+- `flex`: Alinea los elementos en fila horizontal uno al lado del otro.
+- `grid`: Organiza elementos en columnas como una cuadrícula o tabla.
+- `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`: En celulares muestra 1 columna,
+  en tablets 2 columnas, y en pantallas de computadora 4 columnas en fila.
+- `rounded-2xl`: Bordes muy redondeados modernos estilo iPhone/DashStack.
+- `shadow-sm` / `shadow-xl`: Sombras suaves bajo las tarjetas para dar efecto
+  de elevación 3D.
+- `p-4` / `p-6`: Espacio de relleno interno (Padding).
+- `transition-all`: Hace que los cambios de color o tamaño no sean bruscos,
+  sino animaciones suaves.
+================================================================================

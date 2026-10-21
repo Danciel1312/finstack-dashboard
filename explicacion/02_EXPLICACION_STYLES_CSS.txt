@@ -1,0 +1,115 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+                 02 - EXPLICACIÓN A FONDO DE CSS/STYLES.CSS
+================================================================================
+
+1. ¿QUÉ ES CSS Y POR QUÉ TENEMOS ESTE ARCHIVO?
+--------------------------------------------------------------------------------
+CSS significa "Cascading Style Sheets" (Hojas de Estilo en Cascada). Es el
+maquillaje, el diseño y la ropa del esqueleto HTML.
+
+Aunque en nuestro proyecto usamos **Tailwind CSS** para casi todo directamente
+desde el HTML, existen ciertos detalles quirúrgicos y avanzados que requieren
+un archivo CSS personalizado como `css/styles.css`:
+- Barras de desplazamiento (scrollbars) delgadas y elegantes.
+- Animaciones fotograma a fotograma (`@keyframes`).
+- Variables de color reutilizables.
+- Efectos de desenfoque de fondo (vidrio esmerilado / Glassmorphism).
+
+
+2. ANÁLISIS DE CADA SECCIÓN DEL CÓDIGO
+--------------------------------------------------------------------------------
+
+A. LAS VARIABLES DE COLOR (:root)
+   ```css
+   :root {
+     --primary: #4880FF;
+     --success: #00B69B;
+     --danger: #EF3826;
+     --warning: #FFA756;
+     ...
+   }
+   ```
+   - ¿Qué es `:root`? Es la raíz de todo tu documento.
+   - ¿Qué son los nombres que empiezan con `--`? Son **Variables CSS**.
+     En lugar de memorizar el código hexadecimal `#4880FF` cada vez que quieras
+     usar el color azul corporativo, defines `--primary` una sola vez. Si el día
+     de mañana decides cambiar tu azul por otro tono, lo cambias aquí en una
+     sola línea y toda la aplicación se actualiza mágicamente.
+
+B. BARRAS DE SCROLL PERSONALIZADAS (::-webkit-scrollbar)
+   Por defecto, los navegadores muestran barras de scroll grises, anchas y feas.
+   Con este bloque:
+   ```css
+   ::-webkit-scrollbar {
+     width: 6px;
+     height: 6px;
+   }
+   ::-webkit-scrollbar-thumb {
+     background: rgba(156, 163, 175, 0.4);
+     border-radius: 9999px;
+   }
+   ```
+   - Hacemos que la barra mida solo 6 píxeles de ancho (delgada y moderna).
+   - `border-radius: 9999px` hace que la barrita tenga extremos redondeados.
+   - `rgba(..., 0.4)` le da una ligera transparencia.
+   - Y fíjate en `.dark ::-webkit-scrollbar-thumb`: cambia el color de la barra
+     a un tono más oscuro cuando el usuario activa el modo noche.
+
+C. EFECTOS HOVER Y ELEVACIÓN (.dash-card)
+   ```css
+   .dash-card:hover {
+     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05)...;
+   }
+   ```
+   - `:hover` es una "pseudo-clase". Significa: "Aplica este estilo ÚNICAMENTE
+     cuando el ratón del usuario pase por encima de la tarjeta".
+   - `box-shadow` genera una sombra más profunda, creando el efecto visual de
+     que la tarjeta "se levanta hacia ti" como un botón real.
+
+D. CELDAS DEL CALENDARIO (.calendar-day-cell)
+   ```css
+   .calendar-day-cell {
+     min-height: 96px;
+     transition: all 0.15s ease-in-out;
+   }
+   ```
+   - `min-height: 96px` asegura que cada día del mes tenga un alto mínimo de 96
+     píxeles para que quepan holgadamente el número del día y los chips de
+     ingresos y gastos.
+   - `transition: all 0.15s` hace que cuando el usuario haga clic o pase el ratón,
+     el cambio de color no sea un golpe seco, sino una animación de 150 milisegundos.
+
+E. ANIMACIONES FOTOGRAMA A FOTOGRAMA (@keyframes pulse-subtle)
+   ```css
+   @keyframes pulse-subtle {
+     0%, 100% { opacity: 1; }
+     50% { opacity: 0.7; }
+   }
+   .pulse-subtle {
+     animation: pulse-subtle 2s cubic-bezier(...) infinite;
+   }
+   ```
+   - `@keyframes` te permite definir una película de animación:
+     * Al 0% y 100% del tiempo: la opacidad es 1 (completamente visible).
+     * Al 50% del tiempo: la opacidad baja a 0.7 (un poco translúcido).
+   - Esto hace que el puntito rojo de la campana de notificaciones tenga un
+     suave "latido" infinito que atrae la atención del usuario de manera sutil.
+
+F. DESENFOQUE DE FONDO EN LOS MODALES (.modal-backdrop)
+   ```css
+   .modal-backdrop {
+     backdrop-filter: blur(4px);
+     -webkit-backdrop-filter: blur(4px);
+   }
+   ```
+   - Cuando se abre el formulario de "+ Nueva Transacción", este estilo desenfoca
+     el contenido de fondo (como un cristal esmerilado de iPhone), haciendo que
+     la vista del usuario se concentre en el formulario.
+
+G. REGLAS RESPONSIVAS (@media (max-width: 768px))
+   - Las reglas `@media` consultan el tamaño de la pantalla del dispositivo.
+   - Si la pantalla mide 768 píxeles o menos (un teléfono móvil o tablet pequeña),
+     reducimos la altura mínima de las celdas del calendario de 96px a 70px para
+     que no se desborde la pantalla del celular.
+================================================================================

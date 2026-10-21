@@ -1,0 +1,102 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+                04 - EXPLICACIÓN A FONDO DE JS/CHARTS.JS
+================================================================================
+
+1. ¿QUÉ ES CHARTS.JS Y CÓMO FUNCIONA EL ELEMENTO CANVAS?
+--------------------------------------------------------------------------------
+En `index.html` tenemos etiquetas llamadas `<canvas id="cashFlowChart"></canvas>`.
+En inglés, "canvas" significa lienzo de pintura.
+
+HTML por sí solo no sabe dibujar círculos, curvas suaves ni barras de colores;
+solo sabe poner cajas de texto. El `<canvas>` le da a JavaScript una hoja en
+blanco y un "pincel virtual" para pintar píxel por píxel lo que queramos.
+
+Para no tener que programar manualmente la trigonometría y matemáticas de una
+gráfica desde cero, usamos **Chart.js**, una de las librerías de gráficas más
+populares del mundo. `charts.js` es nuestro archivo encargado de configurar,
+alimentar y pintar esas gráficas.
+
+
+2. ANATOMÍA DE LAS GRÁFICAS DE TU DASHBOARD
+--------------------------------------------------------------------------------
+
+A. LA GRÁFICA DE FLUJO DE CAJA (initCashFlowChart):
+   - Tipo: `type: 'line'` (Línea con relleno de área).
+   - Datos: Recibe los días (`labels`) y los valores diarios de ingresos y gastos
+     que calcula `Store.getCashFlowChartData()`.
+   - Curvas suaves:
+     Con `tension: 0.38`, Chart.js convierte las líneas rectas poligonales en
+     curvas Bézier redondeadas y continuas, idénticas a las del UI Kit DashStack.
+   - Puntos interactivos:
+     `pointRadius: 3` y `pointHoverRadius: 6` hacen que los puntos se hagan
+     más grandes cuando el usuario pasa el ratón sobre ellos.
+
+B. EL GRADIENTE TRANSLÚCIDO (EL EFECTO MODERNO DE RELLENO):
+   ¿Cómo logramos que el color verde y rojo se desvanezca suavemente hacia abajo?
+   Usando la API 2D de Canvas:
+   ```javascript
+   const gradientIncome = ctx.createLinearGradient(0, 0, 0, 320);
+   gradientIncome.addColorStop(0, 'rgba(0, 182, 155, 0.28)'); // 28% opaco arriba
+   gradientIncome.addColorStop(1, 'rgba(0, 182, 155, 0.0)');  // 0% transparente abajo
+   ```
+   Creamos un degradado vertical que va desde la parte superior (opaco) hasta
+   la parte inferior (100% transparente). Ese gradiente se asigna como
+   `backgroundColor` de la línea.
+
+C. LA GRÁFICA DONUT DE GASTOS POR CATEGORÍA (initCategoryChart):
+   - Tipo: `type: 'doughnut'`.
+   - `cutout: '72%'`:
+     Indica cuánto espacio hueco debe tener el centro de la dona. Con 72%, el
+     anillo exterior es delgado y moderno, dejando espacio libre en el centro
+     para colocar un texto flotante con el total acumulado de gastos en grande.
+   - Colores de categoría:
+     Usa un array de 11 colores corporativos (azul, verde, rojo, naranja,
+     púrpura, cian, rosa) para distinguir visualmente comida, renta, transporte, etc.
+
+D. LA COMPARATIVA SEMESTRAL (initMonthlyComparisonChart):
+   - Tipo: `type: 'bar'` (Barras verticales agrupadas).
+   - Compara mes a mes los ingresos (verde) al lado de los gastos (rojo).
+   - `borderRadius: 6`: Le da esquinas redondeadas al tope de cada barra.
+
+
+3. CÓMO SE ADAPTAN LAS GRÁFICAS AL MODO OSCURO / CLARO
+--------------------------------------------------------------------------------
+Si una gráfica tiene cuadrículas grises oscuras y cambias al modo nocturno, las
+líneas no se verían bien.
+
+Para resolver esto creamos la función `getThemeColors()`:
+```javascript
+function getThemeColors() {
+  const dark = isDarkMode();
+  return {
+    textColor: dark ? '#94A3B8' : '#64748B',
+    gridColor: dark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+    tooltipBg: dark ? '#1E293B' : '#FFFFFF',
+    tooltipTitle: dark ? '#F8FAFC' : '#0F172A',
+    ...
+  };
+}
+```
+- Si `isDarkMode()` es verdadero, las líneas de la cuadrícula se pintan en blanco
+  muy translúcido (`rgba(255, 255, 255, 0.06)`) y el texto de los ejes en gris claro.
+- Si es falso (modo día), se pintan en negro muy sutil (`rgba(0, 0, 0, 0.05)`).
+- Cuando el usuario pulsa el botón del sol/luna, `ChartsManager.refreshAll()`
+  vuelve a pintar las gráficas con los nuevos colores de inmediato.
+
+
+4. CUIDADO CON LAS FUGAS DE MEMORIA (chartInstance.destroy())
+--------------------------------------------------------------------------------
+En las líneas 165 y 240 verás:
+```javascript
+if (cashFlowChartInstance) {
+  cashFlowChartInstance.destroy();
+}
+```
+¿Por qué es indispensable hacer esto?
+Si vuelves a crear una gráfica sobre un `<canvas>` donde ya existía una gráfica
+anterior sin destruirla primero, las dos gráficas se enciman una sobre otra.
+El resultado sería una pantalla parpadeante con glitches visuales y un alto
+consumo de memoria en tu computadora. `destroy()` limpia el lienzo por completo
+antes de dibujar la nueva versión.
+================================================================================

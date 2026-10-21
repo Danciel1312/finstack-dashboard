@@ -1,11 +1,13 @@
 /**
  * DashFinance - Main Application Controller
- * Handles view switching, modals, filters, search, table rendering, toast alerts and theme toggle.
+ * Handles view switching, multi-role switching, user management (Admin CRUD),
+ * AI assistant integration, changelog, modals, filters, search, table rendering, toast alerts and theme toggle.
  */
 
 const App = (function () {
   let currentView = 'dashboard';
   let editingTxId = null;
+  let editingUserId = null;
   let activeFilterType = 'todos';
   let activeSearchQuery = '';
 
@@ -34,14 +36,18 @@ const App = (function () {
   function init() {
     setupTheme();
     setupCurrency();
+    setupRoleUI();
     setupEventListeners();
     updateKPIs();
     renderTransactionsTable();
+    renderUsersTable();
     ChartsManager.refreshAll();
     CalendarManager.init();
     updateBudgetProgressBar();
+    renderChangelog();
+    AIAssistant.init();
 
-    console.log('DashFinance Admin Dashboard initialized successfully.');
+    console.log('DashFinance Pro v1.3 initialized with Admin User Management and AI Assistant.');
   }
 
   // --- THEME MANAGEMENT (Dark / Light) ---
@@ -89,9 +95,281 @@ const App = (function () {
     Store.updateSettings({ currency: val, currencySymbol: symbol });
     updateKPIs();
     renderTransactionsTable();
+    renderUsersTable();
     ChartsManager.refreshAll();
     CalendarManager.refresh();
     showToast(`Moneda cambiada a ${val}`, 'info');
+  }
+
+  // --- MULTI-ROLE SYSTEM UI ---
+  function setupRoleUI() {
+    const activeRole = Store.getActiveRole();
+    const info = Store.getRoleInfo(activeRole);
+
+    const roleBadgeEl = document.getElementById('userRoleBadge');
+    const userNameEl = document.getElementById('userNameLabel');
+    const roleSelector = document.getElementById('userRoleSelector');
+    const roleBanner = document.getElementById('roleStatusBanner');
+    const roleAvatar = document.getElementById('userRoleAvatar');
+    const adminOnlyNav = document.getElementById('adminOnlyNavUsers');
+
+    if (roleBadgeEl) {
+      roleBadgeEl.textContent = info.badge;
+      roleBadgeEl.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${info.color}`;
+    }
+    if (userNameEl) userNameEl.textContent = info.name;
+    if (roleSelector) roleSelector.value = activeRole;
+
+    if (roleAvatar) {
+      if (activeRole === 'admin') {
+        roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm';
+        roleAvatar.textContent = 'DEV';
+      } else if (activeRole === 'visita') {
+        roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center shadow-sm';
+        roleAvatar.textContent = 'VIS';
+      } else {
+        roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm';
+        roleAvatar.textContent = 'DR';
+      }
+    }
+
+    // Role Status Banner
+    if (roleBanner) {
+      if (activeRole === 'admin') {
+        roleBanner.classList.remove('hidden');
+        roleBanner.className = 'bg-purple-600/10 border-b border-purple-500/20 px-4 py-2 text-xs flex items-center justify-between text-purple-700 dark:text-purple-300';
+        roleBanner.innerHTML = `
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span><strong>Modo Admin / Laboratorio:</strong> Tienes control de usuarios y pruebas. Tus finanzas reales están aisladas y seguras.</span>
+          </div>
+          <button onclick="App.switchUserRole('cliente')" class="underline font-semibold hover:text-purple-900 dark:hover:text-purple-100">Pasar a Mis Finanzas</button>
+        `;
+      } else if (activeRole === 'visita') {
+        roleBanner.classList.remove('hidden');
+        roleBanner.className = 'bg-amber-600/10 border-b border-amber-500/20 px-4 py-2 text-xs flex items-center justify-between text-amber-700 dark:text-amber-300';
+        roleBanner.innerHTML = `
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-eye"></i>
+            <span><strong>Modo Visita / Demostración:</strong> Estás viendo datos de muestra protegidos para presentar la app a terceros.</span>
+          </div>
+          <button onclick="App.switchUserRole('cliente')" class="underline font-semibold hover:text-amber-900 dark:hover:text-amber-100">Iniciar Mi Sesión</button>
+        `;
+      } else {
+        roleBanner.classList.add('hidden');
+      }
+    }
+
+    // Show/Hide Admin users nav item
+    if (adminOnlyNav) {
+      if (activeRole === 'admin') adminOnlyNav.classList.remove('hidden');
+      else adminOnlyNav.classList.add('hidden');
+    }
+  }
+
+  function switchUserRole(newRole) {
+    const roleInfo = Store.switchRole(newRole);
+    setupRoleUI();
+    refreshAllUI();
+    showToast(`Cambiado a: ${roleInfo.badge}`, 'info');
+
+    // If leaving admin while in users view, redirect to dashboard
+    if (currentView === 'usuarios' && newRole !== 'admin') {
+      switchView('dashboard');
+    }
+  }
+
+  // --- USER MANAGEMENT (ADMIN VIEW) ---
+  function renderUsersTable() {
+    const tableBody = document.getElementById('usersTableBody');
+    if (!tableBody) return;
+
+    const users = Store.getUsers();
+    const settings = Store.getSettings();
+    const currency = settings.currencySymbol || '$';
+
+    tableBody.innerHTML = users.map(user => {
+      const isAdmin = user.role === 'admin';
+      const isClient = user.role === 'cliente';
+      const roleBadge = isAdmin
+        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+        : isClient
+          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+
+      const statusBadge = user.status === 'Activo'
+        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
+
+      return `
+        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 border-b border-gray-100 dark:border-slate-800 transition-colors">
+          <td class="py-3.5 px-4">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-tr ${isAdmin ? 'from-purple-600 to-indigo-600' : 'from-blue-600 to-cyan-600'} text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
+                ${user.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <span class="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-100 block">${escapeHtml(user.name)}</span>
+                <span class="text-[11px] text-slate-500 dark:text-slate-400 block">${escapeHtml(user.email)}</span>
+              </div>
+            </div>
+          </td>
+          <td class="py-3.5 px-4">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${roleBadge}">
+              ${user.role.toUpperCase()}
+            </span>
+          </td>
+          <td class="py-3.5 px-4">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${statusBadge}">
+              <span class="w-1.5 h-1.5 rounded-full ${user.status === 'Activo' ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
+              ${user.status}
+            </span>
+          </td>
+          <td class="py-3.5 px-4 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            ${currency}${Number(user.budget || 3000).toLocaleString('es-ES')}
+          </td>
+          <td class="py-3.5 px-4 text-xs text-slate-400">
+            ${user.createdAt}
+          </td>
+          <td class="py-3.5 px-4 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button 
+                onclick="App.toggleUserStatus('${user.id}')" 
+                title="${user.status === 'Activo' ? 'Suspender usuario' : 'Activar usuario'}" 
+                class="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
+              >
+                <i class="fa-solid ${user.status === 'Activo' ? 'fa-ban' : 'fa-check'} text-xs"></i>
+              </button>
+              <button 
+                onclick="App.openUserModal('${user.id}')" 
+                title="Editar usuario" 
+                class="w-7 h-7 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
+              >
+                <i class="fa-solid fa-pen text-xs"></i>
+              </button>
+              <button 
+                onclick="App.deleteUser('${user.id}')" 
+                title="Eliminar usuario" 
+                class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
+              >
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function openUserModal(userId = null) {
+    editingUserId = userId;
+    const modal = document.getElementById('userModal');
+    const form = document.getElementById('userForm');
+    const title = document.getElementById('userModalTitle');
+    if (!modal) return;
+
+    form.reset();
+
+    if (userId) {
+      const users = Store.getUsers();
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        title.textContent = 'Editar Usuario';
+        document.getElementById('userNameInput').value = user.name;
+        document.getElementById('userEmailInput').value = user.email;
+        document.getElementById('userRoleSelect').value = user.role;
+        document.getElementById('userBudgetInput').value = user.budget || 3000;
+      }
+    } else {
+      title.textContent = 'Crear Nuevo Usuario';
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.getElementById('userNameInput').focus();
+  }
+
+  function closeUserModal() {
+    const modal = document.getElementById('userModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      editingUserId = null;
+    }
+  }
+
+  function handleUserFormSubmit(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('userNameInput').value.trim();
+    const email = document.getElementById('userEmailInput').value.trim();
+    const role = document.getElementById('userRoleSelect').value;
+    const budget = parseFloat(document.getElementById('userBudgetInput').value) || 3000;
+
+    if (!name || !email) {
+      showToast('Por favor completa el nombre y el correo', 'warning');
+      return;
+    }
+
+    if (editingUserId) {
+      Store.updateUser(editingUserId, { name, email, role, budget });
+      showToast('Usuario actualizado con éxito', 'success');
+    } else {
+      Store.addUser({ name, email, role, budget });
+      showToast('Usuario creado con éxito', 'success');
+    }
+
+    closeUserModal();
+    renderUsersTable();
+  }
+
+  function deleteUser(id) {
+    if (confirm('¿Estás seguro de que deseas eliminar este usuario del sistema?')) {
+      Store.deleteUser(id);
+      showToast('Usuario eliminado', 'info');
+      renderUsersTable();
+    }
+  }
+
+  function toggleUserStatus(id) {
+    const updated = Store.toggleUserStatus(id);
+    if (updated) {
+      showToast(`Usuario ${updated.name} ahora está ${updated.status}`, 'info');
+      renderUsersTable();
+    }
+  }
+
+  // --- CHANGELOG & ROADMAP RENDER ---
+  function renderChangelog() {
+    const container = document.getElementById('changelogTimeline');
+    if (!container) return;
+
+    const list = Store.getChangelog();
+    container.innerHTML = list.map((item, index) => {
+      const isLatest = index === 0;
+      return `
+        <div class="relative pl-6 pb-6 border-l-2 ${isLatest ? 'border-blue-500' : 'border-slate-200 dark:border-slate-800'} last:border-transparent">
+          <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full ${isLatest ? 'bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-300 dark:bg-slate-700'} border-2 border-white dark:border-slate-900"></div>
+          
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="text-xs font-black px-2 py-0.5 rounded-full ${isLatest ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'} font-mono">${item.version}</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">${item.date}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${isLatest ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}">${item.tag}</span>
+          </div>
+
+          <h4 class="text-sm font-bold text-slate-900 dark:text-white">${item.title}</h4>
+          
+          <ul class="mt-2.5 space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+            ${item.highlights.map(h => `
+              <li class="flex items-start gap-2">
+                <i class="fa-solid fa-circle-check text-[11px] text-emerald-500 mt-0.5"></i>
+                <span>${escapeHtml(h)}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      `;
+    }).join('');
   }
 
   // Format money shorthand
@@ -134,10 +412,9 @@ const App = (function () {
       }
     });
 
-    // Close mobile drawer if open
     closeMobileSidebar();
 
-    // Trigger redraws if calendar or charts
+    // Trigger redraws based on view
     if (viewName === 'calendario') {
       CalendarManager.refresh();
     } else if (viewName === 'dashboard' || viewName === 'reportes') {
@@ -146,6 +423,10 @@ const App = (function () {
       renderExpenseView();
     } else if (viewName === 'ingresos') {
       renderIncomeView();
+    } else if (viewName === 'versiones') {
+      renderChangelog();
+    } else if (viewName === 'usuarios') {
+      renderUsersTable();
     }
   }
 
@@ -153,23 +434,18 @@ const App = (function () {
   function updateKPIs() {
     const stats = Store.getKPIStats();
 
-    // Balance Total
     const kpiBalance = document.getElementById('kpiTotalBalance');
     if (kpiBalance) kpiBalance.textContent = formatMoney(stats.allTimeBalance);
 
-    // Ingresos Totales (Mes actual)
     const kpiIncome = document.getElementById('kpiTotalIncome');
     if (kpiIncome) kpiIncome.textContent = formatMoney(stats.totalIncome);
 
-    // Gastos Totales (Mes actual)
     const kpiExpense = document.getElementById('kpiTotalExpense');
     if (kpiExpense) kpiExpense.textContent = formatMoney(stats.totalExpense);
 
-    // Ahorro Neto
     const kpiSavings = document.getElementById('kpiNetSavings');
     if (kpiSavings) kpiSavings.textContent = formatMoney(stats.netSavings);
 
-    // Trends Badges
     const badgeIncome = document.getElementById('kpiIncomeTrend');
     if (badgeIncome) {
       badgeIncome.innerHTML = `<i class="fa-solid fa-arrow-trend-up text-xs mr-1"></i>${stats.incomeGrowth}% vs mes anterior`;
@@ -305,7 +581,7 @@ const App = (function () {
     if (expenseTotalEl) expenseTotalEl.textContent = formatMoney(total);
 
     if (expenses.length === 0) {
-      container.innerHTML = `<div class="p-8 text-center text-slate-400">No hay gastos registrados</div>`;
+      container.innerHTML = `<div class="p-8 text-center text-slate-400">No hay gastos registrados en este perfil</div>`;
       return;
     }
 
@@ -352,7 +628,7 @@ const App = (function () {
     if (incomeTotalEl) incomeTotalEl.textContent = formatMoney(total);
 
     if (incomes.length === 0) {
-      container.innerHTML = `<div class="p-8 text-center text-slate-400">No hay ingresos registrados</div>`;
+      container.innerHTML = `<div class="p-8 text-center text-slate-400">No hay ingresos registrados en este perfil</div>`;
       return;
     }
 
@@ -392,16 +668,13 @@ const App = (function () {
     document.getElementById('txModalTitle').textContent = 'Nueva Transacción';
     document.getElementById('txForm').reset();
 
-    // Default Date
     const dateInput = document.getElementById('txDate');
     if (dateInput) {
       dateInput.value = prefillDate || new Date().toISOString().split('T')[0];
     }
 
-    // Set Type
     setModalTypeTab(defaultType);
 
-    // Show modal
     const modal = document.getElementById('transactionModal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -442,14 +715,13 @@ const App = (function () {
     typeHidden.value = type;
 
     if (type === 'gasto') {
-      tabGasto.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-rose-500 text-white shadow-sm';
-      tabIngreso.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800 dark:hover:text-slate-200';
+      tabGasto.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-rose-500 text-white shadow-sm flex items-center justify-center gap-2';
+      tabIngreso.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center gap-2';
     } else {
-      tabIngreso.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-emerald-500 text-white shadow-sm';
-      tabGasto.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800 dark:hover:text-slate-200';
+      tabIngreso.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-emerald-500 text-white shadow-sm flex items-center justify-center gap-2';
+      tabGasto.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center gap-2';
     }
 
-    // Populate category options
     updateCategorySelectOptions(type);
   }
 
@@ -533,11 +805,14 @@ const App = (function () {
     updateKPIs();
     updateBudgetProgressBar();
     renderTransactionsTable();
+    renderUsersTable();
     ChartsManager.refreshAll();
     CalendarManager.refresh();
 
     if (currentView === 'gastos') renderExpenseView();
     if (currentView === 'ingresos') renderIncomeView();
+    if (currentView === 'versiones') renderChangelog();
+    if (currentView === 'usuarios') renderUsersTable();
   }
 
   // --- FILTERS & SEARCH ---
@@ -588,11 +863,12 @@ const App = (function () {
       showToast('No hay transacciones para exportar', 'warning');
       return;
     }
+    const role = Store.getActiveRole();
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `FinStack_Transacciones_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `FinStack_${role}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -601,11 +877,12 @@ const App = (function () {
 
   function exportJSON() {
     const jsonStr = Store.exportToJSON();
+    const role = Store.getActiveRole();
     const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `FinStack_Backup_${new Date().toISOString().split('T')[0]}.json`);
+    link.setAttribute('download', `FinStack_Backup_${role}_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -632,13 +909,20 @@ const App = (function () {
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   }
 
   function resetDemoData() {
-    if (confirm('¿Deseas restablecer los datos de muestra originales? Tus transacciones actuales serán reemplazadas por el demo.')) {
+    const role = Store.getActiveRole();
+    const msg = role === 'admin' 
+      ? '¿Deseas restablecer el entorno de pruebas (Admin / Staging)?'
+      : role === 'visita'
+        ? '¿Deseas restablecer las transacciones de demostración?'
+        : '¿Deseas restablecer los datos de este perfil?';
+
+    if (confirm(msg)) {
       Store.resetData();
-      showToast('Datos de demostración restablecidos', 'info');
+      showToast('Datos restablecidos correctamente', 'info');
       refreshAllUI();
     }
   }
@@ -671,13 +955,11 @@ const App = (function () {
 
     container.appendChild(toast);
 
-    // Animate in
     requestAnimationFrame(() => {
       toast.classList.remove('translate-y-4', 'opacity-0');
       toast.classList.add('translate-y-0', 'opacity-100');
     });
 
-    // Auto remove after 3.2s
     setTimeout(() => {
       toast.classList.add('opacity-0', 'translate-y-2');
       setTimeout(() => toast.remove(), 300);
@@ -696,14 +978,25 @@ const App = (function () {
 
   // --- EVENT LISTENERS ---
   function setupEventListeners() {
-    // Form submit
     const txForm = document.getElementById('txForm');
     if (txForm) txForm.addEventListener('submit', handleFormSubmit);
 
-    // Search inputs
+    const userForm = document.getElementById('userForm');
+    if (userForm) userForm.addEventListener('submit', handleUserFormSubmit);
+
     const globalSearch = document.getElementById('globalSearchInput');
     if (globalSearch) {
       globalSearch.addEventListener('input', e => handleSearch(e.target.value));
+    }
+
+    const aiInput = document.getElementById('aiChatInput');
+    if (aiInput) {
+      aiInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          AIAssistant.sendMessage();
+        }
+      });
     }
   }
 
@@ -713,6 +1006,9 @@ const App = (function () {
     switchView,
     toggleTheme,
     changeCurrency,
+    switchUserRole,
+    setupRoleUI,
+    renderChangelog,
     openTransactionModal,
     editTransaction,
     closeTransactionModal,
@@ -724,6 +1020,10 @@ const App = (function () {
     handleSearch,
     toggleMobileSidebar,
     closeMobileSidebar,
+    openUserModal,
+    closeUserModal,
+    deleteUser,
+    toggleUserStatus,
     exportCSV,
     exportJSON,
     triggerImportJSON,

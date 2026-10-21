@@ -1,0 +1,99 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+            07 - EXPLICACIÓN A FONDO DE MANIFEST.JSON Y PWA
+================================================================================
+
+1. ¿QUÉ ES UNA PWA (PROGRESSIVE WEB APP)?
+--------------------------------------------------------------------------------
+Tradicionalmente, para tener una aplicación en un teléfono celular tenías que:
+1. Aprender lenguajes complejos (Java/Kotlin para Android, Swift para iOS).
+2. Pagar cuentas de desarrollador costosas ($25 dólares a Google y $99 dólares
+   anuales a Apple).
+3. Esperar días a que las tiendas aprueben tu app.
+
+Una **PWA (Aplicación Web Progresiva)** es una tecnología revolucionaria creada
+por Google y Apple que permite que una página web hecha con HTML, CSS y
+JavaScript **se instale directamente en cualquier celular como si fuera una
+aplicación descargada de la tienda**, ¡sin costo alguno y de inmediato!
+
+
+2. ¿CÓMO SABE EL CELULAR QUE TU WEB ES UNA APLICACIÓN?
+--------------------------------------------------------------------------------
+Gracias a dos cosas que configuramos en tu proyecto:
+
+A. LA ETIQUETA EN INDEX.HTML:
+   `<link rel="manifest" href="manifest.json">`
+   Le avisa al navegador móvil: "Oye, esta página no es un simple blog; tiene
+   instrucciones para comportarse como una aplicación".
+
+B. EL ARCHIVO MANIFEST.JSON:
+   Es el pasaporte o tarjeta de identidad de tu aplicación.
+
+
+3. ANÁLISIS DE CADA LÍNEA DE MANIFEST.JSON
+--------------------------------------------------------------------------------
+Si abres `manifest.json`, verás este objeto de configuración:
+
+```json
+{
+  "name": "FinStack Pro - Gestión Financiera",
+  "short_name": "FinStack",
+  "description": "Dashboard corporativo...",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#4880FF",
+  "orientation": "portrait-primary",
+  "icons": [ ... ]
+}
+```
+
+¿Qué significa cada propiedad?
+
+- `"name"`:
+  El nombre completo oficial de tu aplicación. Aparece en la pantalla de carga
+  inicial (Splash Screen) y en el aviso de instalación.
+
+- `"short_name"`:
+  El nombre corto. Es el texto que se verá debajo del icono en la pantalla de
+  inicio de tu celular (donde no caben nombres largos).
+
+- `"start_url"`:
+  La primera pantalla que debe abrirse al tocar el icono (en nuestro caso,
+  `./index.html`).
+
+- `"display": "standalone"` (¡LA PROPIEDAD MÁGICA!):
+  Por defecto, una página web en celular tiene barra de direcciones arriba,
+  pestañas y botones de adelante/atrás.
+  Al poner `"standalone"` (independiente), el navegador **OCULTA POR COMPLETO
+  TODA LA BARRA DE NAVEGACIÓN**. La app se ejecuta a pantalla completa, con su
+  propia barra de estado, sintiéndose 100% como una app nativa descargada.
+
+- `"theme_color"`:
+  Define el color de la barra superior del celular (donde se ve la batería, la
+  hora y la señal de WiFi). Le pusimos `#4880FF` para que coincida con el azul
+  de tu dashboard.
+
+- `"background_color"`:
+  El color de fondo que se muestra un instante mientras la aplicación arranca.
+
+- `"orientation": "portrait-primary"`:
+  Prefiere mantenerse en posición vertical, como la mayoría de apps de finanzas.
+
+- `"icons"`:
+  La imagen o logotipo que el celular usará como icono de escritorio.
+  Usamos un vector SVG moderno con una gráfica ascendente y un escudo de seguridad.
+
+
+4. CÓMO PROBARLO HOY MISMO EN TU TELÉFONO
+--------------------------------------------------------------------------------
+1. Sube tu proyecto a Vercel o GitHub Pages para tener tu enlace público HTTPS.
+2. Abre el enlace en tu celular:
+   - Si usas Android (Google Chrome): Toca los 3 puntitos arriba a la derecha y
+     selecciona **"Instalar aplicación"** o **"Agregar a pantalla principal"**.
+   - Si usas iPhone (Safari): Toca el botón central de compartir (el cuadrado
+     con una flecha hacia arriba) y selecciona **"Agregar al inicio"**.
+3. Cierra el navegador. Verás el icono de **FinStack** en tu pantalla junto a
+   WhatsApp, Instagram y tus otras aplicaciones.
+4. Ábrelo y disfruta tu aplicación financiera a pantalla completa.
+================================================================================

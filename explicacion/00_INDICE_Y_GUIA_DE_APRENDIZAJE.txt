@@ -1,0 +1,106 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+            00 - ÍNDICE GENERAL Y GUÍA DE APRENDIZAJE PASO A PASO
+================================================================================
+
+¡Felicidades por tomar esta decisión! Aprender a programar leyendo y analizando
+un proyecto real que tú mismo estás usando es la manera más rápida, divertida y
+efectiva de dominar el desarrollo de software.
+
+En esta carpeta `explicacion/` encontrarás un documento de texto detallado para
+cada archivo de tu proyecto. Están redactados en lenguaje humano, sin palabras
+raras innecesarias y explicando qué hace cada comando y concepto.
+
+
+1. EL MAPA DE TU PROYECTO (CÓMO ESTÁ ORGANIZADO)
+--------------------------------------------------------------------------------
+Tu aplicación web funciona combinando 3 tecnologías fundamentales:
+
+   A. HTML (El Esqueleto):
+      Define qué cosas existen en la pantalla: botones, textos, tablas,
+      imágenes, formularios.
+      -> Archivo: `index.html`
+
+   B. CSS (La Ropa y el Estilo):
+      Define qué tan bonito se ve todo: colores, tamaños de letra, sombras,
+      bordes redondeados, animaciones y adaptación a pantallas de celular.
+      -> Archivos: Tailwind CSS (vía internet) + `css/styles.css`
+
+   C. JavaScript (El Cerebro):
+      Define qué pasa cuando el usuario interactúa: guardar datos al hacer clic,
+      hacer cálculos matemáticos de finanzas, pintar gráficas interactivas,
+      cambiar de tema oscuro a claro y mover el calendario.
+      -> Archivos en `js/`: `store.js`, `charts.js`, `calendar.js`, `app.js`
+
+   D. JSON y PWA (La Configuración):
+      Permite que tu página web se convierta en una aplicación instalable en
+      teléfonos celulares Android e iPhone.
+      -> Archivo: `manifest.json`
+
+
+2. ORDEN RECOMENDADO DE LECTURA PARA APRENDER
+--------------------------------------------------------------------------------
+Para que todo tenga lógica en tu mente y no te sientas abrumado, lee los
+documentos en este orden numerado:
+
+   1. `01_EXPLICACION_INDEX_HTML.txt`
+      Descubre cómo se construye la estructura visual de un dashboard moderno.
+
+   2. `02_EXPLICACION_STYLES_CSS.txt`
+      Aprende cómo funciona el diseño visual, las sombras, el scroll y las animaciones.
+
+   3. `03_EXPLICACION_STORE_JS.txt`
+      El corazón de los datos. Aprende qué es localStorage, cómo se guardan
+      las transacciones y cómo separamos los roles (Admin, Cliente, Visita).
+
+   4. `04_EXPLICACION_CHARTS_JS.txt`
+      Cómo la computadora dibuja gráficas interactivas con líneas, áreas y donuts.
+
+   5. `05_EXPLICACION_CALENDAR_JS.txt`
+      Aprende las matemáticas y la lógica detrás de construir un calendario interactivo.
+
+   6. `06_EXPLICACION_APP_JS.txt`
+      El director de orquesta. Cómo se escuchan los clics, cómo se abren los
+      modales y cómo se conecta todo.
+
+   7. `07_EXPLICACION_MANIFEST_Y_PWA.txt`
+      Cómo funciona la tecnología que convierte tu web en una app móvil.
+
+   8. `08_GUIA_DE_COMANDOS_TERMINAL_Y_GIT.txt`
+      Diccionario práctico de comandos de terminal y Git explicados sin miedo.
+
+
+3. GLOSARIO RÁPIDO DE TÉRMINOS QUE VERÁS SEGUIDO
+--------------------------------------------------------------------------------
+- DOM (Document Object Model):
+  Es la forma en que JavaScript "ve" a tu página HTML. Gracias al DOM, JavaScript
+  puede buscar un botón con `document.getElementById('miBoton')` y cambiarle el
+  texto o el color.
+
+- Variable (`let`, `const`):
+  Una cajita con nombre en la memoria de la computadora donde guardas un dato
+  (ejemplo: `let monto = 150.50;`).
+
+- Función (`function`):
+  Una receta de pasos que la computadora guarda para ejecutarla cuando tú
+  quieras (ejemplo: `function calcularBalance() { ... }`).
+
+- Objeto (`{ }`):
+  Un paquete que agrupa varias características de una misma cosa. Por ejemplo,
+  una transacción es un objeto:
+  `{ concepto: "Pizza", monto: 18.00, categoria: "Alimentación" }`.
+
+- Array o Arreglo (`[ ]`):
+  Una lista ordenada de cosas. Por ejemplo, una lista de transacciones:
+  `[ transaccion1, transaccion2, transaccion3 ]`.
+
+- Evento (`Event`):
+  Algo que hace el usuario: un clic con el ratón (`click`), presionar una
+  tecla (`keydown`), o enviar un formulario (`submit`).
+
+- localStorage:
+  Un pequeño disco duro virtual dentro de tu navegador web donde puedes guardar
+  información para que no se borre al cerrar la pestaña o apagar la PC.
+
+¡Comienza abriendo el archivo `01_EXPLICACION_INDEX_HTML.txt`!
+================================================================================

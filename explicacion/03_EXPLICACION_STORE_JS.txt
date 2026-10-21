@@ -1,0 +1,119 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+                 03 - EXPLICACIÓN A FONDO DE JS/STORE.JS
+================================================================================
+
+1. ¿QUÉ ES STORE.JS Y CUÁL ES SU RESPONSABILIDAD?
+--------------------------------------------------------------------------------
+En el desarrollo de software profesional, la regla de oro número uno es:
+"SEPARA LOS DATOS DE LA PANTALLA".
+
+`store.js` es la "Capa de Datos" (también llamada el MODELO). No sabe si hay
+botones verdes o rojos; su único trabajo es:
+- Guardar y leer datos del disco (`localStorage`).
+- Hacer las operaciones matemáticas y estadísticas (sumas de balances,
+  porcentajes de crecimiento, ahorro neto).
+- Gestionar los roles de usuario (Admin, Cliente, Visita).
+- Preparar los archivos descargables (CSV y JSON).
+
+
+2. EL PATRÓN MÓDULO (IIFE) - ¿POR QUÉ EMPIEZA CON `(function () { ... })()`?
+--------------------------------------------------------------------------------
+Si miras la línea 6:
+```javascript
+const Store = (function () {
+  // variables privadas...
+  return {
+    // funciones públicas accesibles desde afuera...
+  };
+})();
+```
+Esto se llama una **Función Autoejecutable** (IIFE - Immediately Invoked Function Expression).
+¿Para qué sirve?
+- Crea un escudo de seguridad. Todas las variables que están adentro (como
+  `STORAGE_KEY_SETTINGS` o `defaultSettings`) son privadas y no pueden ser
+  alteradas por accidente desde la consola del navegador.
+- Solo las funciones que ponemos en el `return { ... }` (como `Store.add()`,
+  `Store.getAll()`, etc.) pueden ser usadas desde afuera por los otros archivos.
+
+
+3. CÓMO FUNCIONA EL ALMACENAMIENTO (LOCALSTORAGE) Y JSON
+--------------------------------------------------------------------------------
+Tu navegador tiene una base de datos local llamada `localStorage`. Tiene una
+regla curiosa: **SOLO SABE GUARDAR TEXTO PLANO (Strings)**.
+No sabe guardar números, arrays ni objetos complejos directamente.
+
+Por eso usamos dos funciones mágicas de JavaScript:
+1. `JSON.stringify(objeto)`:
+   Toma una lista de objetos en JavaScript y la convierte en una sola línea de
+   texto para guardarla en el navegador:
+   `localStorage.setItem('mi_clave', JSON.stringify(transacciones));`
+
+2. `JSON.parse(texto)`:
+   Hace lo contrario. Toma el texto plano guardado en el navegador y lo vuelve
+   a convertir en una lista de objetos lista para hacer cálculos en JavaScript:
+   `const lista = JSON.parse(localStorage.getItem('mi_clave'));`
+
+
+4. CÓMO FUNCIONA EL SISTEMA MULTI-ROL (AISLAMIENTO DE DATOS)
+--------------------------------------------------------------------------------
+Para cumplir con tu requerimiento de tener:
+- Un rol **Cliente** para tus finanzas reales.
+- Un rol **Admin** para probar cambios y código sin riesgo.
+- Un rol **Visita** para mostrar la app a otras personas sin que vean tu dinero.
+
+Diseñamos una técnica llamada **Claves Diferenciadas de Almacenamiento**:
+```javascript
+const ROLE_STORAGE_KEYS = {
+  admin: 'finstack_tx_admin_v3',
+  cliente: 'finstack_tx_personal_v3',
+  visita: 'finstack_tx_visita_v3'
+};
+```
+Cuando pides agregar o leer una transacción, la función `getCurrentStorageKey()`
+mira qué rol tienes seleccionado en ese instante.
+Si estás en "Admin", escribe en la caja de `finstack_tx_admin_v3`.
+Si estás en "Cliente", escribe en `finstack_tx_personal_v3`.
+¡De esta forma es físicamente imposible que un gasto de prueba que hagas en
+modo desarrollador contamine o altere tus finanzas verdaderas!
+
+
+5. OPERACIONES CRUD (CREAR, LEER, ACTUALIZAR, BORRAR)
+--------------------------------------------------------------------------------
+CRUD son las 4 operaciones básicas que toda base de datos debe tener:
+
+A. CREATE (Crear con `Store.add`):
+   - Usa `Date.now()` (los milisegundos transcurridos desde 1970) para generar
+     un identificador único (`id: 'tx_172948293...'`) para que nunca haya dos
+     transacciones repetidas.
+   - Usa `list.unshift(newTx)`: Agrega la nueva transacción al PRINCIPIO de la
+     lista para que siempre aparezca de primera en la tabla.
+
+B. READ (Leer con `Store.getAll` o `Store.getByDate`):
+   - Usa `.sort((a, b) => new Date(b.date) - new Date(a.date))`: Ordena todas
+     las fechas de más reciente a más antigua.
+   - Usa `.filter(item => item.date === dateStr)`: Busca y devuelve únicamente
+     los movimientos que coincidan con la fecha exacta seleccionada.
+
+C. UPDATE (Actualizar con `Store.update`):
+   - Usa `.findIndex(item => item.id === id)` para encontrar la posición exacta
+     de la transacción.
+   - Usa el operador de propagación (`...list[index], ...updatedData`) para
+     reemplazar los valores modificados conservando la fecha de creación original.
+
+D. DELETE (Eliminar con `Store.remove`):
+   - Usa `list.filter(item => item.id !== id)`: Crea una nueva lista con todos
+     los elementos EXCEPTO el que queremos borrar. Luego guarda esa nueva lista.
+
+
+6. EL GENERADOR DE SEMILLA (SEED DATA)
+--------------------------------------------------------------------------------
+En `generateSeedData()`, usamos `const now = new Date()` para obtener el año y
+mes actual de la computadora.
+Luego distribuimos 14 transacciones de prueba a lo largo del mes en curso.
+¿Por qué?
+Porque si un usuario abre la aplicación por primera vez y la ve completamente
+vacía y en ceros, no sabe cómo se verían las gráficas ni el calendario. La
+semilla garantiza que la aplicación luzca llena de vida y profesional desde el
+primer segundo.
+================================================================================

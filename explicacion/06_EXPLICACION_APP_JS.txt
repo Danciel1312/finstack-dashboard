@@ -1,0 +1,137 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+                  06 - EXPLICACIÓN A FONDO DE JS/APP.JS
+================================================================================
+
+1. ¿QUÉ ES APP.JS Y POR QUÉ ES EL "DIRECTOR DE ORQUESTA"?
+--------------------------------------------------------------------------------
+Si `index.html` es el escenario, `styles.css` es la escenografía, y `store.js`,
+`charts.js` y `calendar.js` son los músicos, entonces **`app.js` es el director
+de orquesta**.
+
+Es el archivo que recibe todas las acciones del usuario (un clic en un botón,
+un texto escrito en el buscador, un formulario enviado) y le dice a los demás
+archivos qué hacer.
+
+
+2. EL CICLO DE ARRANQUE (init)
+--------------------------------------------------------------------------------
+Al final del archivo verás:
+```javascript
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+});
+```
+`DOMContentLoaded` es un evento sagrado en JavaScript. Le dice a la computadora:
+"Espera a que el navegador termine de leer y dibujar todo el archivo HTML.
+En cuanto esté listo, ejecuta la función `App.init()`".
+
+¿Qué hace `App.init()`?
+1. Configura el tema guardado (claro u oscuro).
+2. Configura la moneda seleccionada (USD, EUR, MXN).
+3. Configura el rol activo (Cliente, Admin o Visita).
+4. Activa los detectores de eventos (escuchadores de clics y teclas).
+5. Calcula los KPIs y pinta la tabla de transacciones.
+6. Inicializa las gráficas y el calendario.
+7. Carga el historial de versiones (Changelog).
+
+
+3. CÓMO CAMBIAN LAS VISTAS SIN RECARGAR LA PÁGINA (switchView)
+--------------------------------------------------------------------------------
+En las páginas web antiguas, hacer clic en "Gastos" te llevaba a otra página
+llamada `gastos.html`, haciendo que la pantalla se pusiera en blanco un segundo
+mientras cargaba.
+
+En FinStack Pro usamos el patrón de **SPA (Single Page Application)**:
+```javascript
+function switchView(viewName) {
+  // 1. Oculta todas las secciones agregándoles la clase 'hidden'
+  document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+
+  // 2. Muestra únicamente la sección que pidió el usuario
+  document.getElementById(`view-${viewName}`).classList.remove('hidden');
+
+  // 3. Ilumina el botón correspondiente en la barra lateral
+  ...
+}
+```
+¡Todo ocurre en menos de 5 milisegundos y la experiencia para el usuario es
+completamente fluida e instantánea!
+
+
+4. CÓMO FUNCIONA EL FORMULARIO MODAL (AGREGAR Y EDITAR)
+--------------------------------------------------------------------------------
+
+A. LAS PESTAÑAS INTELIGENTES (Gasto vs Ingreso):
+   Al abrir el modal, la función `setModalTypeTab('gasto')` o `('ingreso')`:
+   - Pone el botón en rojo si es Gasto o en verde si es Ingreso.
+   - Llama a `updateCategorySelectOptions(type)`:
+     Si eliges "Gasto", las opciones de categoría son Alimentación, Renta,
+     Transporte, etc.
+     Si cambias a "Ingreso", las categorías cambian dinámicamente a Salario,
+     Freelance, Inversiones, Ventas. ¡El usuario nunca tiene que escribir a mano!
+
+B. EL ENVÍO DEL FORMULARIO (`handleFormSubmit`):
+   ```javascript
+   function handleFormSubmit(e) {
+     e.preventDefault(); // ¡LÍNEA VITAL!
+     ...
+   }
+   ```
+   ¿Qué es `e.preventDefault()`?
+   Por defecto en internet, cuando envías un formulario (`<form>`), el navegador
+   intenta recargar la página entera y enviar los datos a un servidor web remoto.
+   `e.preventDefault()` cancela ese comportamiento por defecto para que podamos
+   atrapar los datos con JavaScript y guardarlos localmente en `Store`.
+
+C. CREAR VS EDITAR (LA VARIABLE `editingTxId`):
+   ¿Cómo sabe el modal si estamos creando una transacción nueva o editando una vieja?
+   - Si abriste el modal con "+ Nueva Transacción", `editingTxId = null`.
+     Al enviar el formulario, el código ejecuta `Store.add(payload)`.
+   - Si abriste el modal pulsando el lápiz de editar de una transacción,
+     `editingTxId = 'tx_12345'`.
+     Al enviar, el código ejecuta `Store.update(editingTxId, payload)`.
+
+
+5. LA FUNCIÓN MÁGICA: `refreshAllUI()`
+--------------------------------------------------------------------------------
+Cada vez que agregas un gasto, editas un ingreso o borras algo, se invoca
+`refreshAllUI()`.
+Esta función es una cascada sincronizada que:
+1. Recalcula los 4 KPIs superiores (`updateKPIs()`).
+2. Actualiza la barra de progreso del presupuesto mensual.
+3. Vuelve a pintar las filas de la tabla de transacciones.
+4. Redibuja los puntos y áreas de las gráficas (`ChartsManager.refreshAll()`).
+5. Actualiza los chips de colores del calendario y el inspector diario.
+
+
+6. EL SISTEMA DE NOTIFICACIONES FLOTANTES (showToast)
+--------------------------------------------------------------------------------
+Cuando guardas un dato o cambias de tema, en la esquina superior derecha aparece
+un recuadro verde o azul que avisa: "Transacción guardada con éxito".
+¿Cómo funciona?
+1. Crea un elemento `div` en memoria con clases de Tailwind.
+2. Lo mete dentro del contenedor `#toastContainer`.
+3. Le aplica una animación de entrada (`translate-y-0 opacity-100`).
+4. Programa un temporizador con `setTimeout`: a los 3.2 segundos se desvanece
+   suavemente y se elimina de la memoria para no gastar recursos.
+
+
+7. CÓMO SE DESCARGAN LOS ARCHIVOS CSV Y JSON (BLOB Y URL VIRTUAL)
+--------------------------------------------------------------------------------
+En `exportCSV()` y `exportJSON()` verás algo fascinante:
+```javascript
+const blob = new Blob([csvContent], { type: 'text/csv' });
+const url = URL.createObjectURL(blob);
+const link = document.createElement('a');
+link.href = url;
+link.download = 'FinStack.csv';
+link.click();
+```
+¿Qué hace este truco?
+Un `Blob` (Binary Large Object) convierte texto en un archivo virtual en la
+memoria RAM de tu navegador. Luego creamos un enlace invisible `<a>` con la
+propiedad `download` y lo pulsamos mediante código (`link.click()`).
+El navegador cree que el usuario hizo clic en una descarga y guarda el archivo
+directamente en tu carpeta de Descargas de la computadora.
+================================================================================

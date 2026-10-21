@@ -2,9 +2,17 @@
 <html lang="es" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FinStack | Personal Finance & Expense Control Dashboard</title>
-  <meta name="description" content="Dashboard profesional y moderno de administración financiera personal, control de gastos, flujo de caja y calendario interactivo de transacciones.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FinStack Pro | Personal Finance & Expense Control Dashboard</title>
+  <meta name="description" content="Dashboard profesional y moderno de administración financiera personal, control de gastos, flujo de caja, soporte multi-rol, gestión de usuarios e Inteligencia Artificial.">
+
+  <!-- Progressive Web App (PWA) configuration -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4880FF">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FinStack">
 
   <!-- Google Fonts: Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -141,6 +149,38 @@
             <i class="fa-solid fa-chart-column text-base w-5 text-center text-purple-500"></i>
             <span>Reportes & Backup</span>
           </button>
+
+          <button 
+            onclick="App.switchView('versiones')" 
+            data-view="versiones" 
+            class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+          >
+            <i class="fa-solid fa-code-branch text-base w-5 text-center text-indigo-500"></i>
+            <span>Novedades & Versiones</span>
+            <span class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v1.3</span>
+          </button>
+
+          <!-- Admin Only: Gestión de Usuarios -->
+          <button 
+            id="adminOnlyNavUsers"
+            onclick="App.switchView('usuarios')" 
+            data-view="usuarios" 
+            class="sidebar-nav-btn w-full hidden flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+          >
+            <i class="fa-solid fa-users-gear text-base w-5 text-center text-purple-500"></i>
+            <span>Gestión Usuarios</span>
+            <span class="ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">ADMIN</span>
+          </button>
+
+          <!-- Asistente IA Launcher en Sidebar -->
+          <button 
+            onclick="AIAssistant.toggleChat(true)" 
+            class="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left group"
+          >
+            <i class="fa-solid fa-wand-magic-sparkles text-base w-5 text-center text-blue-500 group-hover:rotate-12 transition-transform"></i>
+            <span>Asistente IA</span>
+            <span class="ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500 to-indigo-500 text-white">COPILOT</span>
+          </button>
         </nav>
       </div>
 
@@ -162,9 +202,9 @@
 
         <!-- Quick Demo Reset link -->
         <div class="flex items-center justify-between px-1 text-[11px] text-slate-600 dark:text-slate-300">
-          <span>Modo Local (Offline)</span>
+          <span>PWA / Cloud Ready</span>
           <button onclick="App.resetDemoData()" class="hover:text-blue-600 dark:hover:text-blue-400 font-medium underline">
-            Reset Demo
+            Reset Datos
           </button>
         </div>
       </div>
@@ -196,23 +236,47 @@
           </div>
         </div>
 
-        <!-- Right: Actions, Currency, Theme Switcher, Notifications, User Profile -->
-        <div class="flex items-center gap-2 md:gap-3.5 ml-3">
+        <!-- Right: Actions, Currency, Role Switcher, AI, Theme, Notifications, User Profile -->
+        <div class="flex items-center gap-2 md:gap-3 ml-3">
           
+          <!-- FinStack AI Assistant Launcher Button -->
+          <button 
+            onclick="AIAssistant.toggleChat()" 
+            title="Abrir Asistente IA Financiero"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all transform active:scale-95"
+          >
+            <i class="fa-solid fa-wand-magic-sparkles text-xs animate-pulse"></i>
+            <span class="hidden sm:inline">FinStack AI</span>
+          </button>
+
           <!-- "+ Nueva Transacción" CTA Button -->
           <button 
             onclick="App.openTransactionModal('gasto')" 
-            class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-semibold shadow-md shadow-blue-500/25 transition-all transform active:scale-95"
+            class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-semibold shadow-md shadow-blue-500/25 transition-all transform active:scale-95"
           >
             <i class="fa-solid fa-plus text-xs"></i>
             <span>Nueva Transacción</span>
           </button>
 
+          <!-- Role Switcher Dropdown (Admin / Cliente / Visita) -->
+          <div class="relative flex items-center">
+            <select 
+              id="userRoleSelector" 
+              onchange="App.switchUserRole(this.value)" 
+              title="Cambiar perfil de usuario"
+              class="text-xs font-bold py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer transition-all"
+            >
+              <option value="cliente">💼 Personal (Mis Finanzas)</option>
+              <option value="admin">👑 Admin (Dev & Pruebas)</option>
+              <option value="visita">👁️ Visita (Modo Demo)</option>
+            </select>
+          </div>
+
           <!-- Currency Selector -->
           <select 
             id="currencySelector" 
             onchange="App.changeCurrency(this.value)" 
-            class="hidden md:block text-xs font-semibold py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
+            class="hidden lg:block text-xs font-semibold py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
           >
             <option value="USD">🇺🇸 USD ($)</option>
             <option value="EUR">🇪🇺 EUR (€)</option>
@@ -242,21 +306,24 @@
           <!-- Vertical Divider -->
           <div class="hidden sm:block h-7 w-px bg-gray-200 dark:bg-slate-700 mx-1"></div>
 
-          <!-- User Profile Monogram / Avatar -->
+          <!-- User Profile Avatar & Badge -->
           <div class="flex items-center gap-2.5 pl-1">
             <div class="relative">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm">
+              <div id="userRoleAvatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm">
                 DR
               </div>
               <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#1E293B] absolute bottom-0 right-0"></span>
             </div>
-            <div class="hidden lg:block text-left">
-              <span class="text-xs font-bold text-slate-800 dark:text-slate-100 block leading-tight">Dany Ramos</span>
-              <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium block">Senior Admin</span>
+            <div class="hidden xl:block text-left">
+              <span id="userNameLabel" class="text-xs font-bold text-slate-800 dark:text-slate-100 block leading-tight">Dany Ramos</span>
+              <span id="userRoleBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 block mt-0.5">Cliente / Personal</span>
             </div>
           </div>
         </div>
       </header>
+
+      <!-- Dynamic Role Status Banner (Shows when in Admin Staging or Visitor Demo) -->
+      <div id="roleStatusBanner" class="hidden"></div>
 
       <!-- ======================================================== -->
       <!-- VIEW 1: DASHBOARD OVERVIEW -->
@@ -492,7 +559,7 @@
               </div>
               <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">No se encontraron transacciones</h4>
               <p class="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-sm mx-auto">
-                No hay movimientos registrados con los filtros aplicados o la búsqueda actual.
+                No hay movimientos registrados en este perfil o con los filtros aplicados.
               </p>
               <button 
                 onclick="App.openTransactionModal('gasto')" 
@@ -578,7 +645,7 @@
       </main>
 
       <!-- ======================================================== -->
-      <!-- VIEW 4: CALENDARIO HISTÓRICO INTERACTIVO (Requisito Clave) -->
+      <!-- VIEW 4: CALENDARIO HISTÓRICO INTERACTIVO -->
       <!-- ======================================================== -->
       <main id="view-calendario" class="view-section hidden p-4 md:p-8 space-y-6">
         
@@ -596,7 +663,7 @@
           </button>
         </div>
 
-        <!-- Calendar Container: 2 Columns on desktop (Grid left, Inspector right) -->
+        <!-- Calendar Container: 2 Columns on desktop -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           <!-- Left: Calendar Month Matrix (8 Cols) -->
@@ -702,7 +769,7 @@
         <!-- Backup & Data Persistence Card -->
         <div class="bg-white dark:bg-[#1E293B] p-5 md:p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-4">
           <h3 class="text-base font-bold text-slate-900 dark:text-white">Persistencia y Copias de Seguridad</h3>
-          <p class="text-xs text-slate-600 dark:text-slate-300">Tus datos están guardados de forma segura en tu navegador vía <code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-blue-600 font-mono">localStorage</code>. Puedes exportar o importar tu información en cualquier momento.</p>
+          <p class="text-xs text-slate-600 dark:text-slate-300">Tus datos están guardados de forma segura en tu navegador vía <code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-blue-600 font-mono">localStorage</code> según el rol activo. Puedes exportar o importar tu información en cualquier momento.</p>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2">
             <button 
@@ -720,7 +787,7 @@
             >
               <i class="fa-solid fa-file-code text-2xl text-blue-500 mb-2 block"></i>
               <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100">Backup JSON</h4>
-              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Copia íntegra de base de datos local</p>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Copia íntegra del rol activo</p>
             </button>
 
             <button 
@@ -729,7 +796,7 @@
             >
               <i class="fa-solid fa-cloud-arrow-up text-2xl text-purple-500 mb-2 block"></i>
               <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100">Restaurar Backup</h4>
-              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Importa un archivo JSON previamente guardado</p>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Importa un archivo JSON guardado</p>
             </button>
 
             <button 
@@ -737,14 +804,130 @@
               class="p-4 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-rose-500 hover:bg-rose-50/30 dark:hover:bg-rose-900/20 text-left transition-all group"
             >
               <i class="fa-solid fa-arrows-rotate text-2xl text-rose-500 mb-2 block"></i>
-              <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100">Resetear Demo</h4>
-              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Restaura transacciones de ejemplo</p>
+              <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100">Resetear Datos</h4>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Restaura datos de prueba del rol</p>
             </button>
           </div>
 
           <input type="file" id="jsonFileInput" accept=".json" onchange="App.handleFileImport(event)" class="hidden" />
         </div>
 
+      </main>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 6: NOVEDADES, VERSIONES & ROADMAP -->
+      <!-- ======================================================== -->
+      <main id="view-versiones" class="view-section hidden p-4 md:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Historial de Versiones & Roadmap</h1>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800">PWA Ready</span>
+            </div>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300">Evolución técnica, registro de cambios y proyección de la aplicación web y móvil.</p>
+          </div>
+
+          <button 
+            onclick="App.switchUserRole('admin')" 
+            class="px-4 py-2 rounded-xl bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 text-xs font-bold border border-purple-200 dark:border-purple-800 flex items-center gap-2 hover:bg-purple-100 transition-colors"
+          >
+            <i class="fa-solid fa-flask"></i> Probar Modo Admin
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <!-- Timeline / Changelog (2 cols) -->
+          <div class="lg:col-span-2 bg-white dark:bg-[#1E293B] p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-4">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-timeline text-blue-600"></i> Registro de Versiones (Changelog)
+            </h3>
+            <div id="changelogTimeline" class="mt-6">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Roadmap & Mobile App Info (1 col) -->
+          <div class="space-y-4">
+            <div class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6 rounded-2xl shadow-lg shadow-blue-500/20 space-y-3">
+              <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+              </div>
+              <h4 class="text-base font-bold">App Móvil (PWA) Lista</h4>
+              <p class="text-xs text-blue-100 leading-relaxed">
+                Esta aplicación ya cuenta con <code>manifest.json</code> y soporte PWA. Puedes abrirla en Safari (iPhone) o Chrome (Android) y pulsar <strong>"Agregar a pantalla de inicio"</strong> para tenerla instalada como app nativa a pantalla completa.
+              </p>
+            </div>
+
+            <div class="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-3">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Próximos Pasos (Roadmap)</h4>
+              <ul class="space-y-2.5 text-xs">
+                <li class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                  <span class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span> Sincronización en la nube con Supabase
+                </li>
+                <li class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                  <span class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span> Empaquetado APK con Capacitor para Google Play
+                </li>
+                <li class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> Alertas presupuestarias por categoría
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 7: GESTIÓN DE USUARIOS (Exclusivo Admin) -->
+      <!-- ======================================================== -->
+      <main id="view-usuarios" class="view-section hidden p-4 md:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Gestión de Usuarios del Sistema</h1>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800">Panel Admin</span>
+            </div>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300">Crea nuevos usuarios, administra roles (Admin, Cliente, Visita) y asigna presupuestos.</p>
+          </div>
+
+          <button 
+            onclick="App.openUserModal()" 
+            class="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm font-semibold shadow-md shadow-purple-500/25 inline-flex items-center gap-2 transition-all transform active:scale-95"
+          >
+            <i class="fa-solid fa-user-plus text-xs"></i>
+            <span>Nuevo Usuario</span>
+          </button>
+        </div>
+
+        <!-- Table Card -->
+        <div class="bg-white dark:bg-[#1E293B] rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Cuentas Registradas</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Control de acceso y permisos por perfil</p>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              Sincronizado Local & Cloud Ready
+            </span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/70 dark:bg-slate-800/50 text-[11px] uppercase tracking-wider font-bold text-slate-600 dark:text-slate-300 border-b border-gray-100 dark:border-slate-800">
+                  <th class="py-3 px-4">Usuario & Email</th>
+                  <th class="py-3 px-4">Rol Asignado</th>
+                  <th class="py-3 px-4">Estado</th>
+                  <th class="py-3 px-4">Límite Presupuesto</th>
+                  <th class="py-3 px-4">Fecha Alta</th>
+                  <th class="py-3 px-4 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody" class="divide-y divide-gray-100 dark:divide-slate-800/80">
+                <!-- Dynamically populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
 
     </div>
@@ -888,6 +1071,87 @@
   </div>
 
   <!-- ======================================================== -->
+  <!-- MODAL: CREAR / EDITAR USUARIO -->
+  <!-- ======================================================== -->
+  <div id="userModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
+      <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+        <h3 id="userModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Crear Nuevo Usuario</h3>
+        <button onclick="App.closeUserModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="userForm" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre Completo *</label>
+          <input 
+            type="text" 
+            id="userNameInput" 
+            required 
+            placeholder="Ej. Sofia Gomez" 
+            class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Correo Electrónico *</label>
+          <input 
+            type="email" 
+            id="userEmailInput" 
+            required 
+            placeholder="sofia@ejemplo.com" 
+            class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Rol *</label>
+            <select 
+              id="userRoleSelect" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/50 cursor-pointer font-medium"
+            >
+              <option value="cliente">Cliente (Personal)</option>
+              <option value="admin">Administrador</option>
+              <option value="visita">Visita (Demo)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Presupuesto ($) *</label>
+            <input 
+              type="number" 
+              id="userBudgetInput" 
+              step="50" 
+              min="100" 
+              required 
+              value="3000" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/50 font-semibold"
+            />
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+          <button 
+            type="button" 
+            onclick="App.closeUserModal()" 
+            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-500/25 transition-all"
+          >
+            Guardar Usuario
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- MODAL: CONFIRMACIÓN DE ELIMINACIÓN -->
   <!-- ======================================================== -->
   <div id="deleteConfirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
@@ -897,7 +1161,7 @@
       </div>
       <h3 class="text-base font-bold text-slate-900 dark:text-white">¿Eliminar Transacción?</h3>
       <p class="text-xs text-slate-600 dark:text-slate-300 mt-1.5">
-        Esta acción borrará el registro de manera permanente de tu almacenamiento local.
+        Esta acción borrará el registro de manera permanente de este perfil.
       </p>
       <div class="mt-5 flex items-center justify-center gap-3">
         <button 
@@ -916,10 +1180,68 @@
     </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- MODAL / DRAWER: ASISTENTE IA (FinStack AI Copilot) -->
+  <!-- ======================================================== -->
+  <div id="aiChatDrawer" class="fixed inset-0 z-50 hidden items-center justify-center md:justify-end bg-slate-900/60 modal-backdrop p-2 md:p-4 transition-all">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-lg h-[92vh] md:h-[95vh] rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
+      
+      <!-- Drawer Header -->
+      <div class="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-sm shadow-md shadow-blue-500/30">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">FinStack AI</h3>
+              <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Activo
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Copiloto Financiero & Diagnóstico Inteligente</p>
+          </div>
+        </div>
+
+        <button onclick="AIAssistant.toggleChat(false)" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Messages Stream -->
+      <div id="aiChatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        <!-- Dynamically populated by AIAssistant -->
+      </div>
+
+      <!-- Drawer Input Footer -->
+      <div class="p-3.5 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-[#1E293B]">
+        <div class="relative flex items-center gap-2">
+          <input 
+            type="text" 
+            id="aiChatInput" 
+            placeholder="Pregúntale a la IA o escribe: 'Anota $45 en gasolina'..." 
+            class="flex-1 pl-4 pr-12 py-2.5 text-xs md:text-sm rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border-none text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          />
+          <button 
+            onclick="AIAssistant.sendMessage()" 
+            class="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/20 transition-all transform active:scale-95"
+          >
+            <i class="fa-solid fa-arrow-up text-xs"></i>
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 text-center mt-2">
+          FinStack AI analiza tus finanzas en memoria local con privacidad absoluta.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Application Scripts -->
   <script src="js/store.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/calendar.js"></script>
+  <script src="js/ai-assistant.js"></script>
   <script src="js/app.js"></script>
 
 </body>

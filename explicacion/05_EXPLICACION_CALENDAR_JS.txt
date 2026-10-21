@@ -1,0 +1,95 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+               05 - EXPLICACIÓN A FONDO DE JS/CALENDAR.JS
+================================================================================
+
+1. ¿QUÉ HACE ESTE ARCHIVO Y POR QUÉ ES ESPECIAL?
+--------------------------------------------------------------------------------
+El módulo de calendario es una de las joyas de este proyecto. Muchas aplicaciones
+usan paquetes externos muy pesados que son difíciles de personalizar.
+En FinStack Pro, construimos un **Calendario Interactivo desde cero con puro
+JavaScript y Tailwind CSS**, haciéndolo súper ligero, rapidísimo y con un diseño
+que se adapta perfecto tanto a teléfonos como a computadoras.
+
+Sus responsabilidades son:
+1. Calcular matemáticamente qué día cae el 1 del mes y cuántos días tiene cada mes.
+2. Pintar la cuadrícula de 7 columnas (Lunes a Domingo).
+3. Cruzar cada fecha con la base de datos para mostrar los micro-chips de
+   ingresos (verde) y gastos (rojo).
+4. Actualizar el panel lateral "Historial Diario" al hacer clic sobre cualquier día.
+
+
+2. EL TRUCO MATEMÁTICO DE LAS FECHAS EN JAVASCRIPT
+--------------------------------------------------------------------------------
+
+A. ¿CÓMO SABER CUÁNTOS DÍAS TIENE UN MES?
+   En JavaScript hay un truco clásico de programadores:
+   ```javascript
+   const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+   ```
+   ¿Por qué funciona?
+   Si le pides a JavaScript el "día 0" del próximo mes (`month + 1`), JavaScript
+   entiende que te refieres al "último día del mes actual".
+   Así, si es febrero en año bisiesto te dará 29, en año normal 28, en abril 30
+   y en mayo 31, ¡automáticamente y sin tener que escribir reglas complejas!
+
+B. EL DESFASE DE SEMANA (LUNES A DOMINGO):
+   Por defecto, en Estados Unidos y en JavaScript la semana comienza en Domingo
+   (`Domingo = 0`, `Lunes = 1`, `Martes = 2`...).
+   Pero en los calendarios hispanohablantes comenzamos la semana en **Lunes**.
+   Para arreglarlo usamos esta fórmula:
+   ```javascript
+   const firstDayIndex = new Date(year, month, 1).getDay();
+   const startOffset = (firstDayIndex + 6) % 7;
+   ```
+   Esto convierte al Lunes en 0 y al Domingo en 6. De esta forma, si el mes
+   empieza en Miércoles, sabemos exactamente que debemos dejar 2 casillas vacías
+   al principio.
+
+
+3. LAS 3 FASES DE CONSTRUCCIÓN DE LA CUADRÍCULA
+--------------------------------------------------------------------------------
+Para que el calendario sea un rectángulo perfecto, la función `render()` genera
+el HTML en tres pasos consecutivos:
+
+1. Días del mes anterior (Relleno):
+   Dibuja celdas semitransparentes con los últimos días del mes pasado para
+   llenar el hueco inicial antes del día 1.
+2. Días del mes actual (Celdas activas):
+   Recorre desde el día 1 hasta el 28, 30 o 31.
+   Para cada día:
+   - Construye la fecha en formato ISO `YYYY-MM-DD`.
+   - Llama a `Store.getByDate(dateStr)` para buscar los movimientos de ese día.
+   - Si hubo ingresos, genera el chip verde con flecha arriba (`fa-arrow-trend-up`).
+   - Si hubo gastos, genera el chip rojo con flecha abajo (`fa-arrow-trend-down`).
+   - Si es el día de hoy, le pone un círculo azul al número.
+   - Si es el día que el usuario tiene seleccionado con el ratón, le pone un
+     anillo azul iluminado (`ring-2 ring-blue-500`).
+3. Días del mes siguiente (Relleno final):
+   Calcula cuántas celdas faltan para completar una cuadrícula simétrica de 35
+   o 42 casillas y las dibuja atenuadas.
+
+
+4. EL PANEL INSPECTOR DIARIO (renderDayInspector)
+--------------------------------------------------------------------------------
+Cada celda del calendario tiene este atributo en su HTML:
+`onclick="CalendarManager.selectDate('${dateStr}')"`
+
+Cuando el usuario hace clic en el día 15 de octubre:
+1. `selectDate('2026-10-15')` guarda esa fecha como la fecha activa.
+2. Se ejecuta `renderDayInspector('2026-10-15')`.
+3. Esta función busca todas las transacciones ocurridas en esa fecha:
+   - Si hay transacciones: las muestra en una lista detallada con su categoría,
+     método de pago, notas y botones de Editar (icono lápiz) y Eliminar (icono bote de basura).
+   - Si no hay transacciones: muestra un mensaje amigable indicando que no hubo
+     movimientos y coloca un botón azul directo: `+ Registrar en este día`, que abre
+     el formulario con la fecha pre-rellenada automáticamente.
+
+
+5. NAVEGACIÓN Y BOTONES DE TIEMPO
+--------------------------------------------------------------------------------
+- `prevMonth()`: Resta 1 al mes actual (`currentDate.setMonth(currentDate.getMonth() - 1)`)
+  y vuelve a pintar la pantalla.
+- `nextMonth()`: Suma 1 al mes actual y vuelve a pintar.
+- `goToToday()`: Restablece la fecha a la fecha actual del sistema (`new Date()`).
+================================================================================

@@ -1,0 +1,116 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+            08 - GUÍA DE COMANDOS DE TERMINAL Y GIT EXPLICADOS
+================================================================================
+
+1. ¿QUÉ ES LA TERMINAL Y POR QUÉ DA TANTO RESPETO AL PRINCIPIO?
+--------------------------------------------------------------------------------
+La terminal (esa pantalla negra donde escribes texto) asusta al inicio porque no
+tiene botones ni ratón. Pero en realidad es solo una forma directa de hablar con
+el cerebro de tu computadora sin intermediarios.
+
+En lugar de hacer doble clic en una carpeta, le dices: `cd MiCarpeta`.
+En lugar de hacer clic derecho -> "Nueva carpeta", le dices: `mkdir MiCarpeta`.
+Es más rápida, consume menos memoria y es la herramienta estándar de todos los
+programadores del mundo.
+
+
+2. COMANDOS BÁSICOS DE TERMINAL (LINUX / MAC)
+--------------------------------------------------------------------------------
+
+- `pwd` (Print Working Directory):
+  Te dice exactamente en qué carpeta estás parado en este momento.
+  Ejemplo: `/home/dany/Documentos/Proyectos/Pruebas`.
+
+- `ls` (List):
+  Muestra la lista de archivos y carpetas que hay donde estás parado.
+  Si usas `ls -la`, te muestra además los archivos ocultos (los que empiezan
+  con un punto como `.gitignore`).
+
+- `cd` (Change Directory):
+  Te mueve de una carpeta a otra.
+  * Entrar a una carpeta: `cd js`
+  * Subir un nivel hacia atrás: `cd ..`
+  * Volver a tu carpeta de inicio: `cd ~`
+
+- `mkdir` (Make Directory):
+  Crea una carpeta nueva.
+  Ejemplo: `mkdir explicacion`
+
+- `python3 -m http.server 8080`:
+  Enciende un servidor web local en tu computadora. El puerto `8080` es como
+  el "canal de televisión" donde emite tu página web para que la veas en
+  `http://localhost:8080`. Para apagarlo, presionas `Ctrl + C`.
+
+
+3. LOS COMANDOS DE GIT EXPLICADOS CON METÁFORAS
+--------------------------------------------------------------------------------
+Git funciona con 4 estaciones de tren:
+
+   [Tu Código en Disco]  -- (git add .) -->  [La Caja / Staging]
+            |
+            |-- (git commit -m "...") --> [El Álbum Local de Fotos]
+                                                     |
+                                                     |-- (git push) --> [La Nube de GitHub]
+
+- `git status`:
+  El detective. Le preguntas: "¿Qué archivos he modificado o creado desde la
+  última vez que tomé una foto?". Te los muestra en rojo o en verde.
+
+- `git add .`:
+  La caja de preparación (Staging Area).
+  Le dice a Git: "Toma todos los archivos modificados que están en esta carpeta
+  (el punto `.` significa 'todo lo de aquí') y mételos a la caja listos para la foto".
+
+- `git commit -m "v1.2.0: Sistema Multi-Rol y PWA"`:
+  La foto oficial.
+  Toma la caja que preparaste con `git add`, le saca una fotografía inmutable,
+  le estampa la fecha, la hora, tu nombre de autor y el mensaje entre comillas
+  que explica qué cambiaste. Ya tienes una nueva versión guardada en tu computadora.
+
+- `git branch -M main`:
+  Asegura que tu rama principal de trabajo se llame `main` (principal), que es
+  el estándar moderno de la industria.
+
+- `git remote add origin https://github.com/TU-USUARIO/tu-repo.git`:
+  Crea un apodo. En lugar de escribir esa URL larga de GitHub cada vez que
+  quieras subir algo, le dices a Git: "De ahora en adelante, llámale 'origin' a
+  esa dirección de internet".
+
+- `git push -u origin main`:
+  El camión de mudanza hacia la nube.
+  Toma todas las fotos (commits) que tienes en tu computadora y las envía por
+  internet hasta tu repositorio en GitHub.
+
+- `git push`:
+  Una vez que configuraste el comando anterior por primera vez, en el futuro
+  solo necesitas escribir `git push` a secas para enviar las nuevas versiones.
+
+- `git pull`:
+  Lo contrario a `push`. Si hiciste un cambio directamente en la web de GitHub
+  o trabajas con otra persona, `git pull` descarga esos cambios a tu computadora.
+
+
+4. EL ARCHIVO .GITIGNORE (LA LISTA CIEGA)
+--------------------------------------------------------------------------------
+¿Por qué existe un archivo llamado `.gitignore` en tu proyecto?
+Las computadoras crean archivos invisibles de basura temporal (como `.DS_Store`
+en Mac o miniaturas en Windows).
+`.gitignore` es una lista donde le decimos a Git: "Por favor, ignora estos
+archivos temporales y nunca los subas a GitHub para no ensuciar el repositorio".
+
+
+5. EL RESUMEN DE LOS 3 PASOS DIARIOS (LA REGLA DE ORO)
+--------------------------------------------------------------------------------
+Cada vez que trabajes y quieras guardar tu progreso en GitHub, solo haz esto:
+
+```bash
+git add .
+git commit -m "Explica aquí en 1 frase lo que acabas de hacer"
+git push
+```
+
+¡Felicidades! Has completado la guía de estudio de tu proyecto. Tienes en tus
+manos una base de código moderna, limpia, escalable y lista para convertirse en
+tu primera gran aplicación en producción.
+================================================================================

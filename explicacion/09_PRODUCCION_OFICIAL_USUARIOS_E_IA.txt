@@ -1,0 +1,95 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+       09 - LANZAMIENTO OFICIAL A PRODUCCIÓN, GESTIÓN DE USUARIOS E IA
+================================================================================
+
+1. ¿QUÉ SIGNIFICA LANZAR LA APLICACIÓN "DE FORMA OFICIAL" (A PRODUCCIÓN)?
+--------------------------------------------------------------------------------
+En el desarrollo de software se manejan dos ambientes principales:
+- Ambiente de Desarrollo / Local: Funciona en tu computadora (`localhost:8080`).
+  Solo tú puedes verlo mientras tu máquina esté encendida.
+- Ambiente de Producción (Oficial): Tu aplicación está alojada en servidores de
+  alta disponibilidad en la nube, protegida con certificado SSL (el candado HTTPS),
+  accesible 24/7 desde cualquier parte del mundo desde celulares y computadoras.
+
+Para lanzar FinStack Pro de forma oficial sin pagar servidores costosos:
+1. **Frontend (La Web):** Se aloja en **Vercel** o **Cloudflare Pages**.
+   - Te dan un subdominio gratis (ej. `finstack.vercel.app`).
+   - Puedes comprar tu propio dominio comercial (ej. `finstack.com` o `.io`) y
+     conectarlo en 2 clics.
+   - Cada vez que hagas `git push` en tu terminal, Vercel detecta los cambios y
+     actualiza la web mundial en 20 segundos automáticamente (CI/CD).
+2. **Backend & Base de Datos (La Nube):** Se conecta a **Supabase** (PostgreSQL).
+   - Administra los usuarios y contraseñas de forma encriptada.
+   - Sincroniza en tiempo real las transacciones entre tu teléfono y tu PC.
+
+
+2. ¿CÓMO FUNCIONA EL MÓDULO DE GESTIÓN DE USUARIOS (PANEL ADMIN)?
+--------------------------------------------------------------------------------
+En la versión 1.3 de tu aplicación agregamos un panel exclusivo para el
+Administrador (`view-usuarios` en `index.html` y `Store.getUsers()`).
+
+A. CONTROL DE ACCESO (SOLO VISIBLE PARA ADMIN):
+   En `js/app.js`, la función `setupRoleUI()` revisa el rol activo:
+   - Si tu rol es `admin`: La opción "Gestión Usuarios" aparece iluminada en el
+     menú lateral con una insignia morada.
+   - Si cambias a `cliente` o `visita`: El botón desaparece automáticamente para
+     proteger la privacidad del sistema.
+
+B. CREACIÓN Y AUDITORÍA DE USUARIOS:
+   Al pulsar "+ Nuevo Usuario", el formulario captura:
+   - Nombre completo y correo electrónico.
+   - Rol asignado:
+     * `admin`: Acceso total al laboratorio, pruebas y administración.
+     * `cliente`: Usuario estándar con sus propias finanzas personales aisladas.
+     * `visita`: Modo demostración con datos de muestra seguros.
+   - Presupuesto mensual asignado: Para controlar techos de gasto por cuenta.
+   - Estado (Activo / Inactivo): El admin puede suspender cuentas con un solo clic.
+
+
+3. ¿CÓMO FUNCIONA EL ASISTENTE DE INTELIGENCIA ARTIFICIAL (FINSTACK AI)?
+--------------------------------------------------------------------------------
+El archivo `js/ai-assistant.js` convierte tu dashboard en un producto de última
+generación. La IA funciona en **3 niveles complementarios**:
+
+A. DIAGNÓSTICO FINANCIERO EN TIEMPO REAL (CONTEXT AWARENESS):
+   Antes de responder a cualquier pregunta, la IA lee la memoria de `Store`:
+   - Conoce tu balance actual, ingresos, gastos y ahorro neto del mes.
+   - Identifica en qué categorías estás gastando más dinero.
+   - Si preguntas: *"¿Cómo voy este mes?"*, la IA no da una respuesta genérica
+     de internet; te dice tus cifras exactas, calcula tu porcentaje de ahorro
+     y te alerta si estás cerca de romper tu presupuesto.
+
+B. REGISTRO INTELIGENTE POR LENGUAJE NATURAL (PARSER):
+   El asistente cuenta con un motor de reconocimiento de patrones (Regex).
+   Si escribes:
+   `"Anota 35 dólares en gasolina en Shell"`
+   La IA descompone la frase automáticamente:
+   - Monto: $35.00
+   - Tipo: Gasto
+   - Concepto: Gasolina en Shell
+   - Categoría deducida: Transporte
+   Te muestra una tarjeta interactiva con un botón verde:
+   `[✅ Confirmar y Registrar en FinStack]`
+   Al pulsarlo, la transacción entra directo a tu base de datos y recalcula
+   todas las gráficas y el calendario sin que tuvieses que abrir el formulario.
+
+C. CONEXIÓN CLOUD CON GOOGLE GEMINI AI (OPCIONAL):
+   - La aplicación incluye un motor analítico local integrado que responde
+     siempre, incluso sin conexión a internet.
+   - Pero si deseas conversaciones abiertas y complejas, en los ajustes puedes
+     pegar tu **API Key gratuita de Google Gemini** (de Google AI Studio).
+   - FinStack AI enviará el contexto financiero de tus gastos a la red neuronal
+     de Gemini 1.5 Flash para responderte con consejos de inversión profundos.
+
+
+4. CÓMO PROBAR LOS NUEVOS MÓDULOS EN TU COMPUTADORA HOY MISMO
+-------------------------------------------------------------
+1. En tu barra de navegación o en el header, pulsa el botón brillante con
+   chispas: **"FinStack AI"**.
+   - Haz clic en una de las preguntas sugeridas: *"¿En qué categoría gasto más?"*.
+   - O escribe: *"Gasté 22 en almuerzo de trabajo"*.
+2. En el menú superior cambia tu rol a **👑 Admin (Dev & Pruebas)**:
+   - Verás aparecer en el menú lateral el nuevo botón **"Gestión Usuarios"**.
+   - Haz clic en él para ver la lista de cuentas y crear un nuevo usuario.
+================================================================================

@@ -1,22 +1,151 @@
 /**
  * DashFinance - Store & State Management
- * Persistent localStorage handler, data calculations and sample seed generator.
+ * Persistent localStorage handler, multi-role data isolation (Admin, Cliente, Visita),
+ * user management (CRUD for Admin), calculations, changelog versions and seed generator.
  */
 
 const Store = (function () {
-  const STORAGE_KEY_TX = 'finstack_transactions_v2';
-  const STORAGE_KEY_SETTINGS = 'finstack_settings_v2';
+  const STORAGE_KEY_LEGACY = 'finstack_transactions_v2';
+  const STORAGE_KEY_SETTINGS = 'finstack_settings_v3';
+  const STORAGE_KEY_USERS = 'finstack_users_v3';
+
+  // Distinct storage keys for role data isolation
+  const ROLE_STORAGE_KEYS = {
+    admin: 'finstack_tx_admin_v3',
+    cliente: 'finstack_tx_personal_v3',
+    visita: 'finstack_tx_visita_v3'
+  };
+
+  const ROLES_INFO = {
+    admin: {
+      id: 'admin',
+      name: 'Dany Ramos (Admin / Dev)',
+      badge: 'Admin / Pruebas',
+      icon: 'fa-shield-halved',
+      color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+      description: 'Entorno de laboratorio para validar código, crear usuarios, probar nuevas métricas y realizar tests sin alterar finanzas reales.'
+    },
+    cliente: {
+      id: 'cliente',
+      name: 'Dany Ramos (Personal)',
+      badge: 'Cliente / Personal',
+      icon: 'fa-user-check',
+      color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+      description: 'Tus finanzas reales privadas. Registro oficial de ingresos, gastos, ahorros y presupuestos personales.'
+    },
+    visita: {
+      id: 'visita',
+      name: 'Usuario Visita (Invitado)',
+      badge: 'Visita / Demo',
+      icon: 'fa-eye',
+      color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+      description: 'Modo demostración para enseñar la aplicación a amigos o clientes sin exponer jamás tus cuentas reales.'
+    }
+  };
+
+  const changelogData = [
+    {
+      version: 'v1.3.0',
+      date: '2026-10-21',
+      tag: 'Producción',
+      title: 'Módulo de Gestión de Usuarios (Admin) & Asistente IA Financiero',
+      highlights: [
+        'Módulo completo de Administración de Usuarios: creación, asignación de roles y presupuestos.',
+        'Asistente de Inteligencia Artificial (FinStack AI) con diagnóstico financiero en tiempo real.',
+        'Registro inteligente de gastos e ingresos mediante comandos en lenguaje natural.',
+        'Soporte para Google Gemini AI API con motor analítico local integrado.',
+        'Preparación integral para despliegue SaaS en producción con Supabase y Vercel.'
+      ]
+    },
+    {
+      version: 'v1.2.0',
+      date: '2026-10-20',
+      tag: 'Estable',
+      title: 'Sistema Multi-Rol, Changelog & Preparación PWA Móvil',
+      highlights: [
+        'Arquitectura Multi-Rol: Admin (Dev/Pruebas), Cliente (Finanzas Reales) y Visita (Demostración).',
+        'Aislamiento completo de datos en memoria local para no contaminar tus finanzas personales.',
+        'Módulo visual de Versiones y Avances (Changelog & Roadmap) en la interfaz.',
+        'Preparación PWA con manifest.json para instalación como app nativa en smartphones Android e iOS.',
+        'Conmutador rápido de roles en la barra superior con retroalimentación instantánea.'
+      ]
+    },
+    {
+      version: 'v1.1.0',
+      date: '2026-10-19',
+      tag: 'Estable',
+      title: 'Documentación Técnica y Repositorio en GitHub',
+      highlights: [
+        'Documentación técnica exhaustiva del sistema y arquitectura en DOCUMENTACION.txt.',
+        'Repositorio conectado en GitHub con control de versiones y etiquetas (Releases).',
+        'Preparación de esquema de datos para integración con bases de datos en la nube (Supabase / Firebase).'
+      ]
+    },
+    {
+      version: 'v1.0.0',
+      date: '2026-10-19',
+      tag: 'Inicial',
+      title: 'Lanzamiento Inicial de FinStack Pro',
+      highlights: [
+        'Diseño corporativo DashStack con tarjetas rounded-2xl y soporte de temas Claro/Oscuro.',
+        '4 tarjetas de métricas KPI con cálculo de variación vs mes anterior.',
+        'Gráfica interactiva de Flujo de Fondos (Chart.js) con gradientes Bézier y Donut de categorías.',
+        'Calendario Histórico interactivo con micro-chips diarios y panel de inspección por fecha.',
+        'Persistencia 100% offline con localStorage y exportación a CSV y JSON.'
+      ]
+    }
+  ];
 
   const defaultSettings = {
     theme: 'light',
     currency: 'USD',
     currencySymbol: '$',
     monthlyBudget: 3500,
+    activeRole: 'cliente',
     userName: 'Dany Ramos',
-    userRole: 'Senior Dev / Pro Admin'
+    userRole: 'Cliente / Personal',
+    geminiApiKey: ''
   };
 
-  // Helper to format ISO date string (YYYY-MM-DD)
+  const defaultUsers = [
+    {
+      id: 'usr_1',
+      name: 'Dany Ramos',
+      email: 'admin@finstack.io',
+      role: 'admin',
+      status: 'Activo',
+      budget: 5000,
+      createdAt: '2026-10-15'
+    },
+    {
+      id: 'usr_2',
+      name: 'Dany Ramos (Personal)',
+      email: 'dany.personal@finstack.io',
+      role: 'cliente',
+      status: 'Activo',
+      budget: 3500,
+      createdAt: '2026-10-18'
+    },
+    {
+      id: 'usr_3',
+      name: 'Carlos Mendoza',
+      email: 'carlos@empresa.com',
+      role: 'cliente',
+      status: 'Activo',
+      budget: 2800,
+      createdAt: '2026-10-19'
+    },
+    {
+      id: 'usr_4',
+      name: 'Invitado Showcase',
+      email: 'visita@finstack.io',
+      role: 'visita',
+      status: 'Activo',
+      budget: 1500,
+      createdAt: '2026-10-20'
+    }
+  ];
+
   function formatDateISO(date) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -24,8 +153,7 @@ const Store = (function () {
     return `${y}-${m}-${d}`;
   }
 
-  // Pre-seed realistic transactions relative to current date
-  function generateSeedData() {
+  function generateSeedData(isTestEnv = false) {
     const now = new Date();
     const y = now.getFullYear();
     const m = now.getMonth();
@@ -35,18 +163,18 @@ const Store = (function () {
       {
         id: 'tx_seed_1',
         type: 'ingreso',
-        concept: 'Pago Nómina Empresa Tech',
+        concept: isTestEnv ? '[TEST] Ingreso de Prueba Nómina' : 'Pago Nómina Empresa Tech',
         amount: 3850.00,
         category: 'Salario',
         date: formatDateISO(new Date(y, m, 1)),
         paymentMethod: 'Transferencia',
-        notes: 'Depósito quincenal de nómina',
+        notes: isTestEnv ? 'Transacción de staging para validar cálculos' : 'Depósito quincenal de nómina',
         createdAt: new Date(y, m, 1, 9, 0).toISOString()
       },
       {
         id: 'tx_seed_2',
         type: 'gasto',
-        concept: 'Alquiler Departamento',
+        concept: isTestEnv ? '[TEST] Simulación de Renta' : 'Alquiler Departamento',
         amount: 950.00,
         category: 'Vivienda',
         date: formatDateISO(new Date(y, m, 2)),
@@ -57,7 +185,7 @@ const Store = (function () {
       {
         id: 'tx_seed_3',
         type: 'gasto',
-        concept: 'Supermercado Mensual Fresko',
+        concept: isTestEnv ? '[TEST] Compra Equipos Lab' : 'Supermercado Mensual Fresko',
         amount: 245.80,
         category: 'Alimentación',
         date: formatDateISO(new Date(y, m, 3)),
@@ -178,7 +306,7 @@ const Store = (function () {
       {
         id: 'tx_seed_14',
         type: 'ingreso',
-        concept: 'Asesoría Técnica Remota',
+        concept: isTestEnv ? '[TEST] Asesoría Técnica QA' : 'Asesoría Técnica Remota',
         amount: 450.00,
         category: 'Freelance',
         date: formatDateISO(now),
@@ -186,7 +314,6 @@ const Store = (function () {
         notes: 'Auditoría de arquitectura web 3h',
         createdAt: new Date(y, m, d, 11, 45).toISOString()
       },
-      // Previous month sample for trend comparisons
       {
         id: 'tx_seed_prev_1',
         type: 'ingreso',
@@ -214,48 +341,93 @@ const Store = (function () {
     return sampleData;
   }
 
-  // Load from LocalStorage
+  function getCurrentStorageKey() {
+    const settings = loadSettings();
+    const role = settings.activeRole || 'cliente';
+    return ROLE_STORAGE_KEYS[role] || ROLE_STORAGE_KEYS.cliente;
+  }
+
   function loadTransactions() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY_TX);
+      const key = getCurrentStorageKey();
+      const data = localStorage.getItem(key);
+
       if (!data) {
-        const seed = generateSeedData();
+        const settings = loadSettings();
+        if ((settings.activeRole === 'cliente' || !settings.activeRole)) {
+          const legacy = localStorage.getItem(STORAGE_KEY_LEGACY);
+          if (legacy) {
+            localStorage.setItem(key, legacy);
+            return JSON.parse(legacy);
+          }
+        }
+
+        const isTest = settings.activeRole === 'admin';
+        const seed = generateSeedData(isTest);
         saveTransactions(seed);
         return seed;
       }
       return JSON.parse(data);
     } catch (e) {
       console.error('Error loading transactions from localStorage:', e);
-      return generateSeedData();
+      return generateSeedData(false);
     }
   }
 
-  // Save to LocalStorage
   function saveTransactions(transactions) {
     try {
-      localStorage.setItem(STORAGE_KEY_TX, JSON.stringify(transactions));
+      const key = getCurrentStorageKey();
+      localStorage.setItem(key, JSON.stringify(transactions));
     } catch (e) {
       console.error('Error saving transactions to localStorage:', e);
     }
   }
 
-  // Load Settings
   function loadSettings() {
     try {
       const data = localStorage.getItem(STORAGE_KEY_SETTINGS);
-      if (!data) return { ...defaultSettings };
+      if (!data) {
+        const oldSettings = localStorage.getItem('finstack_settings_v2');
+        if (oldSettings) {
+          const merged = { ...defaultSettings, ...JSON.parse(oldSettings) };
+          saveSettings(merged);
+          return merged;
+        }
+        return { ...defaultSettings };
+      }
       return { ...defaultSettings, ...JSON.parse(data) };
     } catch (e) {
       return { ...defaultSettings };
     }
   }
 
-  // Save Settings
   function saveSettings(settings) {
     try {
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
     } catch (e) {
       console.error('Error saving settings:', e);
+    }
+  }
+
+  // --- USER MANAGEMENT (CRUD FOR ADMIN) ---
+  function loadUsers() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY_USERS);
+      if (!data) {
+        saveUsers(defaultUsers);
+        return defaultUsers;
+      }
+      return JSON.parse(data);
+    } catch (e) {
+      return defaultUsers;
+    }
+  }
+
+  function saveUsers(users) {
+    try {
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+    } catch (e) {
+      console.error('Error saving users to localStorage:', e);
     }
   }
 
@@ -382,10 +554,8 @@ const Store = (function () {
       });
 
       const netSavings = totalIncome - totalExpense;
-      const prevNetSavings = prevTotalIncome - prevTotalExpense;
       const savingsRate = totalIncome > 0 ? ((netSavings / totalIncome) * 100).toFixed(1) : 0;
 
-      // Calculate percentage trends vs previous month
       const incomeGrowth = prevTotalIncome > 0 
         ? (((totalIncome - prevTotalIncome) / prevTotalIncome) * 100).toFixed(1) 
         : '+0.0';
@@ -393,7 +563,6 @@ const Store = (function () {
         ? (((totalExpense - prevTotalExpense) / prevTotalExpense) * 100).toFixed(1) 
         : '+0.0';
 
-      // All-time balance
       let allTimeBalance = 0;
       let allTimeIncome = 0;
       let allTimeExpense = 0;
@@ -501,6 +670,94 @@ const Store = (function () {
       return { labels, incomes, expenses };
     },
 
+    // --- MULTI-ROLE SYSTEM ---
+    getActiveRole: function () {
+      const settings = loadSettings();
+      return settings.activeRole || 'cliente';
+    },
+
+    getRoleInfo: function (roleId) {
+      return ROLES_INFO[roleId] || ROLES_INFO.cliente;
+    },
+
+    getAllRoles: function () {
+      return Object.values(ROLES_INFO);
+    },
+
+    switchRole: function (newRoleId) {
+      if (!ROLES_INFO[newRoleId]) return null;
+      const settings = loadSettings();
+      settings.activeRole = newRoleId;
+      settings.userName = ROLES_INFO[newRoleId].name;
+      settings.userRole = ROLES_INFO[newRoleId].badge;
+      saveSettings(settings);
+      return ROLES_INFO[newRoleId];
+    },
+
+    // --- USER MANAGEMENT METHODS (ADMIN) ---
+    getUsers: function () {
+      return loadUsers();
+    },
+
+    addUser: function (userData) {
+      const users = loadUsers();
+      const newUser = {
+        id: 'usr_' + Date.now(),
+        name: userData.name.trim(),
+        email: userData.email.trim(),
+        role: userData.role || 'cliente',
+        status: 'Activo',
+        budget: parseFloat(userData.budget) || 3000,
+        createdAt: formatDateISO(new Date())
+      };
+      users.push(newUser);
+      saveUsers(users);
+      return newUser;
+    },
+
+    updateUser: function (id, updatedData) {
+      const users = loadUsers();
+      const index = users.findIndex(u => u.id === id);
+      if (index === -1) return null;
+
+      users[index] = {
+        ...users[index],
+        name: updatedData.name !== undefined ? updatedData.name.trim() : users[index].name,
+        email: updatedData.email !== undefined ? updatedData.email.trim() : users[index].email,
+        role: updatedData.role || users[index].role,
+        status: updatedData.status || users[index].status,
+        budget: updatedData.budget !== undefined ? parseFloat(updatedData.budget) : users[index].budget
+      };
+      saveUsers(users);
+      return users[index];
+    },
+
+    deleteUser: function (id) {
+      let users = loadUsers();
+      const initial = users.length;
+      users = users.filter(u => u.id !== id);
+      saveUsers(users);
+      return users.length < initial;
+    },
+
+    toggleUserStatus: function (id) {
+      const users = loadUsers();
+      const user = users.find(u => u.id === id);
+      if (!user) return null;
+      user.status = user.status === 'Activo' ? 'Inactivo' : 'Activo';
+      saveUsers(users);
+      return user;
+    },
+
+    // --- CHANGELOG / VERSIONS ---
+    getChangelog: function () {
+      return changelogData;
+    },
+
+    getCurrentVersion: function () {
+      return changelogData[0];
+    },
+
     getSettings: loadSettings,
     updateSettings: function (newSettings) {
       const current = loadSettings();
@@ -530,7 +787,9 @@ const Store = (function () {
 
     exportToJSON: function () {
       return JSON.stringify({
+        role: this.getActiveRole(),
         transactions: loadTransactions(),
+        users: loadUsers(),
         settings: loadSettings(),
         exportedAt: new Date().toISOString()
       }, null, 2);
@@ -541,6 +800,7 @@ const Store = (function () {
         const data = JSON.parse(jsonString);
         if (Array.isArray(data.transactions)) {
           saveTransactions(data.transactions);
+          if (Array.isArray(data.users)) saveUsers(data.users);
           if (data.settings) saveSettings(data.settings);
           return true;
         }
@@ -552,7 +812,8 @@ const Store = (function () {
     },
 
     resetData: function () {
-      const seed = generateSeedData();
+      const isTest = this.getActiveRole() === 'admin';
+      const seed = generateSeedData(isTest);
       saveTransactions(seed);
       return seed;
     }
