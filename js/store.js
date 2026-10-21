@@ -6,14 +6,14 @@
 
 const Store = (function () {
   const STORAGE_KEY_LEGACY = 'finstack_transactions_v2';
-  const STORAGE_KEY_SETTINGS = 'finstack_settings_v4';
-  const STORAGE_KEY_USERS = 'finstack_users_v4';
+  const STORAGE_KEY_SETTINGS = 'finstack_settings_v5';
+  const STORAGE_KEY_USERS = 'finstack_users_v5';
 
   // Distinct storage keys for role data isolation
   const ROLE_STORAGE_KEYS = {
-    admin: 'finstack_tx_admin_v4',
-    cliente: 'finstack_tx_personal_v4',
-    visita: 'finstack_tx_visita_v4'
+    admin: 'finstack_tx_admin_v5',
+    cliente: 'finstack_tx_personal_v5',
+    visita: 'finstack_tx_visita_v5'
   };
 
   const ROLES_INFO = {
@@ -116,6 +116,7 @@ const Store = (function () {
       role: 'admin',
       status: 'Activo',
       budget: 5000,
+      password: 'Dany2207',
       createdAt: '2026-10-15'
     },
     {
@@ -125,6 +126,7 @@ const Store = (function () {
       role: 'cliente',
       status: 'Activo',
       budget: 3500,
+      password: '1234',
       createdAt: '2026-10-18'
     },
     {
@@ -134,6 +136,7 @@ const Store = (function () {
       role: 'visita',
       status: 'Activo',
       budget: 1500,
+      password: 'demo',
       createdAt: '2026-10-20'
     }
   ];
@@ -340,7 +343,7 @@ const Store = (function () {
 
   function getCurrentStorageKey() {
     const userId = getCurrentUserId();
-    return `finstack_tx_v4_user_${userId}`;
+    return `finstack_tx_v5_user_${userId}`;
   }
 
   function loadTransactions() {
@@ -741,6 +744,7 @@ const Store = (function () {
         role: userData.role || 'cliente',
         status: 'Activo',
         budget: parseFloat(userData.budget) || 3000,
+        password: (userData.password && userData.password.trim()) ? userData.password.trim() : '1234',
         createdAt: formatDateISO(new Date())
       };
       users.push(newUser);
@@ -748,7 +752,7 @@ const Store = (function () {
 
       // Pre-initialize empty transactions so the new user starts from 0
       try {
-        localStorage.setItem(`finstack_tx_v4_user_${newUser.id}`, JSON.stringify([]));
+        localStorage.setItem(`finstack_tx_v5_user_${newUser.id}`, JSON.stringify([]));
       } catch (e) {}
 
       return newUser;
@@ -765,7 +769,8 @@ const Store = (function () {
         email: updatedData.email !== undefined ? updatedData.email.trim() : users[index].email,
         role: updatedData.role || users[index].role,
         status: updatedData.status || users[index].status,
-        budget: updatedData.budget !== undefined ? parseFloat(updatedData.budget) : users[index].budget
+        budget: updatedData.budget !== undefined ? parseFloat(updatedData.budget) : users[index].budget,
+        password: (updatedData.password && updatedData.password.trim()) ? updatedData.password.trim() : users[index].password
       };
       saveUsers(users);
 
@@ -788,7 +793,7 @@ const Store = (function () {
       users = users.filter(u => u.id !== id);
       saveUsers(users);
       try {
-        localStorage.removeItem(`finstack_tx_v4_user_${id}`);
+        localStorage.removeItem(`finstack_tx_v5_user_${id}`);
       } catch (e) {}
       return users.length < initial;
     },
@@ -798,6 +803,23 @@ const Store = (function () {
       const user = users.find(u => u.id === id);
       if (!user) return null;
       user.status = user.status === 'Activo' ? 'Inactivo' : 'Activo';
+      saveUsers(users);
+      return user;
+    },
+
+    verifyPassword: function (userId, password) {
+      const users = loadUsers();
+      const user = users.find(u => u.id === userId);
+      if (!user) return false;
+      if (!user.password) return true; // If no password set, permit
+      return user.password.trim() === (password || '').trim();
+    },
+
+    resetUserPassword: function (id, newPassword) {
+      const users = loadUsers();
+      const user = users.find(u => u.id === id);
+      if (!user) return null;
+      user.password = (newPassword || '').trim();
       saveUsers(users);
       return user;
     },

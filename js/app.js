@@ -8,6 +8,9 @@ const App = (function () {
   let currentView = 'dashboard';
   let editingTxId = null;
   let editingUserId = null;
+  let pendingSwitchUserId = null;
+  let pendingResetUserId = null;
+  let isSessionLocked = true;
   let activeFilterType = 'todos';
   let activeSearchQuery = '';
 
@@ -46,8 +49,9 @@ const App = (function () {
     updateBudgetProgressBar();
     renderChangelog();
     AIAssistant.init();
+    initLockScreen();
 
-    console.log('DashFinance Pro v1.3 initialized with Admin User Management and AI Assistant.');
+    console.log('FinStack Pro initialized with Strict Security & Admin Password Management.');
   }
 
   // --- THEME MANAGEMENT (Dark / Light) ---
@@ -194,10 +198,144 @@ const App = (function () {
     }
   }
 
-  // Switch between individual user accounts
-  function switchUserAccount(userId) {
+  // --- STRICT AUTH & LOCK SCREEN SYSTEM ---
+  function initLockScreen() {
+    setupLockScreenUsers();
+    const currentId = Store.getCurrentUserId();
+    const select = document.getElementById('lockUserSelect');
+    if (select) {
+      select.value = currentId;
+      handleLockUserSelectChange(currentId);
+    }
+    const lockScreen = document.getElementById('authLockScreen');
+    if (lockScreen) {
+      lockScreen.classList.remove('hidden');
+      lockScreen.classList.add('flex');
+    }
+    const pwdInput = document.getElementById('lockPasswordInput');
+    if (pwdInput) setTimeout(() => pwdInput.focus(), 150);
+  }
+
+  function setupLockScreenUsers() {
+    const select = document.getElementById('lockUserSelect');
+    if (!select) return;
+    const users = Store.getUsers();
+    select.innerHTML = users.map(u => {
+      let icon = '💼';
+      if (u.role === 'admin') icon = '👑';
+      else if (u.role === 'visita') icon = '👁️';
+      else icon = '👤';
+      const statusNote = u.status === 'Inactivo' ? ' (Inactivo)' : '';
+      return `<option value="${u.id}">${icon} ${escapeHtml(u.name)} (${u.role.toUpperCase()})${statusNote}</option>`;
+    }).join('');
+  }
+
+  function handleLockUserSelectChange(userId) {
     const users = Store.getUsers();
     const user = users.find(u => u.id === userId);
+    const badge = document.getElementById('lockUserRoleBadge');
+    const errorMsg = document.getElementById('lockErrorMsg');
+    const pwdInput = document.getElementById('lockPasswordInput');
+
+    if (badge && user) {
+      badge.textContent = user.role.toUpperCase();
+      badge.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${
+        user.role === 'admin' 
+          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' 
+          : (user.role === 'visita' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300')
+      }`;
+    }
+    if (errorMsg) errorMsg.classList.add('hidden');
+    if (pwdInput) {
+      pwdInput.value = '';
+      pwdInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+      pwdInput.focus();
+    }
+  }
+
+  function submitLockScreenLogin(e) {
+    e.preventDefault();
+    const select = document.getElementById('lockUserSelect');
+    const input = document.getElementById('lockPasswordInput');
+    const errorMsg = document.getElementById('lockErrorMsg');
+    if (!select || !input) return;
+
+    const userId = select.value;
+    const password = input.value.trim();
+
+    const users = Store.getUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) {
+      showToast('Usuario no encontrado', 'danger');
+      return;
+    }
+
+    if (user.status === 'Inactivo') {
+      showToast(`El usuario "${user.name}" está inactivo. Un administrador debe activarlo.`, 'warning');
+      return;
+    }
+
+    const isValid = Store.verifyPassword(userId, password);
+    if (!isValid) {
+      if (errorMsg) errorMsg.classList.remove('hidden');
+      input.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+      input.focus();
+      return;
+    }
+
+    // Success: unlock session
+    if (errorMsg) errorMsg.classList.add('hidden');
+    input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+    input.value = '';
+
+    Store.switchUser(userId);
+    isSessionLocked = false;
+
+    const lockScreen = document.getElementById('authLockScreen');
+    if (lockScreen) {
+      lockScreen.classList.add('hidden');
+      lockScreen.classList.remove('flex');
+    }
+
+    setupRoleUI();
+    refreshAllUI();
+    showToast(`¡Bienvenido, ${user.name}! Sesión iniciada.`, 'success');
+  }
+
+  function lockSession() {
+    isSessionLocked = true;
+    const lockScreen = document.getElementById('authLockScreen');
+    const select = document.getElementById('lockUserSelect');
+    const input = document.getElementById('lockPasswordInput');
+    const errorMsg = document.getElementById('lockErrorMsg');
+
+    setupLockScreenUsers();
+    const currentId = Store.getCurrentUserId();
+    if (select) {
+      select.value = currentId;
+      handleLockUserSelectChange(currentId);
+    }
+    if (input) {
+      input.value = '';
+      input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+    }
+    if (errorMsg) errorMsg.classList.add('hidden');
+
+    if (lockScreen) {
+      lockScreen.classList.remove('hidden');
+      lockScreen.classList.add('flex');
+    }
+    showToast('Sesión bloqueada por seguridad', 'info');
+    if (input) setTimeout(() => input.focus(), 150);
+  }
+
+  // --- USER ACCOUNT SWITCHING WITH PASSWORD CHECK ---
+  function switchUserAccount(targetUserId, bypassAuth = false) {
+    const currentUserId = Store.getCurrentUserId();
+    if (targetUserId === currentUserId) return;
+
+    const users = Store.getUsers();
+    const user = users.find(u => u.id === targetUserId);
     if (!user) {
       showToast('No se encontró el usuario seleccionado.', 'danger');
       return;
@@ -205,19 +343,93 @@ const App = (function () {
 
     if (user.status === 'Inactivo') {
       showToast(`El usuario "${user.name}" está suspendido/inactivo. Actívalo en el Panel Admin antes de ingresar.`, 'warning');
-      setupRoleUI(); // Revert selector to active user
+      setupRoleUI();
       return;
     }
 
-    Store.switchUser(userId);
-    setupRoleUI();
-    refreshAllUI();
-    showToast(`Sesión activa: ${user.name} (${user.role.toUpperCase()})`, 'success');
+    if (bypassAuth) {
+      Store.switchUser(targetUserId);
+      setupRoleUI();
+      refreshAllUI();
+      showToast(`Sesión activa: ${user.name} (${user.role.toUpperCase()})`, 'success');
 
-    // If leaving admin while viewing admin users management, redirect to dashboard
-    if (currentView === 'usuarios' && user.role !== 'admin') {
-      switchView('dashboard');
+      if (currentView === 'usuarios' && user.role !== 'admin') {
+        switchView('dashboard');
+      }
+      return;
     }
+
+    // Open User Switch Password Modal
+    openSwitchModal(targetUserId);
+  }
+
+  function openSwitchModal(targetUserId) {
+    pendingSwitchUserId = targetUserId;
+    const user = Store.getUsers().find(u => u.id === targetUserId);
+    if (!user) return;
+
+    const modal = document.getElementById('userSwitchModal');
+    const avatarEl = document.getElementById('switchTargetAvatar');
+    const nameEl = document.getElementById('switchTargetName');
+    const badgeEl = document.getElementById('switchTargetBadge');
+    const pwdInput = document.getElementById('switchPasswordInput');
+    const errorMsg = document.getElementById('switchErrorMsg');
+
+    if (avatarEl) {
+      const initials = (user.name || 'US').trim().split(/\s+/).map(p => p[0]).join('').substring(0, 2).toUpperCase();
+      avatarEl.textContent = initials;
+      avatarEl.className = `w-14 h-14 mx-auto rounded-full bg-gradient-to-tr ${
+        user.role === 'admin' 
+          ? 'from-purple-600 to-indigo-600' 
+          : (user.role === 'visita' ? 'from-amber-500 to-orange-500' : 'from-blue-600 to-cyan-600')
+      } text-white font-bold text-lg flex items-center justify-center shadow-md`;
+    }
+    if (nameEl) nameEl.textContent = user.name;
+    if (badgeEl) badgeEl.textContent = user.role.toUpperCase();
+    if (pwdInput) {
+      pwdInput.value = '';
+      pwdInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+    }
+    if (errorMsg) errorMsg.classList.add('hidden');
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      if (pwdInput) setTimeout(() => pwdInput.focus(), 150);
+    }
+  }
+
+  function closeSwitchModal() {
+    const modal = document.getElementById('userSwitchModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+    pendingSwitchUserId = null;
+    setupRoleUI(); // Revert selector dropdown
+  }
+
+  function submitSwitchPassword(e) {
+    e.preventDefault();
+    if (!pendingSwitchUserId) return;
+
+    const input = document.getElementById('switchPasswordInput');
+    const errorMsg = document.getElementById('switchErrorMsg');
+    const password = input ? input.value.trim() : '';
+
+    const isValid = Store.verifyPassword(pendingSwitchUserId, password);
+    if (!isValid) {
+      if (errorMsg) errorMsg.classList.remove('hidden');
+      if (input) {
+        input.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+        input.focus();
+      }
+      return;
+    }
+
+    const targetId = pendingSwitchUserId;
+    closeSwitchModal();
+    switchUserAccount(targetId, true);
   }
 
   // Switch by role name (finds matching user)
@@ -226,15 +438,69 @@ const App = (function () {
     const targetUser = users.find(u => u.role === newRole && u.status === 'Activo') || users.find(u => u.role === newRole);
     if (targetUser) {
       switchUserAccount(targetUser.id);
-    } else {
-      const roleInfo = Store.switchRole(newRole);
-      setupRoleUI();
-      refreshAllUI();
-      showToast(`Cambiado a: ${roleInfo ? roleInfo.badge : newRole}`, 'info');
+    }
+  }
 
-      if (currentView === 'usuarios' && newRole !== 'admin') {
-        switchView('dashboard');
-      }
+  // --- PASSWORD RESET MODAL (ADMIN ONLY) ---
+  function openResetPasswordModal(userId) {
+    pendingResetUserId = userId;
+    const user = Store.getUsers().find(u => u.id === userId);
+    if (!user) return;
+
+    const modal = document.getElementById('resetPasswordModal');
+    const userNameEl = document.getElementById('resetModalUserName');
+    const input = document.getElementById('resetNewPasswordInput');
+
+    if (userNameEl) userNameEl.textContent = `Usuario: ${user.name} (${user.email})`;
+    if (input) {
+      input.value = '';
+      input.classList.remove('border-rose-500');
+    }
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      if (input) setTimeout(() => input.focus(), 150);
+    }
+  }
+
+  function closeResetPasswordModal() {
+    const modal = document.getElementById('resetPasswordModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+    pendingResetUserId = null;
+  }
+
+  function submitResetPassword(e) {
+    e.preventDefault();
+    if (!pendingResetUserId) return;
+
+    const input = document.getElementById('resetNewPasswordInput');
+    const newPassword = input ? input.value.trim() : '';
+    if (!newPassword || newPassword.length < 3) {
+      showToast('La nueva contraseña debe tener al menos 3 caracteres', 'warning');
+      return;
+    }
+
+    const user = Store.resetUserPassword(pendingResetUserId, newPassword);
+    if (user) {
+      showToast(`¡Contraseña de ${user.name} restablecida con éxito!`, 'success');
+    }
+    closeResetPasswordModal();
+    renderUsersTable();
+  }
+
+  function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+
+    const btn = input.parentElement ? input.parentElement.querySelector('button i') : null;
+    if (btn) {
+      btn.className = isPassword ? 'fa-regular fa-eye-slash text-sm' : 'fa-regular fa-eye text-sm';
     }
   }
 
@@ -301,7 +567,7 @@ const App = (function () {
             ${user.createdAt}
           </td>
           <td class="py-3.5 px-4 text-center">
-            <div class="flex items-center justify-center gap-2">
+            <div class="flex items-center justify-center gap-1.5">
               ${isCurrent ? `
                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100/70 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs font-bold border border-emerald-300 dark:border-emerald-700">
                   <i class="fa-solid fa-circle-check text-xs"></i> Activo
@@ -310,16 +576,23 @@ const App = (function () {
                 <button 
                   onclick="App.switchUserAccount('${user.id}')" 
                   title="Iniciar sesión como este usuario" 
-                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white dark:bg-blue-900/40 dark:hover:bg-blue-600 dark:text-blue-300 text-xs font-bold transition-all shadow-xs border border-blue-200 dark:border-blue-800"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white dark:bg-blue-900/40 dark:hover:bg-blue-600 dark:text-blue-300 text-xs font-bold transition-all shadow-xs border border-blue-200 dark:border-blue-800"
                 >
                   <i class="fa-solid fa-right-to-bracket text-xs"></i>
                   <span>Ingresar</span>
                 </button>
               `}
               <button 
+                onclick="App.openResetPasswordModal('${user.id}')" 
+                title="Restablecer contraseña del usuario" 
+                class="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
+              >
+                <i class="fa-solid fa-key text-xs"></i>
+              </button>
+              <button 
                 onclick="App.toggleUserStatus('${user.id}')" 
                 title="${user.status === 'Activo' ? 'Suspender usuario' : 'Activar usuario'}" 
-                class="w-7 h-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
+                class="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
               >
                 <i class="fa-solid ${user.status === 'Activo' ? 'fa-ban' : 'fa-check'} text-xs"></i>
               </button>
@@ -349,6 +622,9 @@ const App = (function () {
     const modal = document.getElementById('userModal');
     const form = document.getElementById('userForm');
     const title = document.getElementById('userModalTitle');
+    const pwdAsterisk = document.getElementById('userPasswordReqAsterisk');
+    const pwdInput = document.getElementById('userPasswordInput');
+    const pwdHint = document.getElementById('userPasswordHint');
     if (!modal) return;
 
     form.reset();
@@ -362,9 +638,23 @@ const App = (function () {
         document.getElementById('userEmailInput').value = user.email;
         document.getElementById('userRoleSelect').value = user.role;
         document.getElementById('userBudgetInput').value = user.budget || 3000;
+        if (pwdInput) {
+          pwdInput.value = '';
+          pwdInput.required = false;
+          pwdInput.placeholder = 'Dejar en blanco para conservar contraseña actual';
+        }
+        if (pwdAsterisk) pwdAsterisk.classList.add('hidden');
+        if (pwdHint) pwdHint.textContent = 'Escribe una nueva contraseña solo si deseas cambiarla.';
       }
     } else {
       title.textContent = 'Crear Nuevo Usuario';
+      if (pwdInput) {
+        pwdInput.value = '';
+        pwdInput.required = true;
+        pwdInput.placeholder = 'Contraseña de la cuenta (mín. 4 caracteres)';
+      }
+      if (pwdAsterisk) pwdAsterisk.classList.remove('hidden');
+      if (pwdHint) pwdHint.textContent = 'El usuario usará esta clave para ingresar a sus finanzas.';
     }
 
     modal.classList.remove('hidden');
@@ -388,6 +678,7 @@ const App = (function () {
     const email = document.getElementById('userEmailInput').value.trim();
     const role = document.getElementById('userRoleSelect').value;
     const budget = parseFloat(document.getElementById('userBudgetInput').value) || 3000;
+    const password = document.getElementById('userPasswordInput') ? document.getElementById('userPasswordInput').value.trim() : '';
 
     if (!name || !email) {
       showToast('Por favor completa el nombre y el correo', 'warning');
@@ -395,10 +686,16 @@ const App = (function () {
     }
 
     if (editingUserId) {
-      Store.updateUser(editingUserId, { name, email, role, budget });
+      const updateData = { name, email, role, budget };
+      if (password) updateData.password = password;
+      Store.updateUser(editingUserId, updateData);
       showToast('Usuario actualizado con éxito', 'success');
     } else {
-      const newUser = Store.addUser({ name, email, role, budget });
+      if (!password || password.length < 3) {
+        showToast('Por favor asigna una contraseña de al menos 3 caracteres', 'warning');
+        return;
+      }
+      const newUser = Store.addUser({ name, email, role, budget, password });
       showToast(`Usuario "${newUser.name}" creado con éxito`, 'success');
     }
 
@@ -1112,6 +1409,16 @@ const App = (function () {
     switchUserAccount,
     switchUserRole,
     setupRoleUI,
+    lockSession,
+    initLockScreen,
+    handleLockUserSelectChange,
+    submitLockScreenLogin,
+    submitSwitchPassword,
+    closeSwitchModal,
+    openResetPasswordModal,
+    closeResetPasswordModal,
+    submitResetPassword,
+    togglePasswordVisibility,
     renderChangelog,
     openTransactionModal,
     editTransaction,

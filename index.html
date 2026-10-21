@@ -181,6 +181,15 @@
             <span>Asistente IA</span>
             <span class="ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500 to-indigo-500 text-white">COPILOT</span>
           </button>
+
+          <!-- Cerrar Sesión / Bloquear -->
+          <button 
+            onclick="App.lockSession()" 
+            class="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-500 hover:text-rose-600 hover:bg-rose-50/70 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/30 transition-all text-left"
+          >
+            <i class="fa-solid fa-lock text-base w-5 text-center text-slate-400"></i>
+            <span>Cerrar Sesión</span>
+          </button>
         </nav>
       </div>
 
@@ -320,6 +329,15 @@
               <span id="userRoleBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 block mt-0.5">Cliente / Personal</span>
             </div>
           </div>
+
+          <!-- Lock Session Button -->
+          <button 
+            onclick="App.lockSession()" 
+            title="Cerrar sesión / Bloquear pantalla"
+            class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors"
+          >
+            <i class="fa-solid fa-lock text-sm"></i>
+          </button>
         </div>
       </header>
 
@@ -1133,6 +1151,28 @@
           </div>
         </div>
 
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+            Contraseña de Acceso <span id="userPasswordReqAsterisk" class="text-rose-500 font-bold">*</span>
+          </label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="userPasswordInput" 
+              placeholder="Contraseña de la cuenta (mín. 4 caracteres)" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 pr-10"
+            />
+            <button 
+              type="button" 
+              onclick="App.togglePasswordVisibility('userPasswordInput')" 
+              class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <i class="fa-regular fa-eye text-sm"></i>
+            </button>
+          </div>
+          <p id="userPasswordHint" class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">El usuario usará esta clave para ingresar a sus finanzas.</p>
+        </div>
+
         <div class="pt-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
           <button 
             type="button" 
@@ -1234,6 +1274,209 @@
           FinStack AI analiza tus finanzas en memoria local con privacidad absoluta.
         </p>
       </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- STRICT LOCK SCREEN / LOGIN SCREEN (Pantalla de Bloqueo) -->
+  <!-- ======================================================== -->
+  <div id="authLockScreen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-3xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Brand & Header -->
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-blue-500/30">
+          <i class="fa-solid fa-vault"></i>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">FinStack Pro</h2>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800/50">
+          <i class="fa-solid fa-lock text-[11px]"></i> Acceso Seguro Protegido
+        </div>
+        <p class="text-xs text-slate-600 dark:text-slate-300">Selecciona tu usuario e ingresa tu contraseña para desbloquear el sistema.</p>
+      </div>
+
+      <!-- User Selector inside Lock Screen -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Cuenta de Usuario</label>
+        <select 
+          id="lockUserSelect" 
+          onchange="App.handleLockUserSelectChange(this.value)"
+          class="w-full px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+        >
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+
+      <!-- Password Form -->
+      <form id="lockScreenForm" onsubmit="App.submitLockScreenLogin(event)" class="space-y-4">
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Contraseña</label>
+            <span id="lockUserRoleBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">ADMIN</span>
+          </div>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="lockPasswordInput" 
+              required 
+              placeholder="Ingresa tu contraseña"
+              class="w-full px-4 py-3 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 pr-11 font-medium transition-all"
+            />
+            <button 
+              type="button" 
+              onclick="App.togglePasswordVisibility('lockPasswordInput')" 
+              class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <i class="fa-regular fa-eye text-base"></i>
+            </button>
+          </div>
+          <p id="lockErrorMsg" class="hidden text-xs text-rose-500 font-semibold mt-1.5 animate-in fade-in">
+            <i class="fa-solid fa-circle-exclamation mr-1"></i> Contraseña incorrecta. Inténtalo de nuevo.
+          </p>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 transition-all transform active:scale-95 flex items-center justify-center gap-2"
+        >
+          <span>Desbloquear y Entrar</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+
+      <!-- Discreet Password Hints -->
+      <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+        <div class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-key text-[10px] text-amber-500"></i> Claves Iniciales:
+        </div>
+        <div class="flex flex-col gap-0.5 pl-4 font-mono text-[10px]">
+          <div>👑 <strong>Admin:</strong> <code class="text-purple-600 dark:text-purple-400 font-bold">Dany2207</code></div>
+          <div>💼 <strong>Personal:</strong> <code class="text-blue-600 dark:text-blue-400 font-bold">1234</code></div>
+          <div>👁️ <strong>Visita:</strong> <code class="text-amber-600 dark:text-amber-400 font-bold">demo</code></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CAMBIO DE USUARIO (VERIFICAR CONTRASEÑA) -->
+  <!-- ======================================================== -->
+  <div id="userSwitchModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-sm rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      
+      <div id="switchTargetAvatar" class="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-bold text-lg flex items-center justify-center shadow-md">
+        AD
+      </div>
+      
+      <div>
+        <h3 id="switchTargetName" class="text-base font-extrabold text-slate-900 dark:text-white">Dany Ramos</h3>
+        <span id="switchTargetBadge" class="inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 mt-1">ADMINISTRADOR</span>
+        <p class="text-xs text-slate-600 dark:text-slate-300 mt-1.5">Ingresa la contraseña para iniciar sesión en esta cuenta.</p>
+      </div>
+
+      <form onsubmit="App.submitSwitchPassword(event)" class="space-y-4 text-left">
+        <div>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="switchPasswordInput" 
+              required 
+              placeholder="Contraseña de la cuenta"
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 pr-10"
+            />
+            <button 
+              type="button" 
+              onclick="App.togglePasswordVisibility('switchPasswordInput')" 
+              class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <i class="fa-regular fa-eye text-sm"></i>
+            </button>
+          </div>
+          <p id="switchErrorMsg" class="hidden text-xs text-rose-500 font-semibold mt-1">
+            <i class="fa-solid fa-circle-exclamation mr-1"></i> Contraseña incorrecta
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <button 
+            type="button" 
+            onclick="App.closeSwitchModal()" 
+            class="flex-1 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25 transition-all"
+          >
+            Ingresar
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: RESTABLECER CONTRASEÑA (ADMIN EXCLUSIVO) -->
+  <!-- ======================================================== -->
+  <div id="resetPasswordModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-sm rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-lg shrink-0">
+          <i class="fa-solid fa-key"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Restablecer Contraseña</h3>
+          <p id="resetModalUserName" class="text-xs text-slate-600 dark:text-slate-300">Usuario: Sofia Gomez</p>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-600 dark:text-slate-300">
+        Como administrador, puedes asignar una nueva contraseña a este usuario en caso de olvido.
+      </p>
+
+      <form onsubmit="App.submitResetPassword(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nueva Contraseña *</label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="resetNewPasswordInput" 
+              required 
+              minlength="3"
+              placeholder="Escribe la nueva contraseña"
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 pr-10"
+            />
+            <button 
+              type="button" 
+              onclick="App.togglePasswordVisibility('resetNewPasswordInput')" 
+              class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <i class="fa-regular fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
+          <button 
+            type="button" 
+            onclick="App.closeResetPasswordModal()" 
+            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="px-5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-500/25 transition-all"
+          >
+            Actualizar Contraseña
+          </button>
+        </div>
+      </form>
 
     </div>
   </div>
