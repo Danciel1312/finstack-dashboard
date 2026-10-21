@@ -71,7 +71,6 @@ Puedes servirla con cualquier servidor estático:
 
 - **Con Python:**
   ```bash
-  cd /home/dany/Documentos/Proyectos/Pruebas
   python3 -m http.server 8080
   ```
   Luego abre `http://localhost:8080` en tu navegador.
