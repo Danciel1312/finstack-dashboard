@@ -69,6 +69,12 @@ documentos en este orden numerado:
    8. `08_GUIA_DE_COMANDOS_TERMINAL_Y_GIT.txt`
       Diccionario práctico de comandos de terminal y Git explicados sin miedo.
 
+   9. `09_PRODUCCION_OFICIAL_USUARIOS_E_IA.txt`
+      Gestión de usuarios en el Panel Admin y Asistente FinStack AI.
+
+  10. `10_GUIA_DESPLIEGUE_PRODUCCION_Y_NUBE.txt`
+      Tutorial paso a paso para lanzar tu app a Vercel, GitHub Pages e instalarla en móvil.
+
 
 3. GLOSARIO RÁPIDO DE TÉRMINOS QUE VERÁS SEGUIDO
 --------------------------------------------------------------------------------

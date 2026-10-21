@@ -1,0 +1,128 @@
+================================================================================
+                    ESCUELA DE PROGRAMACIÓN FINSTACK PRO
+            10 - GUÍA PASO A PASO: DESPLIEGUE A PRODUCCIÓN Y NUBE
+================================================================================
+
+¡Felicidades! Tu aplicación FinStack Pro ya está lista para salir de tu
+computadora y estar disponible en internet las 24 horas del día de forma
+100% GRATUITA.
+
+Esta guía te explica exactamente qué hacer, paso a paso, sin palabras difíciles.
+
+================================================================================
+PASO 1: SUBIR TUS ÚLTIMOS AVANCES A GITHUB
+================================================================================
+Tu código en tu computadora ya tiene las últimas mejoras (el Asistente IA,
+el panel de usuarios, el cambio entre cuentas y las guías). Ahora debemos
+enviar esos cambios a tu cuenta de GitHub.
+
+1. Abre tu terminal de Linux en la carpeta del proyecto.
+2. Escribe este comando y presiona Enter:
+   
+   git push origin main
+
+3. ¿Qué te pedirá la terminal?
+   - Te pedirá tu nombre de usuario de GitHub:
+     Escribe: Danciel1312
+   - Te pedirá tu contraseña:
+     ATENCIÓN: GitHub ya no permite contraseñas normales por seguridad.
+     Debes pegar un "Personal Access Token" (Token de Acceso Personal).
+
+   ¿Cómo crear tu Token en 1 minuto si no lo tienes?
+   a. Entra a https://github.com -> Haz clic en tu foto de perfil (arriba a la derecha).
+   b. Elige "Settings" (Ajustes).
+   c. En el menú de la izquierda, baja hasta el final y haz clic en "Developer Settings".
+   d. Haz clic en "Personal access tokens" -> "Tokens (classic)".
+   e. Clic en "Generate new token" -> "Generate new token (classic)".
+   f. En "Note" escribe: Mi PC FinStack
+   g. En "Expiration" elige: 90 days (o No expiration).
+   h. Marca la casilla principal: [x] repo (para dar permisos de subir código).
+   i. Baja y pulsa el botón verde "Generate token".
+   j. COPIA el código que empieza por `ghp_...` y pégalo en tu terminal cuando
+      te pida "Password". (En Linux no se ven las letras cuando pegas la clave por
+      seguridad, pero sí se pega. Solo presiona Enter).
+
+¡Listo! Al presionar Enter, todos tus archivos estarán en la nube de GitHub.
+
+
+================================================================================
+PASO 2: LANZAR TU WEB A PRODUCCIÓN (2 OPCIONES GRATUITAS)
+================================================================================
+
+--------------------------------------------------------------------------------
+OPCIÓN RECOMENDADA: VERCEL (Rápida, Profesional y Automática)
+--------------------------------------------------------------------------------
+Vercel es la plataforma número uno del mundo para alojar aplicaciones web.
+Es gratis, incluye certificado de seguridad SSL (candado verde) y cada vez
+que subas código a GitHub, Vercel actualiza tu página en internet en 20 segundos
+automáticamente.
+
+Pasos para desplegar en Vercel:
+1. Ve a https://vercel.com
+2. Haz clic en el botón superior "Sign Up" (o "Log In").
+3. Elige la opción "Continue with GitHub" (se vincula con 1 clic a tu cuenta).
+4. En tu panel de Vercel, pulsa el botón "Add New..." -> "Project".
+5. Verás tu repositorio: `finstack-dashboard`. Pulsa el botón "Import".
+6. Te saldrá una pantalla de configuración: NO toques nada, déjalo todo como está.
+7. Haz clic en el botón azul grande: "Deploy".
+8. Espera unos 30 segundos mientras caen confetis en la pantalla...
+   ¡Y LISTO! Te dará tu enlace web público, por ejemplo:
+   https://finstack-dashboard.vercel.app
+
+
+--------------------------------------------------------------------------------
+OPCIÓN ALTERNATIVA: GITHUB PAGES (Sin salir de GitHub)
+--------------------------------------------------------------------------------
+Si prefieres no crear cuenta en Vercel y usar solo GitHub:
+1. Entra a tu repositorio: https://github.com/Danciel1312/finstack-dashboard
+2. Haz clic en la pestaña "Settings" (Ajustes del repositorio, arriba a la derecha).
+3. En el menú lateral izquierdo, haz clic en "Pages".
+4. En la sección "Build and deployment" -> "Branch":
+   - Cambia "None" por "main".
+   - En la carpeta deja "/(root)".
+   - Pulsa "Save" (Guardar).
+5. Espera 1 minuto y recarga la página. Verás un mensaje en verde con tu enlace:
+   https://danciel1312.github.io/finstack-dashboard/
+
+
+================================================================================
+PASO 3: INSTALAR FINSTACK EN TU TELÉFONO CELULAR (PWA)
+================================================================================
+Gracias al archivo `manifest.json` que preparamos, tu web es una PWA
+(Progressive Web App). No necesitas subirla a Google Play ni App Store
+para tenerla como una aplicación real en tu pantalla de inicio:
+
+- En Android (Google Chrome):
+  1. Abre el enlace de tu web (ej. en Vercel) desde Chrome en tu teléfono.
+  2. Toca los 3 puntos de la esquina superior derecha.
+  3. Toca "Instalar aplicación" o "Agregar a la pantalla principal".
+  4. Verás el ícono de FinStack Pro en tu celular y se abrirá a pantalla
+     completa sin la barra del navegador.
+
+- En iPhone (Safari):
+  1. Abre el enlace en Safari.
+  2. Toca el botón de Compartir (el cuadrado con la flecha hacia arriba abajo).
+  3. Baja y toca "Agregar al inicio" (Add to Home Screen).
+
+
+================================================================================
+PASO 4: ¿CÓMO SINCRONIZAR TUS DATOS ENTRE TU PC Y TU TELÉFONO? (SUPABASE)
+================================================================================
+Actualmente tu aplicación guarda los datos en `localStorage` (la memoria
+interna del navegador en ese aparato).
+- Si usas tu PC, los datos se guardan en tu PC.
+- Si usas tu teléfono, los datos se guardan en tu teléfono.
+
+Para que lo que anotes en la calle desde tu celular aparezca inmediatamente
+en la pantalla de tu computadora cuando llegues a casa:
+Conectamos tu `Store` a **Supabase** (un servicio en la nube gratuito con
+base de datos PostgreSQL).
+
+¿Qué nos permite Supabase?
+1. Base de datos en la nube accesible desde cualquier lugar.
+2. Contraseñas reales y seguras para cada usuario que crees en el sistema.
+3. Sincronización en tiempo real: si agregas un gasto en el móvil, tu pantalla
+   del computador se actualiza sola al instante.
+
+¡Cuando quieras, podemos dar ese siguiente paso y conectar Supabase juntos!
+================================================================================
