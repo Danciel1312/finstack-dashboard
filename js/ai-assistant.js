@@ -184,54 +184,198 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
   }
 
   /**
+   * Natural Language Transaction Parser
+   * Extracts amount, type, concept and category from casual phrases like:
+   * "100 supermercado", "compra de 100 super", "50 gasolina", "uber 25", "ingreso 400 freelance"
+   */
+  function parseNaturalTransaction(query) {
+    const raw = query.trim();
+    const lower = raw.toLowerCase();
+
+    // Skip transaction parsing if it is clearly an exploratory question (unless it starts with an action verb)
+    const isQuestion = /^(?:¿|\?|cu[aá]nto|c[oó]mo|qu[eé]|puedo|dame|recomienda|por qu[eé])/i.test(raw);
+    const hasActionVerb = /^(?:anota|registra|guarda|ingresa|agrega|compr[eé]|gast[eé])/i.test(raw);
+    if (isQuestion && !hasActionVerb) {
+      return null;
+    }
+
+    // 1. Extract Number / Amount (anywhere in the phrase)
+    // Matches "$100", "100.50", "100$", "100 usd", "100", etc.
+    const numberRegex = /(?:\$|usd|pesos|eur|€)?\s*(\d+(?:[.,]\d{1,2})?)\s*(?:\$|usd|pesos|eur|€|d[oó]lares)?/i;
+    const match = raw.match(numberRegex);
+    if (!match) return null;
+
+    const amountStr = match[1].replace(',', '.');
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) return null;
+
+    // 2. Determine Type (Ingreso vs Gasto)
+    const isIncome = /\b(?:ingreso|ingresos|ingres[eé]|ganancia|ganancias|gan[eé]|cobro|cobr[eé]|recib[ií]|sueldo|salario|n[oó]mina|quincena|dep[oó]sito|venta)\b/i.test(lower);
+    const type = isIncome ? 'ingreso' : 'gasto';
+
+    // 3. Extract Concept by removing amount and filler words
+    let concept = raw
+      .replace(match[0], ' ')
+      .replace(/\b(?:gast[eé]|gasto|gastos|anota|anotar|registr[ao]|registrar|guarda|guardar|compr[eé]|compra|compras|pagu[eé]|pago|pagos|ingres[oeé]|ingreso|gan[eé]|ganancia|cobr[eé]|cobro|recib[ií])\b/gi, ' ')
+      .replace(/\b(?:de|en|por|un|una|el|la|los|las|mi|mis|al|del|para|d[oó]lares|pesos|usd|euros)\b/gi, ' ')
+      .replace(/[^\w\sáéíóúñÁÉÍÓÚÑ]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!concept || concept.length < 2) {
+      concept = isIncome ? 'Ingreso General' : 'Gasto General';
+    } else {
+      // Capitalize words
+      concept = concept
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    }
+
+    // 4. Deduce Category based on rich financial keyword dictionary
+    const searchContext = (concept + ' ' + lower).toLowerCase();
+    let category = isIncome ? 'Salario' : 'Otros';
+
+    const CATEGORY_MAP = [
+      { cat: 'Alimentación', words: ['super', 'supermercado', 'despensa', 'comida', 'almuerzo', 'desayuno', 'cena', 'restaurante', 'pizza', 'hamburguesa', 'burger', 'tacos', 'sushi', 'cafe', 'café', 'starbucks', 'pan', 'panaderia', 'panadería', 'carne', 'carniceria', 'verdura', 'fruta', 'walmart', 'costco', 'oxxo', 'mercadona', 'carulla', 'tienda', 'abarrotes', 'alimento', 'snack'] },
+      { cat: 'Transporte', words: ['gasolina', 'combustible', 'gas', 'diesel', 'uber', 'taxi', 'didi', 'cabify', 'metro', 'bus', 'autobus', 'autobús', 'pasaje', 'peaje', 'estacionamiento', 'parqueo', 'taller', 'mecanico', 'mecánico', 'llanta', 'lavado', 'moto', 'carro', 'auto'] },
+      { cat: 'Vivienda', words: ['renta', 'alquiler', 'casa', 'departamento', 'depa', 'luz', 'cfe', 'agua', 'internet', 'wifi', 'telefono', 'teléfono', 'telmex', 'claro', 'cable', 'mantenimiento', 'condominio', 'limpieza', 'mueble'] },
+      { cat: 'Entretenimiento', words: ['cine', 'pelicula', 'película', 'netflix', 'spotify', 'disney', 'hbo', 'prime', 'youtube', 'concierto', 'bar', 'cerveza', 'tragos', 'fiesta', 'juego', 'videojuego', 'steam', 'playstation', 'xbox', 'viaje', 'hotel', 'vuelo', 'diversion'] },
+      { cat: 'Salud', words: ['farmacia', 'medicina', 'medicamento', 'pastillas', 'doctor', 'medico', 'médico', 'dentista', 'consulta', 'hospital', 'clinica', 'clínica', 'gimnasio', 'gym', 'psicologo', 'psicólogo', 'lentes', 'analisis', 'terapia'] },
+      { cat: 'Educación', words: ['curso', 'libro', 'universidad', 'escuela', 'colegio', 'colegiatura', 'udemy', 'capacitacion', 'capacitación', 'certificacion', 'clase'] },
+      { cat: 'Ropa', words: ['ropa', 'zapatos', 'zapatillas', 'camisa', 'pantalon', 'pantalón', 'vestido', 'chamarra', 'abrigo', 'zara', 'h&m'] },
+      { cat: 'Freelance', words: ['freelance', 'cliente', 'proyecto', 'diseño', 'desarrollo', 'programacion', 'programación', 'asesoria', 'asesoría', 'consultoria', 'venta', 'factura', 'honorarios'] },
+      { cat: 'Salario', words: ['salario', 'sueldo', 'nomina', 'nómina', 'quincena', 'pago quincenal', 'empresa', 'trabajo', 'bono', 'aguinaldo', 'comision', 'comisión'] }
+    ];
+
+    for (const item of CATEGORY_MAP) {
+      if (item.words.some(w => searchContext.includes(w))) {
+        category = item.cat;
+        break;
+      }
+    }
+
+    return {
+      type,
+      concept,
+      amount,
+      category,
+      date: new Date().toISOString().split('T')[0],
+      paymentMethod: type === 'ingreso' ? 'Transferencia' : 'Tarjeta Débito',
+      notes: 'Registrado con FinStack AI'
+    };
+  }
+
+  /**
    * Natural Language Intent Detection and Local/Cloud AI logic
    */
   async function processUserQuery(query) {
-    const lower = query.toLowerCase();
+    const lower = query.toLowerCase().trim();
     const stats = Store.getKPIStats();
     const settings = Store.getSettings();
     const currency = settings.currencySymbol || '$';
     const categories = Store.getCategoryTotals('gasto');
 
-    // 1. Natural language transaction registration (Regex parsing)
-    // Examples: "anota 45 en combustible", "gasté 20 en uber", "registra gasto 50 cena"
-    const txMatch = query.match(/(?:gast[eé]|anota|registr[ao]|compr[eé]|ingres[eo]|pago)\s+(?:un\s+)?(?:gasto\s+|ingreso\s+)?(?:de\s+)?(?:\$)?(\d+(?:\.\d+)?)\s*(?:en|de|por)?\s*(.+)/i);
-    
-    if (txMatch) {
-      const amount = parseFloat(txMatch[1]);
-      const rawConcept = txMatch[2].trim();
-      const isIncome = lower.includes('ingreso') || lower.includes('ganancia') || lower.includes('cobro');
-
-      // Guess category based on concept
-      let category = isIncome ? 'Salario' : 'Otros';
-      if (/gasolina|combustible|uber|taxi|metro|gas/i.test(rawConcept)) category = 'Transporte';
-      else if (/comida|cena|almuerzo|super|despensa|restaurante|pizza|cafe/i.test(rawConcept)) category = 'Alimentación';
-      else if (/renta|alquiler|casa|luz|agua|internet/i.test(rawConcept)) category = 'Vivienda';
-      else if (/netflix|spotify|cine|juego|salida/i.test(rawConcept)) category = 'Entretenimiento';
-      else if (/farmacia|medico|doctor|gimnasio|medicina/i.test(rawConcept)) category = 'Salud';
-      else if (/freelance|proyecto|cliente/i.test(rawConcept)) category = 'Freelance';
-
-      const pendingTx = {
-        type: isIncome ? 'ingreso' : 'gasto',
-        concept: rawConcept.charAt(0).toUpperCase() + rawConcept.slice(1),
-        amount: amount,
-        category: category,
-        date: new Date().toISOString().split('T')[0],
-        paymentMethod: 'Tarjeta Débito',
-        notes: 'Registrado con FinStack AI'
-      };
-
+    // 1. Natural Language Transaction Registration (Any casual format)
+    // E.g. "100 supermercado", "compra de 100 super", "50 gasolina", "uber 25", "ingreso 500 quincena"
+    const parsedTx = parseNaturalTransaction(query);
+    if (parsedTx) {
       return {
         sender: 'ai',
-        text: `He analizado tu mensaje y estructurado la siguiente transacción. ¿Deseas que la guarde en tu base de datos?`,
-        pendingTransaction: pendingTx
+        text: `⚡ **Transacción Detectada:** He interpretado tu mensaje como un **${parsedTx.type.toUpperCase()}** de **${currency}${parsedTx.amount.toFixed(2)}** en **${parsedTx.concept}** (${parsedTx.category}).\n\nPresiona el botón de abajo para guardarla en tus registros:`,
+        pendingTransaction: parsedTx
       };
     }
 
-    // 2. Health & Balance query
-    if (lower.includes('salud') || lower.includes('balance') || lower.includes('como voy') || lower.includes('estado')) {
+    // 2. Greetings & Capabilities
+    if (/^(?:hola|buen[ao]s|hey|saludos|qu[eé]\s+haces|ayuda|inicio)\b/i.test(lower)) {
+      return {
+        sender: 'ai',
+        text: `¡Hola ${settings.userName || 'Dany'}! Soy tu copiloto **FinStack AI**. Puedo ayudarte a:
+- **Registrar compras y pagos al vuelo:** Solo escribe algo como *"100 supermercado"*, *"25 gasolina"* o *"ingreso 500 freelance"*.
+- **Consultar tu dinero:** Pregúntame *"¿cuánto dinero tengo?"* o *"¿cuánto he gastado?"*.
+- **Evaluar compras:** Pregúntame *"¿puedo gastar 80?"* y evaluaré tu presupuesto restante.
+- **Analizar tus finanzas:** Pídeme consejos de ahorro o tus mayores fugas de dinero.
+
+¿Qué movimiento deseas registrar o qué te gustaría consultar?`,
+        actions: ['¿Cuánto dinero tengo?', '¿En qué categoría gasto más?', '100 supermercado', 'Dame 3 consejos de ahorro']
+      };
+    }
+
+    // 3. Purchase Feasibility Evaluator (e.g. "¿puedo gastar 80?", "me alcanza para 150?", "quiero comprar algo de 200")
+    if (/(?:puedo\s+(?:gastar|comprar)|me\s+alcanza|quiero\s+comprar)/i.test(lower)) {
+      const numMatch = lower.match(/\b(\d+(?:[.,]\d{1,2})?)\b/);
+      if (numMatch) {
+        const askAmount = parseFloat(numMatch[1].replace(',', '.'));
+        const budget = settings.monthlyBudget || 3500;
+        const remainingBudget = Math.max(0, budget - stats.totalExpense);
+
+        if (askAmount <= remainingBudget) {
+          const afterSpend = remainingBudget - askAmount;
+          return {
+            sender: 'ai',
+            text: `🟢 **¡Sí, puedes permitírtelo!**\n\n- **Monto consultado:** ${currency}${askAmount.toFixed(2)}\n- **Presupuesto disponible este mes:** ${currency}${remainingBudget.toFixed(2)}\n- **Margen restante después del gasto:** ${currency}${afterSpend.toFixed(2)}\n\nTu saldo y presupuesto tienen suficiente holgura para realizar esta compra de forma segura.`,
+            actions: [`Registrar: $${askAmount.toFixed(2)} en Compra`, '¿Cómo está mi salud financiera?']
+          };
+        } else {
+          const deficit = askAmount - remainingBudget;
+          return {
+            sender: 'ai',
+            text: `🔴 **Atención - Riesgo Presupuestario:**\n\n- **Monto consultado:** ${currency}${askAmount.toFixed(2)}\n- **Presupuesto restante:** ${currency}${remainingBudget.toFixed(2)}\n- **Excedente sobre el límite:** ${currency}${deficit.toFixed(2)}\n\nSi realizas esta compra, superarás tu presupuesto mensual fijado en ${currency}${budget.toFixed(2)}. Te recomiendo postergarla al próximo mes o compensar reduciendo gastos en otra categoría.`,
+            actions: ['¿En qué categoría gasto más?', 'Dame 3 consejos de ahorro']
+          };
+        }
+      }
+    }
+
+    // 4. Current Balance & Money Summary
+    if (/(?:cu[aá]nto\s+(?:dinero\s+)?tengo|saldo|balance|mi\s+dinero|total\s+disponible)/i.test(lower)) {
+      const balance = stats.allTimeBalance;
+      return {
+        sender: 'ai',
+        text: `💰 **Resumen de tu Dinero:**\n\n- **Balance Total:** **${currency}${Number(balance).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**\n- **Ingresos del Mes:** ${currency}${Number(stats.totalIncome).toLocaleString('es-ES', { minimumFractionDigits: 2 })}\n- **Gastos del Mes:** ${currency}${Number(stats.totalExpense).toLocaleString('es-ES', { minimumFractionDigits: 2 })}\n- **Ahorro Neto del Mes:** ${currency}${Number(stats.netSavings).toLocaleString('es-ES', { minimumFractionDigits: 2 })} (Tasa: ${stats.savingsRate}%)\n\n${stats.transactionCount === 0 ? '💡 *Tu cuenta personal está lista y limpia. Puedes anotar tus gastos escribiendo por ejemplo: "35 supermercado".*' : ''}`,
+        actions: ['¿En qué categoría gasto más?', '¿Cuánto he gastado?', 'Dame 3 consejos de ahorro']
+      };
+    }
+
+    // 5. Total Spent Query
+    if (/(?:cu[aá]nto\s+he\s+gastado|mis\s+gastos|total\s+gastos|gastos\s+del\s+mes)/i.test(lower)) {
+      const budget = settings.monthlyBudget || 3500;
+      const percent = Math.min(100, Math.round((stats.totalExpense / budget) * 100));
+      return {
+        sender: 'ai',
+        text: `📉 **Control de Gastos del Mes:**\n\n- **Total Gastado:** **${currency}${Number(stats.totalExpense).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**\n- **Presupuesto Mensual:** ${currency}${budget.toLocaleString('es-ES')}\n- **Consumo del Presupuesto:** **${percent}%** consumido\n- **Disponible restante:** ${currency}${Math.max(0, budget - stats.totalExpense).toLocaleString('es-ES', { minimumFractionDigits: 2 })}\n\n${stats.totalExpense === 0 ? '✨ *Aún no tienes gastos registrados este mes. ¡Excelente momento para empezar desde cero!*' : ''}`,
+        actions: ['¿En qué categoría gasto más?', '¿Cuánto dinero tengo?']
+      };
+    }
+
+    // 6. Total Income Query
+    if (/(?:cu[aá]nto\s+(?:he\s+)?ganado|mis\s+ingresos|total\s+ingresos|ingresos\s+del\s+mes)/i.test(lower)) {
+      return {
+        sender: 'ai',
+        text: `📈 **Resumen de Ingresos:**\n\n- **Ingresos de este mes:** **${currency}${Number(stats.totalIncome).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**\n- **Margen de Ahorro Neto:** ${currency}${Number(stats.netSavings).toLocaleString('es-ES', { minimumFractionDigits: 2 })}\n\nPuedes registrar nuevos ingresos en cualquier momento escribiendo por ejemplo: *"ingreso 1200 salario"* o *"cobré 300 freelance"*.`,
+        actions: ['¿Cuánto dinero tengo?', '¿Cómo está mi salud financiera?']
+      };
+    }
+
+    // 7. Budget & Limits Query
+    if (/(?:presupuesto|l[ií]mite|cu[aá]nto\s+me\s+queda|disponible)/i.test(lower)) {
+      const budget = settings.monthlyBudget || 3500;
+      const spent = stats.totalExpense;
+      const remaining = Math.max(0, budget - spent);
+      const percent = Math.min(100, Math.round((spent / budget) * 100));
+
+      return {
+        sender: 'ai',
+        text: `🎯 **Estado de tu Presupuesto Mensual:**\n\n- **Presupuesto Asignado:** ${currency}${budget.toLocaleString('es-ES')}\n- **Has gastado:** ${currency}${Number(spent).toLocaleString('es-ES', { minimumFractionDigits: 2 })} (${percent}%)\n- **Te quedan disponibles:** **${currency}${Number(remaining).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**\n\n${percent > 85 ? '⚠️ *¡Atención! Has consumido más del 85% de tu presupuesto. Modera gastos no esenciales.*' : '🟢 *Vas a buen ritmo este mes.*'}`,
+        actions: ['¿En qué categoría gasto más?', 'Dame 3 consejos de ahorro']
+      };
+    }
+
+    // 8. Health & Diagnostics
+    if (/(?:salud|diagn[oó]stico|c[oó]mo\s+voy|estado)/i.test(lower)) {
       const statusText = stats.netSavings >= 0 
-        ? `🟢 **Salud Financiera Excelente**: Tienes un margen neto positivo de **${currency}${stats.netSavings.toLocaleString('es-ES', { minimumFractionDigits: 2 })}** este mes.`
+        ? `🟢 **Salud Financiera Positiva**: Tienes un margen neto a favor de **${currency}${stats.netSavings.toLocaleString('es-ES', { minimumFractionDigits: 2 })}** este mes.`
         : `🔴 **Atención**: Tus gastos superan a tus ingresos este mes por **${currency}${Math.abs(stats.netSavings).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**.`;
 
       return {
@@ -241,11 +385,15 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
       };
     }
 
-    // 3. Category Breakdown query
-    if (lower.includes('categoria') || lower.includes('mas gasto') || lower.includes('fuga') || lower.includes('donde se va')) {
+    // 9. Category Breakdown query
+    if (/(?:categor[ií]a|m[aá]s\s+gasto|fuga|en\s+qu[eé]\s+se\s+va)/i.test(lower)) {
       const sortedCats = Object.entries(categories).sort((a, b) => b[1] - a[1]);
       if (!sortedCats.length) {
-        return { sender: 'ai', text: 'Aún no tienes gastos suficientes registrados este mes para calcular la categoría líder.' };
+        return { 
+          sender: 'ai', 
+          text: `Aún no tienes gastos registrados para desglosar por categoría.\n\nPuedes agregar tu primer gasto escribiendo algo como: *"45 supermercado"* o *"20 uber"*.`,
+          actions: ['¿Cuánto dinero tengo?', 'Dame 3 consejos de ahorro']
+        };
       }
 
       const [topCat, topVal] = sortedCats[0];
@@ -255,30 +403,39 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
 
       return {
         sender: 'ai',
-        text: `Tu mayor gasto este mes está concentrado en **${topCat}**, representando el **${percent}%** de todos tus egresos (${currency}${topVal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}).\n\n**Top Categorías:**\n${listText}\n\n💡 *Tip de IA:* Si logras reducir un 10% en **${topCat}**, ahorrarías aproximadamente **${currency}${(topVal * 0.10).toFixed(2)}** extra este mes.`,
+        text: `Tu mayor gasto está concentrado en **${topCat}**, representando el **${percent}%** de tus egresos (${currency}${topVal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}).\n\n**Top Categorías:**\n${listText}\n\n💡 *Tip de IA:* Si logras reducir un 10% en **${topCat}**, ahorrarías aproximadamente **${currency}${(topVal * 0.10).toFixed(2)}** extra este mes.`,
         actions: ['Dame 3 consejos de ahorro', '¿Cómo está mi salud financiera?']
       };
     }
 
-    // 4. Savings advice query
-    if (lower.includes('consejo') || lower.includes('ahorrar') || lower.includes('ahorro') || lower.includes('recomienda')) {
+    // 10. Savings Advice Query
+    if (/(?:consejo|ahorrar|ahorro|recomienda)/i.test(lower)) {
       return {
         sender: 'ai',
-        text: `Aquí tienes **3 estrategias personalizadas** para tu perfil actual:\n\n1. **Aplica la regla 50/30/20:** Destina el 50% de tus ingresos a necesidades básicas (vivienda, comida), 30% a estilo de vida y aparta automáticamente el **20% para ahorro o fondos indexados** al inicio de mes.\n2. **Audita micro-suscripciones:** Revisa servicios de streaming o apps que no uses a diario; suelen drenar entre $30 y $60 al mes sin que lo notes.\n3. **Regla de las 72 horas para compras impulsivas:** Cuando quieras comprar algo que no sea de primera necesidad, espera 3 días. El 60% del impulso desaparece solo.`,
+        text: `Aquí tienes **3 estrategias personalizadas** para tu perfil:\n\n1. **Aplica la regla 50/30/20:** Destina el 50% de tus ingresos a necesidades básicas (vivienda, comida), 30% a estilo de vida y aparta automáticamente el **20% para ahorro o inversión** al inicio de mes.\n2. **Audita micro-suscripciones:** Revisa servicios de streaming o apps que no uses a diario; suelen drenar entre $30 y $60 al mes sin que lo notes.\n3. **Regla de las 72 horas para compras impulsivas:** Cuando quieras comprar algo que no sea de primera necesidad, espera 3 días. El 60% del impulso desaparece solo.`,
         actions: ['¿Cómo está mi salud financiera?', '¿En qué categoría gasto más?']
       };
     }
 
-    // 5. Check if user configured a Google Gemini API Key for open chat
+    // 11. Polite expressions
+    if (/(?:gracias|muchas\s+gracias|excelente|genial|perfecto)/i.test(lower)) {
+      return {
+        sender: 'ai',
+        text: `¡Con mucho gusto! 😊 Estoy aquí para cuidar tu bolsillo. Si tienes otro movimiento o consulta financiera, solo dímelo.`,
+        actions: ['¿Cuánto dinero tengo?', '¿En qué categoría gasto más?']
+      };
+    }
+
+    // 12. Check if user configured a Google Gemini API Key for open chat
     if (settings.geminiApiKey) {
       return await callGeminiAPI(query, settings.geminiApiKey, stats, categories, currency);
     }
 
-    // Default intelligent response
+    // 13. Helpful Educational Fallback
     return {
       sender: 'ai',
-      text: `Entendido. He registrado tu pregunta. Como copiloto financiero, puedo analizar tus balances, indicarte tus mayores gastos por categoría o registrar compras en lenguaje natural (ej. *"Anota $30 en gasolina"*).\n\n*(Nota: Puedes vincular tu clave de Google Gemini API en Ajustes para habilitar conversaciones libres avanzadas).*`,
-      actions: ['¿Cómo está mi salud financiera?', '¿En qué categoría gasto más?', 'Dame 3 consejos de ahorro']
+      text: `Entendido. No identifiqué con exactitud si es una consulta o una transacción.\n\n💡 **Puedes probar escribiendo:**\n- **Para registrar gastos:** *"100 supermercado"*, *"compra de 45 farmacia"* o *"25 gasolina"*.\n- **Para registrar ingresos:** *"ingreso 1200 salario"* o *"cobré 300 freelance"*.\n- **O hazme preguntas como:** *"¿cuánto dinero tengo?"* o *"¿puedo gastar 50?"*.\n\n*(También puedes conectar tu API Key gratuita de Google Gemini en Ajustes para conversaciones abiertas sobre cualquier tema).*`,
+      actions: ['¿Cuánto dinero tengo?', '¿En qué categoría gasto más?', 'Dame 3 consejos de ahorro']
     };
   }
 
@@ -326,11 +483,19 @@ Responde en español de forma amigable, estructurada con viñetas y formato Mark
     const msg = chatHistory[messageIndex];
     if (!msg || !msg.pendingTransaction) return;
 
-    Store.add(msg.pendingTransaction);
-    App.showToast('¡Transacción registrada por FinStack AI!', 'success');
+    const tx = msg.pendingTransaction;
+    Store.add(tx);
+
+    if (window.App && typeof App.refreshAllUI === 'function') {
+      App.refreshAllUI();
+    }
+    App.showToast(`¡${tx.type === 'ingreso' ? 'Ingreso' : 'Gasto'} registrado por FinStack AI!`, 'success');
+
+    const stats = Store.getKPIStats();
+    const currency = Store.getSettings().currencySymbol || '$';
 
     // Update UI
-    msg.text += `\n\n✅ *Transacción de ${msg.pendingTransaction.amount.toFixed(2)} en ${msg.pendingTransaction.concept} agregada exitosamente.*`;
+    msg.text += `\n\n✅ **¡Transacción guardada exitosamente!**\n- **Concepto:** ${escapeHtml(tx.concept)} (${tx.category})\n- **Monto:** ${currency}${tx.amount.toFixed(2)}\n- **Balance Total:** ${currency}${Number(stats.allTimeBalance).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
     delete msg.pendingTransaction;
     renderMessages();
   }

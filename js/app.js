@@ -1105,6 +1105,7 @@ const App = (function () {
   // Public API
   return {
     init,
+    refreshAllUI,
     switchView,
     toggleTheme,
     changeCurrency,
