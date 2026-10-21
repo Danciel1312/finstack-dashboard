@@ -6,14 +6,14 @@
 
 const Store = (function () {
   const STORAGE_KEY_LEGACY = 'finstack_transactions_v2';
-  const STORAGE_KEY_SETTINGS = 'finstack_settings_v3';
-  const STORAGE_KEY_USERS = 'finstack_users_v3';
+  const STORAGE_KEY_SETTINGS = 'finstack_settings_v4';
+  const STORAGE_KEY_USERS = 'finstack_users_v4';
 
   // Distinct storage keys for role data isolation
   const ROLE_STORAGE_KEYS = {
-    admin: 'finstack_tx_admin_v3',
-    cliente: 'finstack_tx_personal_v3',
-    visita: 'finstack_tx_visita_v3'
+    admin: 'finstack_tx_admin_v4',
+    cliente: 'finstack_tx_personal_v4',
+    visita: 'finstack_tx_visita_v4'
   };
 
   const ROLES_INFO = {
@@ -101,8 +101,9 @@ const Store = (function () {
     currency: 'USD',
     currencySymbol: '$',
     monthlyBudget: 3500,
+    currentUserId: 'usr_2',
     activeRole: 'cliente',
-    userName: 'Dany Ramos',
+    userName: 'Dany Ramos (Personal)',
     userRole: 'Cliente / Personal',
     geminiApiKey: ''
   };
@@ -125,15 +126,6 @@ const Store = (function () {
       status: 'Activo',
       budget: 3500,
       createdAt: '2026-10-18'
-    },
-    {
-      id: 'usr_3',
-      name: 'Carlos Mendoza',
-      email: 'carlos@empresa.com',
-      role: 'cliente',
-      status: 'Activo',
-      budget: 2800,
-      createdAt: '2026-10-19'
     },
     {
       id: 'usr_4',
@@ -348,7 +340,7 @@ const Store = (function () {
 
   function getCurrentStorageKey() {
     const userId = getCurrentUserId();
-    return `finstack_tx_user_${userId}`;
+    return `finstack_tx_v4_user_${userId}`;
   }
 
   function loadTransactions() {
@@ -358,49 +350,19 @@ const Store = (function () {
 
       if (!data) {
         const userId = getCurrentUserId();
-        
-        // Migrate legacy keys if present
-        if (userId === 'usr_2') {
-          const personalV3 = localStorage.getItem('finstack_tx_personal_v3') || localStorage.getItem(STORAGE_KEY_LEGACY);
-          if (personalV3) {
-            localStorage.setItem(key, personalV3);
-            return JSON.parse(personalV3);
-          }
-        } else if (userId === 'usr_1') {
-          const adminV3 = localStorage.getItem('finstack_tx_admin_v3');
-          if (adminV3) {
-            localStorage.setItem(key, adminV3);
-            return JSON.parse(adminV3);
-          }
-        } else if (userId === 'usr_4') {
-          const visitaV3 = localStorage.getItem('finstack_tx_visita_v3');
-          if (visitaV3) {
-            localStorage.setItem(key, visitaV3);
-            return JSON.parse(visitaV3);
-          }
-        }
-
         const users = loadUsers();
-        const user = users.find(u => u.id === userId) || { name: 'Usuario', role: 'cliente', budget: 3000 };
-        
+        const user = users.find(u => u.id === userId) || { name: 'Usuario', role: 'cliente', budget: 3500 };
+
         let initialData;
-        if (userId === 'usr_1' || userId === 'usr_2' || userId === 'usr_4') {
-          initialData = generateSeedData(user.role === 'admin');
+        if (userId === 'usr_1' || user.role === 'admin') {
+          // Admin keeps laboratory mock data for developer tests
+          initialData = generateSeedData(true);
+        } else if (userId === 'usr_4' || user.role === 'visita') {
+          // Visita keeps sample data for product showcase
+          initialData = generateSeedData(false);
         } else {
-          // Newly created user starts with an active opening balance
-          initialData = [
-            {
-              id: 'tx_init_' + Date.now(),
-              type: 'ingreso',
-              concept: 'Depósito Inicial de Cuenta',
-              amount: user.budget || 2500,
-              category: 'Salario',
-              date: formatDateISO(new Date()),
-              paymentMethod: 'Transferencia',
-              notes: `Apertura de cuenta oficial para ${user.name}`,
-              createdAt: new Date().toISOString()
-            }
-          ];
+          // Dany Ramos (Personal) & ALL newly created accounts start completely clean from 0!
+          initialData = [];
         }
 
         saveTransactions(initialData);
@@ -409,7 +371,7 @@ const Store = (function () {
       return JSON.parse(data);
     } catch (e) {
       console.error('Error loading transactions from localStorage:', e);
-      return generateSeedData(false);
+      return [];
     }
   }
 
@@ -783,6 +745,12 @@ const Store = (function () {
       };
       users.push(newUser);
       saveUsers(users);
+
+      // Pre-initialize empty transactions so the new user starts from 0
+      try {
+        localStorage.setItem(`finstack_tx_v4_user_${newUser.id}`, JSON.stringify([]));
+      } catch (e) {}
+
       return newUser;
     },
 
@@ -819,6 +787,9 @@ const Store = (function () {
       const initial = users.length;
       users = users.filter(u => u.id !== id);
       saveUsers(users);
+      try {
+        localStorage.removeItem(`finstack_tx_v4_user_${id}`);
+      } catch (e) {}
       return users.length < initial;
     },
 
@@ -894,8 +865,17 @@ const Store = (function () {
     },
 
     resetData: function () {
-      const isTest = this.getActiveRole() === 'admin';
-      const seed = generateSeedData(isTest);
+      const role = this.getActiveRole();
+      const userId = this.getCurrentUserId();
+      let seed = [];
+      if (userId === 'usr_1' || role === 'admin') {
+        seed = generateSeedData(true);
+      } else if (userId === 'usr_4' || role === 'visita') {
+        seed = generateSeedData(false);
+      } else {
+        // Clean start from 0 for personal / standard clients
+        seed = [];
+      }
       saveTransactions(seed);
       return seed;
     }
