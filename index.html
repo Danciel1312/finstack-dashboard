@@ -76,16 +76,16 @@
     <!-- ========================================== -->
     <!-- 1. SIDEBAR (DashStack Modern Style) -->
     <!-- ========================================== -->
-    <aside id="mainSidebar" class="fixed md:static inset-y-0 left-0 z-40 w-64 md:w-64 bg-white dark:bg-[#1E293B] border-r border-gray-100 dark:border-slate-800/80 flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+    <aside id="mainSidebar" class="fixed md:static inset-y-0 left-0 z-40 w-64 md:w-64 bg-white dark:bg-[#1E293B] border-r border-gray-100 dark:border-slate-800/80 flex flex-col justify-between transform -translate-x-full md:translate-x-0 transition-all duration-300 ease-in-out">
       
       <!-- Logo & Brand Header -->
       <div>
-        <div class="h-20 flex items-center justify-between px-6 border-b border-gray-100 dark:border-slate-800/80">
+        <div class="h-20 flex items-center justify-between px-6 border-b border-gray-100 dark:border-slate-800/80 sidebar-brand-container">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/30 shrink-0">
               <i class="fa-solid fa-shapes text-lg"></i>
             </div>
-            <div>
+            <div class="sidebar-text">
               <span class="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
                 FinStack
                 <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">Pro</span>
@@ -101,7 +101,7 @@
 
         <!-- Sidebar Navigation Menu -->
         <nav class="p-4 space-y-1.5">
-          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 px-3 mb-2">
+          <div class="sidebar-text text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 px-3 mb-2">
             Menú Principal
           </div>
 
@@ -109,55 +109,61 @@
             onclick="App.switchView('dashboard')" 
             data-view="dashboard" 
             class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm bg-blue-600 text-white shadow-md shadow-blue-500/25 transition-all text-left"
+            title="Dashboard"
           >
-            <i class="fa-solid fa-chart-pie text-base w-5 text-center text-white"></i>
-            <span>Dashboard</span>
+            <i class="fa-solid fa-chart-pie text-base w-5 text-center text-white shrink-0"></i>
+            <span class="sidebar-text">Dashboard</span>
           </button>
 
           <button 
             onclick="App.switchView('gastos')" 
             data-view="gastos" 
             class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            title="Gastos"
           >
-            <i class="fa-solid fa-arrow-trend-down text-base w-5 text-center text-rose-500"></i>
-            <span>Gastos</span>
+            <i class="fa-solid fa-arrow-trend-down text-base w-5 text-center text-rose-500 shrink-0"></i>
+            <span class="sidebar-text">Gastos</span>
           </button>
 
           <button 
             onclick="App.switchView('ingresos')" 
             data-view="ingresos" 
             class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            title="Ingresos"
           >
-            <i class="fa-solid fa-arrow-trend-up text-base w-5 text-center text-emerald-500"></i>
-            <span>Ingresos</span>
+            <i class="fa-solid fa-arrow-trend-up text-base w-5 text-center text-emerald-500 shrink-0"></i>
+            <span class="sidebar-text">Ingresos</span>
           </button>
 
           <button 
             onclick="App.switchView('calendario')" 
             data-view="calendario" 
             class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            title="Calendario Histórico"
           >
-            <i class="fa-solid fa-calendar-days text-base w-5 text-center text-blue-500"></i>
-            <span>Calendario Histórico</span>
+            <i class="fa-solid fa-calendar-days text-base w-5 text-center text-blue-500 shrink-0"></i>
+            <span class="sidebar-text">Calendario Histórico</span>
           </button>
 
           <button 
             onclick="App.switchView('reportes')" 
             data-view="reportes" 
             class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            title="Reportes & Backup"
           >
-            <i class="fa-solid fa-chart-column text-base w-5 text-center text-purple-500"></i>
-            <span>Reportes & Backup</span>
+            <i class="fa-solid fa-chart-column text-base w-5 text-center text-purple-500 shrink-0"></i>
+            <span class="sidebar-text">Reportes & Backup</span>
           </button>
 
           <button 
             onclick="App.switchView('versiones')" 
             data-view="versiones" 
             class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            title="Novedades & Versiones"
           >
-            <i class="fa-solid fa-code-branch text-base w-5 text-center text-indigo-500"></i>
-            <span>Novedades & Versiones</span>
-            <span class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v1.3</span>
+            <i class="fa-solid fa-code-branch text-base w-5 text-center text-indigo-500 shrink-0"></i>
+            <span class="sidebar-text">Novedades & Versiones</span>
+            <span class="sidebar-text ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v1.3</span>
           </button>
 
           <!-- Admin Only: Gestión de Usuarios -->
@@ -166,65 +172,57 @@
             onclick="App.switchView('usuarios')" 
             data-view="usuarios" 
             class="sidebar-nav-btn w-full hidden flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            title="Gestión de Usuarios (Admin)"
           >
-            <i class="fa-solid fa-users-gear text-base w-5 text-center text-purple-500"></i>
-            <span>Gestión Usuarios</span>
-            <span class="ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">ADMIN</span>
-          </button>
-
-          <!-- Asistente IA Launcher en Sidebar -->
-          <button 
-            onclick="AIAssistant.toggleChat(true)" 
-            class="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left group"
-          >
-            <i class="fa-solid fa-wand-magic-sparkles text-base w-5 text-center text-blue-500 group-hover:rotate-12 transition-transform"></i>
-            <span>Asistente IA</span>
-            <span class="ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500 to-indigo-500 text-white">COPILOT</span>
+            <i class="fa-solid fa-users-gear text-base w-5 text-center text-purple-500 shrink-0"></i>
+            <span class="sidebar-text">Gestión Usuarios</span>
+            <span class="sidebar-text ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">ADMIN</span>
           </button>
 
           <!-- Sincronización Cloud Multi-Dispositivo (Admin Only) -->
           <button 
             id="adminOnlyNavCloud"
             onclick="App.openCloudSyncModal()" 
-            class="w-full hidden flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            class="sidebar-nav-btn w-full hidden flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            title="Sincronización Nube (Admin)"
           >
-            <i class="fa-solid fa-cloud text-base w-5 text-center text-sky-500"></i>
-            <span>Sincronización Nube</span>
-            <span id="cloudSidebarBadge" class="ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">ADMIN</span>
+            <i class="fa-solid fa-cloud text-base w-5 text-center text-sky-500 shrink-0"></i>
+            <span class="sidebar-text">Sincronización Nube</span>
+            <span id="cloudSidebarBadge" class="sidebar-text ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">ADMIN</span>
           </button>
 
           <!-- Cerrar Sesión / Bloquear -->
           <button 
             onclick="App.lockSession()" 
-            class="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-500 hover:text-rose-600 hover:bg-rose-50/70 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/30 transition-all text-left"
+            class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-500 hover:text-rose-600 hover:bg-rose-50/70 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/30 transition-all text-left"
+            title="Cerrar Sesión"
           >
-            <i class="fa-solid fa-lock text-base w-5 text-center text-slate-400"></i>
-            <span>Cerrar Sesión</span>
+            <i class="fa-solid fa-lock text-base w-5 text-center text-slate-400 shrink-0"></i>
+            <span class="sidebar-text">Cerrar Sesión</span>
           </button>
         </nav>
       </div>
 
-      <!-- Bottom Card: Budget & User status -->
-      <div class="p-4 border-t border-gray-100 dark:border-slate-800/80 space-y-3">
-        <!-- Budget Card -->
-        <div class="p-3.5 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/50 dark:from-slate-800/80 dark:to-blue-950/20 border border-gray-100 dark:border-slate-800">
-          <div class="flex items-center justify-between text-xs font-semibold mb-1.5">
-            <span class="text-slate-700 dark:text-slate-200">Presupuesto Mensual</span>
-            <span id="budgetProgressLabel" class="text-[11px] text-blue-600 dark:text-blue-400 font-bold">0%</span>
-          </div>
-          <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-            <div id="budgetProgressBar" class="h-2 rounded-full transition-all duration-500 bg-blue-600" style="width: 0%"></div>
-          </div>
-          <p class="text-[10px] text-slate-600 dark:text-slate-300 mt-1.5 leading-tight">
-            Control de gastos en tiempo real con límite mensual configurable.
-          </p>
-        </div>
-
-        <!-- Quick Demo Reset link -->
-        <div class="flex items-center justify-between px-1 text-[11px] text-slate-600 dark:text-slate-300">
-          <span>PWA / Cloud Ready</span>
-          <button onclick="App.resetDemoData()" class="hover:text-blue-600 dark:hover:text-blue-400 font-medium underline">
-            Reset Datos
+      <!-- Bottom: Sidebar Display Mode Switcher (Fija vs Desplegable) -->
+      <div class="p-3 border-t border-gray-100 dark:border-slate-800/80">
+        <div class="sidebar-mode-toggle bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
+          <button 
+            id="sidebarModeFixedBtn"
+            onclick="App.setSidebarMode('fixed')"
+            class="flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+            title="Barra lateral expandida fija"
+          >
+            <i class="fa-solid fa-thumbtack text-[11px] shrink-0"></i>
+            <span class="sidebar-text text-[11px]">Fija</span>
+          </button>
+          <button 
+            id="sidebarModeCollapseBtn"
+            onclick="App.setSidebarMode('collapsed')"
+            class="flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            title="Barra lateral compacta / desplegable"
+          >
+            <i class="fa-solid fa-arrows-left-right text-[11px] shrink-0"></i>
+            <span class="sidebar-text text-[11px]">Desplegable</span>
           </button>
         </div>
       </div>
@@ -244,19 +242,19 @@
             <i class="fa-solid fa-bars text-base"></i>
           </button>
 
-          <!-- Search Input Pill -->
+          <!-- Search Input Pill (High Contrast) -->
           <div class="relative w-full">
-            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 text-xs font-bold"></i>
             <input 
               type="text" 
               id="globalSearchInput" 
               placeholder="Buscar transacción, categoría, notas..." 
-              class="w-full pl-9 pr-4 py-2 text-xs md:text-sm rounded-full bg-slate-100/80 dark:bg-slate-800/70 border-none text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+              class="w-full pl-9 pr-4 py-2.5 text-xs md:text-sm rounded-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all font-medium"
             />
           </div>
         </div>
 
-        <!-- Right: Actions, Currency, Role Switcher, AI, Theme, Notifications, User Profile -->
+        <!-- Right: Actions, Currency, Theme, Notifications, User Profile & Settings -->
         <div class="flex items-center gap-2 md:gap-3 ml-3">
           
           <!-- Cloud Sync Multi-Dispositivo Pill (Admin Only) -->
@@ -270,16 +268,6 @@
             <span class="hidden sm:inline" id="cloudSyncHeaderLabel">Nube (Admin)</span>
           </button>
 
-          <!-- FinStack AI Assistant Launcher Button -->
-          <button 
-            onclick="AIAssistant.toggleChat()" 
-            title="Abrir Asistente IA Financiero"
-            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all transform active:scale-95"
-          >
-            <i class="fa-solid fa-wand-magic-sparkles text-xs animate-pulse"></i>
-            <span class="hidden sm:inline">FinStack AI</span>
-          </button>
-
           <!-- "+ Nueva Transacción" CTA Button -->
           <button 
             onclick="App.openTransactionModal('gasto')" 
@@ -288,21 +276,6 @@
             <i class="fa-solid fa-plus text-xs"></i>
             <span>Nueva Transacción</span>
           </button>
-
-          <!-- Role & Account Switcher Dropdown (Admin / Dany / Nuevos Usuarios) -->
-          <div class="relative flex items-center">
-            <select 
-              id="userRoleSelector" 
-              onchange="App.switchUserAccount(this.value)" 
-              title="Cambiar de cuenta o perfil de usuario"
-              class="text-xs font-bold py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer transition-all"
-            >
-              <!-- Rellenado dinámicamente por App.setupRoleUI() con todos los usuarios registrados -->
-              <option value="usr_2">💼 Dany Ramos (Personal)</option>
-              <option value="usr_1">👑 Admin (Dev & Pruebas)</option>
-              <option value="usr_4">👁️ Visita (Modo Demo)</option>
-            </select>
-          </div>
 
           <!-- Currency Selector -->
           <select 
@@ -338,18 +311,26 @@
           <!-- Vertical Divider -->
           <div class="hidden sm:block h-7 w-px bg-gray-200 dark:bg-slate-700 mx-1"></div>
 
-          <!-- User Profile Avatar & Badge -->
-          <div class="flex items-center gap-2.5 pl-1">
-            <div class="relative">
-              <div id="userRoleAvatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm">
-                DR
+          <!-- User Profile Avatar & Badge with Settings Gear -->
+          <div class="flex items-center gap-2 pl-1">
+            <div class="relative cursor-pointer" onclick="App.openProfileModal()" title="Personalizar avatar y perfil">
+              <div id="userRoleAvatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-base flex items-center justify-center shadow-sm select-none border-2 border-white dark:border-slate-800">
+                🚗
               </div>
               <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#1E293B] absolute bottom-0 right-0"></span>
             </div>
-            <div class="hidden xl:block text-left">
-              <span id="userNameLabel" class="text-xs font-bold text-slate-800 dark:text-slate-100 block leading-tight">Dany Ramos</span>
+            <div class="hidden xl:block text-left cursor-pointer" onclick="App.openProfileModal()">
+              <span id="userNameLabel" class="text-xs font-bold text-slate-800 dark:text-slate-100 block leading-tight hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dany Ramos</span>
               <span id="userRoleBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 block mt-0.5">Cliente / Personal</span>
             </div>
+            <!-- Profile Settings Gear Button -->
+            <button 
+              onclick="App.openProfileModal()" 
+              title="Personalizar avatar e información"
+              class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center justify-center transition-all"
+            >
+              <i class="fa-solid fa-gear text-xs"></i>
+            </button>
           </div>
 
           <!-- Lock Session Button -->
@@ -1244,135 +1225,408 @@
   </div>
 
   <!-- ======================================================== -->
-  <!-- MODAL / DRAWER: ASISTENTE IA (FinStack AI Copilot) -->
+  <!-- FLOATING AI COPILOT LAUNCHER BUTTON (Costado derecho abajo) -->
   <!-- ======================================================== -->
-  <div id="aiChatDrawer" class="fixed inset-0 z-50 hidden items-center justify-center md:justify-end bg-slate-900/60 modal-backdrop p-2 md:p-4 transition-all">
-    <div class="bg-white dark:bg-[#1E293B] w-full max-w-lg h-[92vh] md:h-[95vh] rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
-      
-      <!-- Drawer Header -->
-      <div class="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/50">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-sm shadow-md shadow-blue-500/30">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h3 class="text-sm font-bold text-slate-900 dark:text-white">FinStack AI</h3>
-              <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Activo
-              </span>
-            </div>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">Copiloto Financiero & Diagnóstico Inteligente</p>
-          </div>
-        </div>
+  <button 
+    id="aiFloatingTrigger"
+    onclick="AIAssistant.toggleChat()" 
+    title="Abrir Asistente Financiero IA (FinStack Copilot)"
+    class="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/35 hover:shadow-2xl hover:scale-105 active:scale-95 flex items-center justify-center transition-all cursor-pointer border-2 border-white/20 group"
+  >
+    <i class="fa-solid fa-wand-magic-sparkles text-xl group-hover:rotate-12 transition-transform"></i>
+    <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></span>
+  </button>
 
-        <button onclick="AIAssistant.toggleChat(false)" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
+  <!-- ======================================================== -->
+  <!-- FLOATING AI CHAT WINDOW (Facebook Web Style, Sin difuminar fondo) -->
+  <!-- ======================================================== -->
+  <div 
+    id="aiChatDrawer" 
+    class="fixed bottom-24 right-4 sm:right-6 z-40 hidden flex-col w-[calc(100vw-2rem)] sm:w-96 h-[530px] max-h-[82vh] bg-white dark:bg-[#1E293B] rounded-2xl border border-gray-200 dark:border-slate-700 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200"
+  >
+    <!-- Window Header -->
+    <div class="p-3.5 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xs shadow-md shadow-blue-500/30">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-xs font-bold text-slate-900 dark:text-white">FinStack AI</h3>
+            <span class="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> En Línea
+            </span>
+          </div>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400">Copiloto Financiero Inteligente</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1">
+        <button onclick="AIAssistant.toggleChat(false)" title="Minimizar chat" class="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-minus text-xs"></i>
+        </button>
+        <button onclick="AIAssistant.toggleChat(false)" title="Cerrar chat" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center transition-colors">
           <i class="fa-solid fa-xmark text-sm"></i>
         </button>
       </div>
+    </div>
 
-      <!-- Messages Stream -->
-      <div id="aiChatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-        <!-- Dynamically populated by AIAssistant -->
+    <!-- Messages Stream -->
+    <div id="aiChatMessages" class="flex-1 overflow-y-auto p-3.5 space-y-3 text-xs">
+      <!-- Dynamically populated by AIAssistant -->
+    </div>
+
+    <!-- Window Input Footer -->
+    <div class="p-3 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-[#1E293B]">
+      <div class="relative flex items-center gap-1.5">
+        <input 
+          type="text" 
+          id="aiChatInput" 
+          placeholder="Escribe o pide: 'Anota $45 en comida'..." 
+          class="flex-1 pl-3.5 pr-10 py-2.5 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+        />
+        <button 
+          onclick="AIAssistant.sendMessage()" 
+          title="Enviar mensaje"
+          class="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/20 transition-all transform active:scale-95"
+        >
+          <i class="fa-solid fa-arrow-up text-xs"></i>
+        </button>
+      </div>
+      <p class="text-[9px] text-slate-400 text-center mt-1.5">
+        FinStack AI Copilot • 100% privado en memoria
+      </p>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- PORTAL DE ACCESO / LOGIN & REGISTRO / VISTA DEMO        -->
+  <!-- ======================================================== -->
+  <div id="authLockScreen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-lg rounded-3xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-5 my-auto animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Brand & Header -->
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-blue-500/30">
+          <i class="fa-solid fa-vault"></i>
+        </div>
+        <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">FinStack Pro</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Portal de Acceso y Gestión Financiera Inteligente</p>
       </div>
 
-      <!-- Drawer Input Footer -->
-      <div class="p-3.5 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-[#1E293B]">
-        <div class="relative flex items-center gap-2">
-          <input 
-            type="text" 
-            id="aiChatInput" 
-            placeholder="Pregúntale a la IA o escribe: 'Anota $45 en gasolina'..." 
-            class="flex-1 pl-4 pr-12 py-2.5 text-xs md:text-sm rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border-none text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-          />
-          <button 
-            onclick="AIAssistant.sendMessage()" 
-            class="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/20 transition-all transform active:scale-95"
-          >
-            <i class="fa-solid fa-arrow-up text-xs"></i>
-          </button>
+      <!-- Tabs: Iniciar Sesión / Crear Cuenta -->
+      <div class="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl">
+        <button 
+          id="portalTabLogin"
+          onclick="App.switchAuthPortalTab('login')" 
+          type="button"
+          class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm flex items-center justify-center gap-2"
+        >
+          <i class="fa-solid fa-arrow-right-to-bracket text-xs"></i>
+          <span>Iniciar Sesión</span>
+        </button>
+        <button 
+          id="portalTabRegister"
+          onclick="App.switchAuthPortalTab('register')" 
+          type="button"
+          class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center justify-center gap-2"
+        >
+          <i class="fa-solid fa-user-plus text-xs"></i>
+          <span>Crear Cuenta</span>
+        </button>
+      </div>
+
+      <!-- FORM 1: LOGIN -->
+      <form id="portalLoginForm" onsubmit="App.submitPortalLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Usuario o Correo Electrónico</label>
+          <div class="relative">
+            <i class="fa-regular fa-envelope absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+            <input 
+              type="text" 
+              id="portalLoginIdentifier" 
+              required 
+              placeholder="tu@correo.com o tu usuario"
+              autocomplete="username"
+              class="w-full pl-10 pr-4 py-3 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium transition-all"
+            />
+          </div>
         </div>
-        <p class="text-[10px] text-slate-400 text-center mt-2">
-          FinStack AI analiza tus finanzas en memoria local con privacidad absoluta.
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Contraseña</label>
+            <button 
+              type="button" 
+              onclick="App.openSupportHelp('password')" 
+              class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              ¿Olvidaste tu clave?
+            </button>
+          </div>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+            <input 
+              type="password" 
+              id="portalLoginPassword" 
+              required 
+              placeholder="••••••••"
+              autocomplete="current-password"
+              class="w-full pl-10 pr-11 py-3 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium transition-all"
+            />
+            <button 
+              type="button" 
+              onclick="App.togglePasswordVisibility('portalLoginPassword')" 
+              class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <i class="fa-regular fa-eye text-base"></i>
+            </button>
+          </div>
+          <p id="portalLoginError" class="hidden text-xs text-rose-500 font-semibold mt-1.5 animate-in fade-in">
+            <i class="fa-solid fa-circle-exclamation mr-1"></i> Credenciales incorrectas. Verifica tu correo y contraseña.
+          </p>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full py-3.5 px-4 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 transition-all transform active:scale-95 flex items-center justify-center gap-2"
+        >
+          <span>Ingresar a FinStack</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+
+      <!-- FORM 2: REGISTER (SOLO ROL CLIENTE) -->
+      <form id="portalRegisterForm" onsubmit="App.submitPortalRegister(event)" class="space-y-4 hidden">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Nombre Completo</label>
+          <div class="relative">
+            <i class="fa-regular fa-user absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+            <input 
+              type="text" 
+              id="portalRegisterName" 
+              required 
+              placeholder="Ej: Dany Ramos"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Correo Electrónico</label>
+          <div class="relative">
+            <i class="fa-regular fa-envelope absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+            <input 
+              type="email" 
+              id="portalRegisterEmail" 
+              required 
+              placeholder="tu@correo.com"
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Contraseña (Mínimo 4 caracteres)</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+            <input 
+              type="password" 
+              id="portalRegisterPassword" 
+              required 
+              minlength="4"
+              placeholder="Crea tu contraseña"
+              class="w-full pl-10 pr-11 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
+            />
+            <button 
+              type="button" 
+              onclick="App.togglePasswordVisibility('portalRegisterPassword')" 
+              class="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <i class="fa-regular fa-eye text-base"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Avatar Selection for Registration -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Elige tu Avatar</label>
+          <div class="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+            <input type="hidden" id="portalRegisterAvatar" value="🚗" />
+            <button type="button" onclick="App.selectRegisterAvatar(this, '🚗')" class="portal-reg-avatar-btn w-10 h-10 rounded-xl bg-blue-100 border-2 border-blue-500 text-lg flex items-center justify-center shrink-0">🚗</button>
+            <button type="button" onclick="App.selectRegisterAvatar(this, '🏎️')" class="portal-reg-avatar-btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-lg flex items-center justify-center shrink-0">🏎️</button>
+            <button type="button" onclick="App.selectRegisterAvatar(this, '🚀')" class="portal-reg-avatar-btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-lg flex items-center justify-center shrink-0">🚀</button>
+            <button type="button" onclick="App.selectRegisterAvatar(this, '🐶')" class="portal-reg-avatar-btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-lg flex items-center justify-center shrink-0">🐶</button>
+            <button type="button" onclick="App.selectRegisterAvatar(this, '🐱')" class="portal-reg-avatar-btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-lg flex items-center justify-center shrink-0">🐱</button>
+            <button type="button" onclick="App.selectRegisterAvatar(this, '🏔️')" class="portal-reg-avatar-btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-lg flex items-center justify-center shrink-0">🏔️</button>
+            <button type="button" onclick="App.selectRegisterAvatar(this, '🌴')" class="portal-reg-avatar-btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-lg flex items-center justify-center shrink-0">🌴</button>
+            <button type="button" onclick="App.selectRegisterAvatar(this, '💎')" class="portal-reg-avatar-btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-lg flex items-center justify-center shrink-0">💎</button>
+            <button type="button" onclick="App.selectRegisterAvatar(this, '💼')" class="portal-reg-avatar-btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-lg flex items-center justify-center shrink-0">💼</button>
+          </div>
+        </div>
+
+        <div class="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/40 text-[11px] text-blue-700 dark:text-blue-300 flex items-start gap-2">
+          <i class="fa-solid fa-circle-info text-blue-500 mt-0.5"></i>
+          <span>Tu cuenta se creará con perfil <strong>Cliente / Personal</strong>. El acceso Administrador está protegido internamente.</span>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full py-3.5 px-4 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/25 transition-all transform active:scale-95 flex items-center justify-center gap-2"
+        >
+          <span>Crear Cuenta y Entrar</span>
+          <i class="fa-solid fa-check text-xs"></i>
+        </button>
+      </form>
+
+      <!-- BOTÓN VISTA DEMO (SIN CONTRASEÑA, SOLO LECTURA) -->
+      <div class="pt-2 border-t border-gray-100 dark:border-slate-800">
+        <button 
+          type="button" 
+          onclick="App.loginAsDemo()"
+          class="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold border-2 border-dashed border-amber-400 dark:border-amber-600/80 bg-amber-50/60 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all flex items-center justify-center gap-2"
+        >
+          <i class="fa-regular fa-eye text-base"></i>
+          <span>Explorar Modo Demo (Vista Previa sin contraseña)</span>
+        </button>
+        <p class="text-[10px] text-center text-slate-500 dark:text-slate-400 mt-1">
+          Acceso instantáneo para conocer la aplicación en modo de sólo lectura.
         </p>
+      </div>
+
+      <!-- BOTONES DE SOPORTE (WHATSAPP & CORREO) -->
+      <div class="pt-2 border-t border-gray-100 dark:border-slate-800">
+        <p class="text-[11px] font-bold text-center text-slate-500 dark:text-slate-400 mb-2">¿Necesitas ayuda o soporte?</p>
+        <div class="grid grid-cols-2 gap-2">
+          <a 
+            href="https://wa.me/?text=Hola%2C%20necesito%20soporte%20en%20FinStack%20Pro" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 transition-all flex items-center justify-center gap-1.5"
+          >
+            <i class="fa-brands fa-whatsapp text-sm text-emerald-500"></i>
+            <span>WhatsApp</span>
+          </a>
+          <a 
+            href="mailto:soporte@finstack.io?subject=Soporte%20FinStack%20Pro" 
+            class="py-2 px-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-100 transition-all flex items-center justify-center gap-1.5"
+          >
+            <i class="fa-regular fa-envelope text-sm text-blue-500"></i>
+            <span>Correo</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Security Notice -->
+      <div class="text-center">
+        <span class="text-[10px] text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5 font-medium">
+          <i class="fa-solid fa-shield-halved text-[9px]"></i> FinStack Security • Cifrado Local & Supabase Cloud
+        </span>
       </div>
 
     </div>
   </div>
 
   <!-- ======================================================== -->
-  <!-- STRICT LOCK SCREEN / LOGIN SCREEN (Pantalla de Bloqueo) -->
+  <!-- MODAL: PERSONALIZAR PERFIL Y AVATAR INTERACTIVO          -->
   <!-- ======================================================== -->
-  <div id="authLockScreen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
-    <div class="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-3xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+  <div id="userProfileModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-lg rounded-3xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-200">
       
-      <!-- Brand & Header -->
-      <div class="text-center space-y-2">
-        <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-blue-500/30">
-          <i class="fa-solid fa-vault"></i>
-        </div>
-        <h2 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">FinStack Pro</h2>
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800/50">
-          <i class="fa-solid fa-lock text-[11px]"></i> Acceso Seguro Protegido
-        </div>
-        <p class="text-xs text-slate-600 dark:text-slate-300">Selecciona tu usuario e ingresa tu contraseña para desbloquear el sistema.</p>
-      </div>
-
-      <!-- User Selector inside Lock Screen -->
-      <div>
-        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Cuenta de Usuario</label>
-        <select 
-          id="lockUserSelect" 
-          onchange="App.handleLockUserSelectChange(this.value)"
-          class="w-full px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
-        >
-          <!-- Populated dynamically -->
-        </select>
-      </div>
-
-      <!-- Password Form -->
-      <form id="lockScreenForm" onsubmit="App.submitLockScreenLogin(event)" class="space-y-4">
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Contraseña</label>
-            <span id="lockUserRoleBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">ADMIN</span>
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-sm shadow-md shadow-blue-500/30">
+            <i class="fa-solid fa-sliders"></i>
           </div>
-          <div class="relative">
-            <input 
-              type="password" 
-              id="lockPasswordInput" 
-              required 
-              placeholder="Ingresa tu contraseña"
-              class="w-full px-4 py-3 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 pr-11 font-medium transition-all"
-            />
-            <button 
-              type="button" 
-              onclick="App.togglePasswordVisibility('lockPasswordInput')" 
-              class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-            >
-              <i class="fa-regular fa-eye text-base"></i>
-            </button>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">Personalizar Perfil</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Edita tu avatar interactivo y datos de usuario</p>
           </div>
-          <p id="lockErrorMsg" class="hidden text-xs text-rose-500 font-semibold mt-1.5 animate-in fade-in">
-            <i class="fa-solid fa-circle-exclamation mr-1"></i> Contraseña incorrecta. Inténtalo de nuevo.
-          </p>
         </div>
-
-        <button 
-          type="submit" 
-          class="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 transition-all transform active:scale-95 flex items-center justify-center gap-2"
-        >
-          <span>Desbloquear y Entrar</span>
-          <i class="fa-solid fa-arrow-right text-xs"></i>
+        <button onclick="App.closeProfileModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
         </button>
-      </form>
-
-      <!-- Security Notice -->
-      <div class="text-center pt-2">
-        <span class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5 font-medium">
-          <i class="fa-solid fa-shield-halved text-[10px] text-slate-400"></i> FinStack Security • Cifrado Local & Cloud
-        </span>
       </div>
+
+      <!-- Current Avatar Preview & Name -->
+      <div class="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-100 dark:border-slate-700/60">
+        <div id="profilePreviewAvatar" class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white text-3xl flex items-center justify-center shadow-lg shadow-indigo-500/20 select-none">
+          🚗
+        </div>
+        <div>
+          <h4 id="profilePreviewName" class="text-sm font-extrabold text-slate-900 dark:text-white">Dany Ramos</h4>
+          <span id="profilePreviewRole" class="inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 mt-1">CLIENTE</span>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Toca cualquier avatar abajo para seleccionarlo</p>
+        </div>
+      </div>
+
+      <!-- Avatar Category Tabs & Selector -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Galería de Avatares Interactivos</label>
+        
+        <!-- Category Pill Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+          <button type="button" onclick="App.filterAvatarCategory('autos')" id="avatarTabAutos" class="avatar-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-sm shrink-0">
+            🚗 Carritos
+          </button>
+          <button type="button" onclick="App.filterAvatarCategory('animales')" id="avatarTabAnimales" class="avatar-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 shrink-0">
+            🐶 Animales
+          </button>
+          <button type="button" onclick="App.filterAvatarCategory('paisajes')" id="avatarTabPaisajes" class="avatar-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 shrink-0">
+            🏔️ Paisajes
+          </button>
+          <button type="button" onclick="App.filterAvatarCategory('estilos')" id="avatarTabEstilos" class="avatar-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 shrink-0">
+            💎 Estilos
+          </button>
+        </div>
+
+        <!-- Avatars Grid -->
+        <div id="avatarGridContainer" class="grid grid-cols-6 sm:grid-cols-8 gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 max-h-40 overflow-y-auto">
+          <!-- Populated dynamically by App.renderAvatarGrid() -->
+        </div>
+      </div>
+
+      <!-- Profile Form Fields -->
+      <form onsubmit="App.saveUserProfile(event)" class="space-y-4">
+        <input type="hidden" id="profileSelectedAvatar" value="🚗" />
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre Completo</label>
+          <input 
+            type="text" 
+            id="profileEditName" 
+            required 
+            class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Correo Electrónico</label>
+          <input 
+            type="email" 
+            id="profileEditEmail" 
+            required 
+            class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
+          />
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <button 
+            type="button" 
+            onclick="App.closeProfileModal()" 
+            class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-gray-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-all"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25 transition-all transform active:scale-95"
+          >
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
 
     </div>
   </div>

@@ -39,6 +39,7 @@ const App = (function () {
   function init() {
     setupTheme();
     setupCurrency();
+    applySidebarMode(Store.getSidebarMode());
     setupRoleUI();
     setupEventListeners();
     updateKPIs();
@@ -162,21 +163,11 @@ const App = (function () {
       roleSelector.value = currentUser.id;
     }
 
-    // Avatar initials and gradient
+    // Avatar emoji / icon
     if (roleAvatar) {
-      const nameParts = (currentUser.name || 'Usuario').trim().split(/\s+/);
-      const initials = nameParts.length > 1
-        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-        : nameParts[0].substring(0, 2).toUpperCase();
-      roleAvatar.textContent = initials;
-
-      if (activeRole === 'admin') {
-        roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm';
-      } else if (activeRole === 'visita') {
-        roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center shadow-sm';
-      } else {
-        roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm';
-      }
+      const avatarIcon = currentUser.avatar || (activeRole === 'admin' ? '👑' : (activeRole === 'visita' ? '👁️' : '🚗'));
+      roleAvatar.textContent = avatarIcon;
+      roleAvatar.className = 'w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white font-bold text-lg flex items-center justify-center shadow-sm select-none border-2 border-white dark:border-slate-800';
     }
 
     // Role Status Banner
@@ -217,110 +208,119 @@ const App = (function () {
   }
 
   // --- STRICT AUTH & LOCK SCREEN SYSTEM ---
+  // --- STRICT AUTH & PORTAL SYSTEM (LOGIN / REGISTRO / VISTA DEMO) ---
   function initLockScreen() {
-    setupLockScreenUsers();
-    const currentId = Store.getCurrentUserId();
-    const select = document.getElementById('lockUserSelect');
-    if (select) {
-      select.value = currentId;
-      handleLockUserSelectChange(currentId);
-    }
     const lockScreen = document.getElementById('authLockScreen');
     if (lockScreen) {
       lockScreen.classList.remove('hidden');
       lockScreen.classList.add('flex');
     }
-    const pwdInput = document.getElementById('lockPasswordInput');
-    if (pwdInput) setTimeout(() => pwdInput.focus(), 150);
+    switchAuthPortalTab('login');
+    const idInput = document.getElementById('portalLoginIdentifier');
+    if (idInput) setTimeout(() => idInput.focus(), 150);
   }
 
-  function setupLockScreenUsers() {
-    const select = document.getElementById('lockUserSelect');
-    if (!select) return;
-    const users = Store.getUsers();
-    select.innerHTML = users.map(u => {
-      let icon = '💼';
-      if (u.role === 'admin') icon = '👑';
-      else if (u.role === 'visita') icon = '👁️';
-      else icon = '👤';
-      const statusNote = u.status === 'Inactivo' ? ' (Inactivo)' : '';
-      return `<option value="${u.id}">${icon} ${escapeHtml(u.name)} (${u.role.toUpperCase()})${statusNote}</option>`;
-    }).join('');
-  }
+  function switchAuthPortalTab(tab) {
+    const loginForm = document.getElementById('portalLoginForm');
+    const regForm = document.getElementById('portalRegisterForm');
+    const tabLogin = document.getElementById('portalTabLogin');
+    const tabReg = document.getElementById('portalTabRegister');
+    const errLogin = document.getElementById('portalLoginError');
 
-  function handleLockUserSelectChange(userId) {
-    const users = Store.getUsers();
-    const user = users.find(u => u.id === userId);
-    const badge = document.getElementById('lockUserRoleBadge');
-    const errorMsg = document.getElementById('lockErrorMsg');
-    const pwdInput = document.getElementById('lockPasswordInput');
+    if (errLogin) errLogin.classList.add('hidden');
 
-    if (badge && user) {
-      badge.textContent = user.role.toUpperCase();
-      badge.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${
-        user.role === 'admin' 
-          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' 
-          : (user.role === 'visita' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300')
-      }`;
-    }
-    if (errorMsg) errorMsg.classList.add('hidden');
-    if (pwdInput) {
-      pwdInput.value = '';
-      pwdInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
-      pwdInput.focus();
+    if (tab === 'login') {
+      if (loginForm) loginForm.classList.remove('hidden');
+      if (regForm) regForm.classList.add('hidden');
+      if (tabLogin) tabLogin.className = 'flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm flex items-center justify-center gap-2';
+      if (tabReg) tabReg.className = 'flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center justify-center gap-2';
+      const idInput = document.getElementById('portalLoginIdentifier');
+      if (idInput) idInput.focus();
+    } else {
+      if (loginForm) loginForm.classList.add('hidden');
+      if (regForm) regForm.classList.remove('hidden');
+      if (tabReg) tabReg.className = 'flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm flex items-center justify-center gap-2';
+      if (tabLogin) tabLogin.className = 'flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center justify-center gap-2';
+      const nameInput = document.getElementById('portalRegisterName');
+      if (nameInput) nameInput.focus();
     }
   }
 
-  function submitLockScreenLogin(e) {
+  function selectRegisterAvatar(btn, emoji) {
+    const hidden = document.getElementById('portalRegisterAvatar');
+    if (hidden) hidden.value = emoji;
+    document.querySelectorAll('.portal-reg-avatar-btn').forEach(b => {
+      b.className = 'portal-reg-avatar-btn w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-lg flex items-center justify-center shrink-0 transition-transform';
+    });
+    if (btn) {
+      btn.className = 'portal-reg-avatar-btn w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 text-lg flex items-center justify-center shrink-0 scale-105';
+    }
+  }
+
+  function submitPortalLogin(e) {
     e.preventDefault();
-    const select = document.getElementById('lockUserSelect');
-    const input = document.getElementById('lockPasswordInput');
-    const errorMsg = document.getElementById('lockErrorMsg');
-    if (!select || !input) return;
+    const idInput = document.getElementById('portalLoginIdentifier');
+    const pwdInput = document.getElementById('portalLoginPassword');
+    const errorMsg = document.getElementById('portalLoginError');
+    if (!idInput || !pwdInput) return;
 
-    const userId = select.value;
-    const password = input.value.trim();
+    const identifier = idInput.value.trim();
+    const password = pwdInput.value.trim();
 
-    const users = Store.getUsers();
-    const user = users.find(u => u.id === userId);
+    if (!identifier || !password) {
+      if (errorMsg) {
+        errorMsg.textContent = 'Por favor ingresa tu usuario o correo y contraseña.';
+        errorMsg.classList.remove('hidden');
+      }
+      return;
+    }
+
+    const user = Store.findUserByIdentifier(identifier);
     if (!user) {
-      showToast('Usuario no encontrado', 'danger');
+      if (errorMsg) {
+        errorMsg.textContent = 'Usuario o correo no encontrado. Verifica tus credenciales.';
+        errorMsg.classList.remove('hidden');
+      }
+      idInput.focus();
       return;
     }
 
     if (user.status === 'Inactivo') {
-      showToast(`El usuario "${user.name}" está inactivo. Un administrador debe activarlo.`, 'warning');
+      showToast(`La cuenta de "${user.name}" está inactiva. Contacta a soporte o al administrador.`, 'warning');
       return;
     }
 
-    const isValid = Store.verifyPassword(userId, password);
+    const isValid = Store.verifyPassword(user.id, password);
     if (!isValid) {
-      if (errorMsg) errorMsg.classList.remove('hidden');
-      input.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
-      input.focus();
+      if (errorMsg) {
+        errorMsg.textContent = 'Contraseña incorrecta. Inténtalo de nuevo.';
+        errorMsg.classList.remove('hidden');
+      }
+      pwdInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+      pwdInput.focus();
       return;
     }
 
     // Intercept if temporary password is used: force new password creation
     if (user.mustChangePassword) {
       if (errorMsg) errorMsg.classList.add('hidden');
-      input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
-      input.value = '';
+      pwdInput.value = '';
       const lockScreen = document.getElementById('authLockScreen');
       if (lockScreen) {
         lockScreen.classList.add('hidden');
         lockScreen.classList.remove('flex');
       }
-      openForceChangePasswordModal(userId);
+      openForceChangePasswordModal(user.id);
       return;
     }
 
     // Success: unlock session
     if (errorMsg) errorMsg.classList.add('hidden');
-    input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
-    input.value = '';
+    pwdInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+    idInput.value = '';
+    pwdInput.value = '';
 
-    Store.switchUser(userId);
+    Store.switchUser(user.id);
     isSessionLocked = false;
 
     const lockScreen = document.getElementById('authLockScreen');
@@ -331,9 +331,9 @@ const App = (function () {
 
     setupRoleUI();
     refreshAllUI();
-    showToast(`¡Bienvenido, ${user.name}! Sesión iniciada.`, 'success');
+    showToast(`¡Bienvenido de nuevo, ${user.name}!`, 'success');
 
-    // Automatic background cloud synchronization for any user
+    // Automatic background cloud sync
     if (Store.isCloudConfigured()) {
       Store.syncCloud().then(() => {
         refreshAllUI();
@@ -341,22 +341,87 @@ const App = (function () {
     }
   }
 
+  function submitPortalRegister(e) {
+    e.preventDefault();
+    const nameInput = document.getElementById('portalRegisterName');
+    const emailInput = document.getElementById('portalRegisterEmail');
+    const pwdInput = document.getElementById('portalRegisterPassword');
+    const avatarInput = document.getElementById('portalRegisterAvatar');
+
+    if (!nameInput || !emailInput || !pwdInput) return;
+
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const password = pwdInput.value.trim();
+    const avatar = avatarInput ? avatarInput.value : '🚗';
+
+    try {
+      const newUser = Store.registerClient({ name, email, password, avatar });
+      Store.switchUser(newUser.id);
+      isSessionLocked = false;
+
+      // Reset fields
+      nameInput.value = '';
+      emailInput.value = '';
+      pwdInput.value = '';
+
+      const lockScreen = document.getElementById('authLockScreen');
+      if (lockScreen) {
+        lockScreen.classList.add('hidden');
+        lockScreen.classList.remove('flex');
+      }
+
+      setupRoleUI();
+      refreshAllUI();
+      showToast(`¡Cuenta creada con éxito! Bienvenido a FinStack, ${newUser.name}.`, 'success');
+
+      // Auto cloud sync
+      if (Store.isCloudConfigured()) {
+        Store.syncCloud().then(() => {
+          refreshAllUI();
+        });
+      }
+    } catch (err) {
+      showToast(err.message || 'Error al crear la cuenta', 'danger');
+    }
+  }
+
+  function loginAsDemo() {
+    const users = Store.getUsers();
+    let demoUser = users.find(u => u.role === 'visita' || u.id === 'usr_4');
+    if (!demoUser) {
+      demoUser = users[0];
+    }
+
+    Store.switchUser(demoUser.id);
+    isSessionLocked = false;
+
+    const lockScreen = document.getElementById('authLockScreen');
+    if (lockScreen) {
+      lockScreen.classList.add('hidden');
+      lockScreen.classList.remove('flex');
+    }
+
+    setupRoleUI();
+    refreshAllUI();
+    showToast('👁️ Has ingresado al Modo Demo (Vista Previa). Las modificaciones de datos están deshabilitadas.', 'info');
+  }
+
+  function openSupportHelp(type) {
+    if (type === 'password') {
+      showToast('Para restablecer tu contraseña, contacta al Administrador mediante WhatsApp o Correo.', 'info');
+    }
+  }
+
   function lockSession() {
     isSessionLocked = true;
     const lockScreen = document.getElementById('authLockScreen');
-    const select = document.getElementById('lockUserSelect');
-    const input = document.getElementById('lockPasswordInput');
-    const errorMsg = document.getElementById('lockErrorMsg');
+    const pwdInput = document.getElementById('portalLoginPassword');
+    const errorMsg = document.getElementById('portalLoginError');
 
-    setupLockScreenUsers();
-    const currentId = Store.getCurrentUserId();
-    if (select) {
-      select.value = currentId;
-      handleLockUserSelectChange(currentId);
-    }
-    if (input) {
-      input.value = '';
-      input.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+    if (pwdInput) {
+      pwdInput.value = '';
+      pwdInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
     }
     if (errorMsg) errorMsg.classList.add('hidden');
 
@@ -364,8 +429,147 @@ const App = (function () {
       lockScreen.classList.remove('hidden');
       lockScreen.classList.add('flex');
     }
+    switchAuthPortalTab('login');
     showToast('Sesión bloqueada por seguridad', 'info');
-    if (input) setTimeout(() => input.focus(), 150);
+    const idInput = document.getElementById('portalLoginIdentifier');
+    if (idInput) setTimeout(() => idInput.focus(), 150);
+  }
+
+  // --- USER PROFILE & AVATAR CUSTOMIZER ---
+  const AVATAR_CATALOG = {
+    autos: ['🚗', '🏎️', '🚙', '🛵', '🏍️', '🚀', '✈️', '🚢', '🚜', '🚁'],
+    animales: ['🐶', '🐱', '🦁', '🦊', '🐼', '🐯', '🐻', '🐨', '🐵', '🦄', '🦅', '🐬'],
+    paisajes: ['🏔️', '🏖️', '🌴', '🌅', '🌌', '🌋', '🌲', '🌸', '🌊', '🪐'],
+    estilos: ['👑', '💼', '🧑‍💻', '💎', '🎯', '🔥', '⚡', '🍀', '🎨', '🏆']
+  };
+
+  let currentAvatarCat = 'autos';
+
+  function openProfileModal() {
+    const user = Store.getCurrentUser();
+    if (!user) return;
+
+    const modal = document.getElementById('userProfileModal');
+    const nameInput = document.getElementById('profileEditName');
+    const emailInput = document.getElementById('profileEditEmail');
+    const previewAvatar = document.getElementById('profilePreviewAvatar');
+    const previewName = document.getElementById('profilePreviewName');
+    const previewRole = document.getElementById('profilePreviewRole');
+    const hiddenAvatar = document.getElementById('profileSelectedAvatar');
+
+    if (nameInput) nameInput.value = user.name || '';
+    if (emailInput) emailInput.value = user.email || '';
+    if (previewName) previewName.textContent = user.name || '';
+    if (previewRole) previewRole.textContent = (user.role || 'cliente').toUpperCase();
+
+    const avatar = user.avatar || (user.role === 'admin' ? '👑' : (user.role === 'visita' ? '👁️' : '🚗'));
+    if (previewAvatar) previewAvatar.textContent = avatar;
+    if (hiddenAvatar) hiddenAvatar.value = avatar;
+
+    filterAvatarCategory('autos');
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  }
+
+  function closeProfileModal() {
+    const modal = document.getElementById('userProfileModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  function filterAvatarCategory(cat) {
+    currentAvatarCat = cat;
+    ['autos', 'animales', 'paisajes', 'estilos'].forEach(c => {
+      const btn = document.getElementById(`avatarTab${c.charAt(0).toUpperCase() + c.slice(1)}`);
+      if (btn) {
+        if (c === cat) {
+          btn.className = 'avatar-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-sm shrink-0';
+        } else {
+          btn.className = 'avatar-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 shrink-0';
+        }
+      }
+    });
+
+    renderAvatarGrid();
+  }
+
+  function renderAvatarGrid() {
+    const container = document.getElementById('avatarGridContainer');
+    if (!container) return;
+
+    const list = AVATAR_CATALOG[currentAvatarCat] || AVATAR_CATALOG.autos;
+    const current = document.getElementById('profileSelectedAvatar')?.value || '🚗';
+
+    container.innerHTML = list.map(emoji => {
+      const isSelected = emoji === current;
+      const borderClass = isSelected ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/40 scale-105 ring-2 ring-blue-500/30' : 'border-transparent bg-white dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700';
+      return `
+        <button 
+          type="button" 
+          onclick="App.selectProfileAvatar('${emoji}')"
+          class="w-10 h-10 rounded-xl border-2 ${borderClass} text-xl flex items-center justify-center transition-all cursor-pointer"
+        >
+          ${emoji}
+        </button>
+      `;
+    }).join('');
+  }
+
+  function selectProfileAvatar(emoji) {
+    const hidden = document.getElementById('profileSelectedAvatar');
+    const preview = document.getElementById('profilePreviewAvatar');
+    if (hidden) hidden.value = emoji;
+    if (preview) preview.textContent = emoji;
+    renderAvatarGrid();
+  }
+
+  function saveUserProfile(e) {
+    e.preventDefault();
+    const user = Store.getCurrentUser();
+    if (!user) return;
+
+    const name = document.getElementById('profileEditName')?.value.trim();
+    const email = document.getElementById('profileEditEmail')?.value.trim();
+    const avatar = document.getElementById('profileSelectedAvatar')?.value || '🚗';
+
+    if (!name) {
+      showToast('El nombre no puede estar vacío', 'warning');
+      return;
+    }
+
+    Store.updateUserProfile(user.id, { name, email, avatar });
+    closeProfileModal();
+    setupRoleUI();
+    showToast('¡Perfil y avatar actualizados con éxito!', 'success');
+  }
+
+  // --- SIDEBAR MODE (FIJA VS DESPLEGABLE) ---
+  function setSidebarMode(mode) {
+    Store.setSidebarMode(mode);
+    applySidebarMode(mode);
+  }
+
+  function applySidebarMode(mode) {
+    const sidebar = document.getElementById('mainSidebar');
+    const fixedBtn = document.getElementById('sidebarModeFixedBtn');
+    const collapseBtn = document.getElementById('sidebarModeCollapseBtn');
+
+    if (!sidebar) return;
+
+    if (mode === 'collapsed') {
+      sidebar.classList.add('sidebar-collapsed');
+      if (fixedBtn) fixedBtn.className = 'flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200';
+      if (collapseBtn) collapseBtn.className = 'flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm';
+    } else {
+      sidebar.classList.remove('sidebar-collapsed');
+      if (fixedBtn) fixedBtn.className = 'flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm';
+      if (collapseBtn) collapseBtn.className = 'flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200';
+    }
   }
 
   // --- USER ACCOUNT SWITCHING WITH PASSWORD CHECK ---
@@ -1003,6 +1207,11 @@ const App = (function () {
   function handleUserFormSubmit(e) {
     e.preventDefault();
 
+    if (Store.getActiveRole() !== 'admin') {
+      showToast('Solo el Administrador tiene permisos para gestionar usuarios', 'warning');
+      return;
+    }
+
     const name = document.getElementById('userNameInput').value.trim();
     const email = document.getElementById('userEmailInput').value.trim();
     const role = document.getElementById('userRoleSelect').value;
@@ -1034,6 +1243,10 @@ const App = (function () {
   }
 
   function deleteUser(id) {
+    if (Store.getActiveRole() !== 'admin') {
+      showToast('Solo el Administrador tiene permisos para eliminar usuarios', 'warning');
+      return;
+    }
     const currentId = Store.getCurrentUserId();
     if (id === currentId) {
       showToast('No puedes eliminar el usuario con el que tienes la sesión iniciada actualmente.', 'warning');
@@ -1054,6 +1267,10 @@ const App = (function () {
   }
 
   function toggleUserStatus(id) {
+    if (Store.getActiveRole() !== 'admin') {
+      showToast('Solo el Administrador tiene permisos para modificar el estado de usuarios', 'warning');
+      return;
+    }
     const currentId = Store.getCurrentUserId();
     if (id === currentId) {
       showToast('No puedes suspender tu propia sesión activa.', 'warning');
@@ -1466,6 +1683,12 @@ const App = (function () {
   function handleFormSubmit(e) {
     e.preventDefault();
 
+    if (Store.getActiveRole() === 'visita') {
+      showToast('Modo Demo: Estás en vista previa de sólo lectura. No es posible crear ni modificar transacciones.', 'warning');
+      closeTransactionModal();
+      return;
+    }
+
     const type = document.getElementById('txType').value;
     const concept = document.getElementById('txConcept').value.trim();
     const amount = parseFloat(document.getElementById('txAmount').value);
@@ -1520,6 +1743,11 @@ const App = (function () {
   }
 
   function executeDelete() {
+    if (Store.getActiveRole() === 'visita') {
+      showToast('Modo Demo: No es posible eliminar transacciones en vista previa.', 'warning');
+      closeDeleteModal();
+      return;
+    }
     if (pendingDeleteId) {
       Store.remove(pendingDeleteId);
       showToast('Transacción eliminada correctamente', 'success');
@@ -1740,6 +1968,19 @@ const App = (function () {
     setupRoleUI,
     lockSession,
     initLockScreen,
+    switchAuthPortalTab,
+    selectRegisterAvatar,
+    submitPortalLogin,
+    submitPortalRegister,
+    loginAsDemo,
+    openSupportHelp,
+    openProfileModal,
+    closeProfileModal,
+    filterAvatarCategory,
+    selectProfileAvatar,
+    saveUserProfile,
+    setSidebarMode,
+    applySidebarMode,
     handleLockUserSelectChange,
     submitLockScreenLogin,
     submitSwitchPassword,

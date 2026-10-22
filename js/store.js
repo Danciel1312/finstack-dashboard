@@ -105,6 +105,8 @@ const Store = (function () {
     activeRole: 'cliente',
     userName: 'Dany Ramos (Personal)',
     userRole: 'Cliente / Personal',
+    userAvatar: '🚗',
+    sidebarMode: 'fixed',
     geminiApiKey: '',
     supabaseUrl: 'https://ugsdetwtknzcnkammyry.supabase.co',
     supabaseAnonKey: 'sb_publishable_cc0I61URp7pO5s3CGsy19w_ooGU8Ky5',
@@ -121,6 +123,7 @@ const Store = (function () {
       status: 'Activo',
       budget: 5000,
       password: 'Dany2207',
+      avatar: '👑',
       mustChangePassword: false,
       createdAt: '2026-10-15'
     },
@@ -132,6 +135,7 @@ const Store = (function () {
       status: 'Activo',
       budget: 3500,
       password: '1234',
+      avatar: '🚗',
       mustChangePassword: false,
       createdAt: '2026-10-18'
     },
@@ -143,6 +147,7 @@ const Store = (function () {
       status: 'Activo',
       budget: 1500,
       password: 'demo',
+      avatar: '👁️',
       mustChangePassword: false,
       createdAt: '2026-10-20'
     }
@@ -441,6 +446,10 @@ const Store = (function () {
       parsed.forEach(u => {
         if (u.mustChangePassword === undefined) {
           u.mustChangePassword = false;
+          updated = true;
+        }
+        if (!u.avatar) {
+          u.avatar = u.role === 'admin' ? '👑' : (u.role === 'visita' ? '👁️' : '🚗');
           updated = true;
         }
       });
@@ -865,6 +874,7 @@ const Store = (function () {
       settings.activeRole = user.role;
       settings.monthlyBudget = user.budget || 3500;
       settings.userRole = ROLES_INFO[user.role] ? ROLES_INFO[user.role].badge : 'Cliente';
+      settings.userAvatar = user.avatar || (user.role === 'admin' ? '👑' : (user.role === 'visita' ? '👁️' : '🚗'));
       saveSettings(settings);
 
       return user;
@@ -900,6 +910,7 @@ const Store = (function () {
         status: 'Activo',
         budget: parseFloat(userData.budget) || 3000,
         password: (userData.password && userData.password.trim()) ? userData.password.trim() : '1234',
+        avatar: userData.avatar || (userData.role === 'admin' ? '👑' : (userData.role === 'visita' ? '👁️' : '🚗')),
         mustChangePassword: false,
         createdAt: formatDateISO(new Date())
       };
@@ -928,6 +939,7 @@ const Store = (function () {
         status: updatedData.status || users[index].status,
         budget: updatedData.budget !== undefined ? parseFloat(updatedData.budget) : users[index].budget,
         password: (updatedData.password && updatedData.password.trim()) ? updatedData.password.trim() : users[index].password,
+        avatar: updatedData.avatar !== undefined ? updatedData.avatar : (users[index].avatar || '🚗'),
         mustChangePassword: updatedData.mustChangePassword !== undefined ? !!updatedData.mustChangePassword : users[index].mustChangePassword
       };
       saveUsers(users);
@@ -940,6 +952,7 @@ const Store = (function () {
         settings.userEmail = users[index].email;
         settings.activeRole = users[index].role;
         settings.monthlyBudget = users[index].budget;
+        settings.userAvatar = users[index].avatar;
         saveSettings(settings);
       }
 
@@ -1013,6 +1026,88 @@ const Store = (function () {
       saveUsers(users);
       pushUserToCloud(user);
       return user;
+    },
+
+    findUserByIdentifier: function (identifier) {
+      if (!identifier || !identifier.trim()) return null;
+      const term = identifier.trim().toLowerCase();
+      const users = loadUsers();
+      return users.find(u => 
+        (u.email && u.email.toLowerCase() === term) ||
+        (u.id && u.id.toLowerCase() === term) ||
+        (u.name && u.name.toLowerCase() === term)
+      ) || null;
+    },
+
+    registerClient: function (clientData) {
+      const users = loadUsers();
+      const email = (clientData.email || '').trim().toLowerCase();
+      const name = (clientData.name || '').trim();
+      const password = (clientData.password || '').trim();
+      const avatar = clientData.avatar || '🚗';
+
+      if (!name) throw new Error('El nombre es obligatorio');
+      if (!email || !email.includes('@')) throw new Error('Correo electrónico inválido');
+      if (!password || password.length < 4) throw new Error('La contraseña debe tener al menos 4 caracteres');
+
+      const existing = users.find(u => u.email && u.email.toLowerCase() === email);
+      if (existing) {
+        throw new Error('Ya existe una cuenta con este correo electrónico');
+      }
+
+      // Role is ALWAYS strictly locked to 'cliente'
+      const newUser = {
+        id: `usr_${Date.now()}`,
+        name: name,
+        email: email,
+        role: 'cliente',
+        status: 'Activo',
+        budget: 3000,
+        password: password,
+        avatar: avatar,
+        mustChangePassword: false,
+        createdAt: formatDateISO(new Date())
+      };
+
+      users.push(newUser);
+      saveUsers(users);
+      pushUserToCloud(newUser);
+      return newUser;
+    },
+
+    updateUserProfile: function (userId, data) {
+      const users = loadUsers();
+      const index = users.findIndex(u => u.id === userId);
+      if (index === -1) return null;
+
+      if (data.name && data.name.trim()) users[index].name = data.name.trim();
+      if (data.email && data.email.trim()) users[index].email = data.email.trim().toLowerCase();
+      if (data.avatar) users[index].avatar = data.avatar;
+
+      saveUsers(users);
+      pushUserToCloud(users[index]);
+
+      if (userId === getCurrentUserId()) {
+        const settings = loadSettings();
+        settings.userName = users[index].name;
+        settings.userEmail = users[index].email;
+        settings.userAvatar = users[index].avatar;
+        saveSettings(settings);
+      }
+
+      return users[index];
+    },
+
+    getSidebarMode: function () {
+      const settings = loadSettings();
+      return settings.sidebarMode || 'fixed';
+    },
+
+    setSidebarMode: function (mode) {
+      const settings = loadSettings();
+      settings.sidebarMode = mode === 'collapsed' ? 'collapsed' : 'fixed';
+      saveSettings(settings);
+      return settings.sidebarMode;
     },
 
     // --- SUPABASE CLOUD SYNC API ---
