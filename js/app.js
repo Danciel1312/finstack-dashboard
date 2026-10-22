@@ -257,7 +257,7 @@ const App = (function () {
     }
   }
 
-  function submitPortalLogin(e) {
+  async function submitPortalLogin(e) {
     e.preventDefault();
     const idInput = document.getElementById('portalLoginIdentifier');
     const pwdInput = document.getElementById('portalLoginPassword');
@@ -269,18 +269,31 @@ const App = (function () {
 
     if (!identifier || !password) {
       if (errorMsg) {
-        errorMsg.textContent = 'Por favor ingresa tu usuario o correo y contraseña.';
+        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Por favor ingresa tu usuario o correo y contraseña.';
         errorMsg.classList.remove('hidden');
       }
       return;
     }
 
-    const user = Store.findUserByIdentifier(identifier);
+    // Try finding locally first with flexible matching
+    let user = Store.findUserByIdentifier(identifier, password);
+
+    // If not found locally, and cloud is configured, sync users from Supabase immediately!
+    if (!user && Store.isCloudConfigured()) {
+      try {
+        await Store.syncCloud();
+        user = Store.findUserByIdentifier(identifier, password);
+      } catch (err) {
+        console.warn('Cloud sync error on login:', err);
+      }
+    }
+
     if (!user) {
       if (errorMsg) {
-        errorMsg.textContent = 'Usuario o correo no encontrado. Verifica tus credenciales.';
+        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Usuario no encontrado. Puedes escribir <strong>admin</strong>, tu nombre o tu correo.';
         errorMsg.classList.remove('hidden');
       }
+      idInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
       idInput.focus();
       return;
     }
@@ -293,9 +306,10 @@ const App = (function () {
     const isValid = Store.verifyPassword(user.id, password);
     if (!isValid) {
       if (errorMsg) {
-        errorMsg.textContent = 'Contraseña incorrecta. Inténtalo de nuevo.';
+        errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> Contraseña incorrecta para <strong>${escapeHtml(user.name)}</strong>. Inténtalo de nuevo.`;
         errorMsg.classList.remove('hidden');
       }
+      idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
       pwdInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
       pwdInput.focus();
       return;
@@ -316,6 +330,7 @@ const App = (function () {
 
     // Success: unlock session
     if (errorMsg) errorMsg.classList.add('hidden');
+    idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
     pwdInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
     idInput.value = '';
     pwdInput.value = '';
@@ -409,7 +424,7 @@ const App = (function () {
 
   function openSupportHelp(type) {
     if (type === 'password') {
-      showToast('Para restablecer tu contraseña, contacta al Administrador mediante WhatsApp o Correo.', 'info');
+      showToast('Si eres Admin, tu contraseña predeterminada es Dany2207. Para otros usuarios, consulta con el Administrador o contáctanos por WhatsApp.', 'info');
     }
   }
 

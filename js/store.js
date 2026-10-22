@@ -117,7 +117,7 @@ const Store = (function () {
   const defaultUsers = [
     {
       id: 'usr_1',
-      name: 'Dany Ramos',
+      name: 'Dany Morataya',
       email: 'admin@finstack.io',
       role: 'admin',
       status: 'Activo',
@@ -138,6 +138,30 @@ const Store = (function () {
       avatar: '🚗',
       mustChangePassword: false,
       createdAt: '2026-10-18'
+    },
+    {
+      id: 'usr_1792631452175',
+      name: 'Dany',
+      email: 'dany@ejemplo.com',
+      role: 'cliente',
+      status: 'Activo',
+      budget: 3000,
+      password: '1312',
+      avatar: '🚗',
+      mustChangePassword: false,
+      createdAt: '2026-10-21'
+    },
+    {
+      id: 'usr_1792631370119',
+      name: 'Prueba',
+      email: 'prueba@ejemplo.com',
+      role: 'cliente',
+      status: 'Activo',
+      budget: 3000,
+      password: '1234',
+      avatar: '🏎️',
+      mustChangePassword: false,
+      createdAt: '2026-10-21'
     },
     {
       id: 'usr_4',
@@ -1028,15 +1052,55 @@ const Store = (function () {
       return user;
     },
 
-    findUserByIdentifier: function (identifier) {
+    findUserByIdentifier: function (identifier, password = null) {
       if (!identifier || !identifier.trim()) return null;
       const term = identifier.trim().toLowerCase();
       const users = loadUsers();
-      return users.find(u => 
+
+      // Find all possible candidate users matching the term in any field
+      const candidates = users.filter(u => {
+        const email = (u.email || '').toLowerCase();
+        const id = (u.id || '').toLowerCase();
+        const name = (u.name || '').toLowerCase();
+        const role = (u.role || '').toLowerCase();
+        const emailPrefix = email.split('@')[0];
+        const nameWords = name.split(/[\s()]+/);
+
+        if (email === term) return true;
+        if (id === term) return true;
+        if (name === term) return true;
+        if (term === 'admin' && role === 'admin') return true;
+        if ((term === 'demo' || term === 'visita' || term === 'invitado') && role === 'visita') return true;
+        if (emailPrefix === term) return true;
+        if (nameWords.includes(term)) return true;
+        if (name.startsWith(term)) return true;
+        if (name.includes(term)) return true;
+        if (role === term) return true;
+        return false;
+      });
+
+      if (candidates.length === 0) return null;
+
+      // If password provided, prioritize candidate whose password matches
+      if (password !== null && password !== undefined && password !== '') {
+        const matchingPwd = candidates.find(u => (u.password || '').trim() === password.trim());
+        if (matchingPwd) return matchingPwd;
+      }
+
+      // Exact matches take precedence
+      const exact = candidates.find(u => 
         (u.email && u.email.toLowerCase() === term) ||
         (u.id && u.id.toLowerCase() === term) ||
         (u.name && u.name.toLowerCase() === term)
-      ) || null;
+      );
+      if (exact) return exact;
+
+      if (term.includes('admin')) {
+        const adminUser = candidates.find(u => u.role === 'admin');
+        if (adminUser) return adminUser;
+      }
+
+      return candidates[0];
     },
 
     registerClient: function (clientData) {
