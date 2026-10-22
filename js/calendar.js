@@ -387,3 +387,7 @@ const CalendarManager = (function () {
     }
   };
 })();
+
+if (typeof window !== 'undefined') {
+  window.CalendarManager = CalendarManager;
+}

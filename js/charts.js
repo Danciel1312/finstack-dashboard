@@ -365,3 +365,7 @@ const ChartsManager = (function () {
     refreshAll
   };
 })();
+
+if (typeof window !== 'undefined') {
+  window.ChartsManager = ChartsManager;
+}

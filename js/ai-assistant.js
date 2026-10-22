@@ -526,3 +526,7 @@ Responde en español de forma amigable, estructurada con viñetas y formato Mark
     confirmPendingTransaction
   };
 })();
+
+if (typeof window !== 'undefined') {
+  window.AIAssistant = AIAssistant;
+}

