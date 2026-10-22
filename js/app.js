@@ -37,6 +37,13 @@ const App = (function () {
   };
 
   function init() {
+    // Clean any accidental GET query parameters in URL bar from prior form submissions
+    if (typeof window !== 'undefined' && window.location && window.location.search) {
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (e) {}
+    }
+
     setupTheme();
     setupCurrency();
     applySidebarMode(Store.getSidebarMode());
@@ -214,6 +221,7 @@ const App = (function () {
     if (lockScreen) {
       lockScreen.classList.remove('hidden');
       lockScreen.classList.add('flex');
+      lockScreen.style.display = '';
     }
     switchAuthPortalTab('login');
     const idInput = document.getElementById('portalLoginIdentifier');
@@ -258,11 +266,13 @@ const App = (function () {
   }
 
   async function submitPortalLogin(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+
     const idInput = document.getElementById('portalLoginIdentifier');
     const pwdInput = document.getElementById('portalLoginPassword');
     const errorMsg = document.getElementById('portalLoginError');
-    if (!idInput || !pwdInput) return;
+    if (!idInput || !pwdInput) return false;
 
     const identifier = idInput.value.trim();
     const password = pwdInput.value.trim();
@@ -272,7 +282,7 @@ const App = (function () {
         errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Por favor ingresa tu usuario o correo y contraseña.';
         errorMsg.classList.remove('hidden');
       }
-      return;
+      return false;
     }
 
     // Try finding locally first with flexible matching
@@ -295,12 +305,12 @@ const App = (function () {
       }
       idInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
       idInput.focus();
-      return;
+      return false;
     }
 
     if (user.status === 'Inactivo') {
       showToast(`La cuenta de "${user.name}" está inactiva. Contacta a soporte o al administrador.`, 'warning');
-      return;
+      return false;
     }
 
     const isValid = Store.verifyPassword(user.id, password);
@@ -312,7 +322,7 @@ const App = (function () {
       idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
       pwdInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
       pwdInput.focus();
-      return;
+      return false;
     }
 
     // Intercept if temporary password is used: force new password creation
@@ -323,9 +333,10 @@ const App = (function () {
       if (lockScreen) {
         lockScreen.classList.add('hidden');
         lockScreen.classList.remove('flex');
+        lockScreen.style.display = 'none';
       }
       openForceChangePasswordModal(user.id);
-      return;
+      return false;
     }
 
     // Success: unlock session
@@ -342,6 +353,7 @@ const App = (function () {
     if (lockScreen) {
       lockScreen.classList.add('hidden');
       lockScreen.classList.remove('flex');
+      lockScreen.style.display = 'none';
     }
 
     setupRoleUI();
@@ -354,16 +366,19 @@ const App = (function () {
         refreshAllUI();
       });
     }
+    return false;
   }
 
   function submitPortalRegister(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+
     const nameInput = document.getElementById('portalRegisterName');
     const emailInput = document.getElementById('portalRegisterEmail');
     const pwdInput = document.getElementById('portalRegisterPassword');
     const avatarInput = document.getElementById('portalRegisterAvatar');
 
-    if (!nameInput || !emailInput || !pwdInput) return;
+    if (!nameInput || !emailInput || !pwdInput) return false;
 
     const name = nameInput.value.trim();
     const email = emailInput.value.trim();
@@ -384,6 +399,7 @@ const App = (function () {
       if (lockScreen) {
         lockScreen.classList.add('hidden');
         lockScreen.classList.remove('flex');
+        lockScreen.style.display = 'none';
       }
 
       setupRoleUI();
@@ -399,6 +415,7 @@ const App = (function () {
     } catch (err) {
       showToast(err.message || 'Error al crear la cuenta', 'danger');
     }
+    return false;
   }
 
   function loginAsDemo() {
@@ -415,6 +432,7 @@ const App = (function () {
     if (lockScreen) {
       lockScreen.classList.add('hidden');
       lockScreen.classList.remove('flex');
+      lockScreen.style.display = 'none';
     }
 
     setupRoleUI();
@@ -443,6 +461,7 @@ const App = (function () {
     if (lockScreen) {
       lockScreen.classList.remove('hidden');
       lockScreen.classList.add('flex');
+      lockScreen.style.display = '';
     }
     switchAuthPortalTab('login');
     showToast('Sesión bloqueada por seguridad', 'info');
