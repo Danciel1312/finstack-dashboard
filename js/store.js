@@ -45,6 +45,19 @@ const Store = (function () {
 
   const changelogData = [
     {
+      version: 'v1.4.0',
+      date: '2026-10-26',
+      tag: 'Producción',
+      title: 'Gastos Fijos, Suscripciones Recurrentes & Centro de Alertas',
+      highlights: [
+        'Módulo dedicado de Gastos Fijos y Suscripciones Recurrentes (Mensual, Quincenal, Semanal, Trimestral y Anual).',
+        'Centro interactivo de Alertas de Vencimiento en la campana superior y banner inteligente en el Dashboard.',
+        'Botón rápido "Pagar ahora" que registra el gasto real del mes y avanza automáticamente la fecha del próximo ciclo.',
+        'Integración visual de vencimientos programados en el Calendario Histórico y diagnóstico con FinStack AI.',
+        'Sincronización multi-dispositivo en tiempo real con Supabase y aislamiento por usuario.'
+      ]
+    },
+    {
       version: 'v1.3.0',
       date: '2026-10-21',
       tag: 'Producción',
@@ -382,6 +395,96 @@ const Store = (function () {
     return `finstack_tx_v5_user_${userId}`;
   }
 
+  function getSubscriptionsStorageKey() {
+    const userId = getCurrentUserId();
+    return `finstack_subs_v5_user_${userId}`;
+  }
+
+  function generateSubscriptionSeedData() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const d = now.getDate();
+
+    return [
+      {
+        id: 'sub_seed_1',
+        name: 'Energía Eléctrica',
+        amount: 48.50,
+        category: 'Servicios',
+        frequency: 'mensual',
+        nextDueDate: formatDateISO(new Date(y, m, d - 1)),
+        alertDaysBefore: 3,
+        paymentMethod: 'Transferencia',
+        icon: '💡',
+        status: 'Activa',
+        lastPaidDate: formatDateISO(new Date(y, m - 1, d - 1)),
+        notes: 'Servicio eléctrico residencial',
+        createdAt: new Date(y, m - 2, 10).toISOString()
+      },
+      {
+        id: 'sub_seed_2',
+        name: 'Internet Fibra Óptica',
+        amount: 35.00,
+        category: 'Servicios',
+        frequency: 'mensual',
+        nextDueDate: formatDateISO(new Date(y, m, d + 1)),
+        alertDaysBefore: 3,
+        paymentMethod: 'Tarjeta Débito',
+        icon: '🌐',
+        status: 'Activa',
+        lastPaidDate: formatDateISO(new Date(y, m - 1, d + 1)),
+        notes: 'Plan 300 Mbps hogar',
+        createdAt: new Date(y, m - 2, 12).toISOString()
+      },
+      {
+        id: 'sub_seed_3',
+        name: 'Netflix Premium',
+        amount: 15.99,
+        category: 'Entretenimiento',
+        frequency: 'mensual',
+        nextDueDate: formatDateISO(new Date(y, m, d + 3)),
+        alertDaysBefore: 5,
+        paymentMethod: 'Tarjeta Crédito',
+        icon: '🎬',
+        status: 'Activa',
+        lastPaidDate: formatDateISO(new Date(y, m - 1, d + 3)),
+        notes: 'Plan Familiar 4K',
+        createdAt: new Date(y, m - 2, 15).toISOString()
+      },
+      {
+        id: 'sub_seed_4',
+        name: 'Alquiler / Vivienda',
+        amount: 650.00,
+        category: 'Vivienda',
+        frequency: 'mensual',
+        nextDueDate: formatDateISO(new Date(y, m, d + 10)),
+        alertDaysBefore: 5,
+        paymentMethod: 'Transferencia',
+        icon: '🏠',
+        status: 'Activa',
+        lastPaidDate: formatDateISO(new Date(y, m - 1, d + 10)),
+        notes: 'Pago mensual de vivienda',
+        createdAt: new Date(y, m - 3, 1).toISOString()
+      },
+      {
+        id: 'sub_seed_5',
+        name: 'Membresía Gimnasio',
+        amount: 29.99,
+        category: 'Salud',
+        frequency: 'mensual',
+        nextDueDate: formatDateISO(new Date(y, m, d + 16)),
+        alertDaysBefore: 3,
+        paymentMethod: 'Tarjeta Crédito',
+        icon: '🏋️',
+        status: 'Activa',
+        lastPaidDate: formatDateISO(new Date(y, m - 1, d + 16)),
+        notes: 'Plan mensual acceso completo',
+        createdAt: new Date(y, m - 2, 20).toISOString()
+      }
+    ];
+  }
+
   function loadTransactions() {
     try {
       const key = getCurrentStorageKey();
@@ -407,7 +510,8 @@ const Store = (function () {
         saveTransactions(initialData);
         return initialData;
       }
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed.filter(item => item && item.type !== 'suscripcion') : [];
     } catch (e) {
       console.error('Error loading transactions from localStorage:', e);
       return [];
@@ -417,10 +521,132 @@ const Store = (function () {
   function saveTransactions(transactions) {
     try {
       const key = getCurrentStorageKey();
-      localStorage.setItem(key, JSON.stringify(transactions));
+      const clean = (transactions || []).filter(item => item && item.type !== 'suscripcion');
+      localStorage.setItem(key, JSON.stringify(clean));
     } catch (e) {
       console.error('Error saving transactions to localStorage:', e);
     }
+  }
+
+  function loadSubscriptions() {
+    try {
+      const key = getSubscriptionsStorageKey();
+      const data = localStorage.getItem(key);
+
+      if (!data) {
+        const userId = getCurrentUserId();
+        const users = loadUsers();
+        const user = users.find(u => u.id === userId) || { name: 'Usuario', role: 'cliente' };
+
+        let initialSubs = [];
+        if (userId === 'usr_1' || user.role === 'admin' || userId === 'usr_4' || user.role === 'visita') {
+          initialSubs = generateSubscriptionSeedData();
+        } else {
+          // Real clients start clean from 0
+          initialSubs = [];
+        }
+        saveSubscriptions(initialSubs);
+        return initialSubs;
+      }
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error('Error loading subscriptions from localStorage:', e);
+      return [];
+    }
+  }
+
+  function saveSubscriptions(subs) {
+    try {
+      const key = getSubscriptionsStorageKey();
+      localStorage.setItem(key, JSON.stringify(subs || []));
+    } catch (e) {
+      console.error('Error saving subscriptions to localStorage:', e);
+    }
+  }
+
+  function calculateNextCycleDate(dateStr, frequency = 'mensual') {
+    const parts = (dateStr || formatDateISO(new Date())).split('-').map(Number);
+    const y = parts[0];
+    const m = parts[1] - 1;
+    const d = parts[2];
+
+    if (frequency === 'semanal') {
+      return formatDateISO(new Date(y, m, d + 7));
+    }
+    if (frequency === 'quincenal') {
+      return formatDateISO(new Date(y, m, d + 15));
+    }
+
+    let monthsToAdd = 1;
+    if (frequency === 'trimestral') monthsToAdd = 3;
+    else if (frequency === 'anual') monthsToAdd = 12;
+
+    const targetMonthDate = new Date(y, m + monthsToAdd, 1);
+    const maxDaysInTarget = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth() + 1, 0).getDate();
+    const clampedDay = Math.min(d, maxDaysInTarget);
+    return formatDateISO(new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth(), clampedDay));
+  }
+
+  function getMonthlyEquivalent(amount, frequency = 'mensual') {
+    const val = parseFloat(amount) || 0;
+    if (frequency === 'semanal') return val * (52 / 12);
+    if (frequency === 'quincenal') return val * 2;
+    if (frequency === 'trimestral') return val / 3;
+    if (frequency === 'anual') return val / 12;
+    return val;
+  }
+
+  function computeSubscriptionDueMeta(sub) {
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const parts = (sub.nextDueDate || formatDateISO(now)).split('-').map(Number);
+    const dueMidnight = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+    const daysUntilDue = Math.round((dueMidnight - todayMidnight) / 86400000);
+    const alertDays = Number(sub.alertDaysBefore !== undefined ? sub.alertDaysBefore : 3);
+
+    if (sub.status === 'Pausada') {
+      return {
+        ...sub,
+        daysUntilDue,
+        urgency: 'pausada',
+        isAlert: false,
+        statusLabel: 'Pausada',
+        monthlyEquivalent: 0
+      };
+    }
+
+    let urgency = 'aldia';
+    let isAlert = false;
+    let statusLabel = '';
+
+    if (daysUntilDue < 0) {
+      const absDays = Math.abs(daysUntilDue);
+      urgency = 'vencido';
+      isAlert = true;
+      statusLabel = absDays === 1 ? 'Venció ayer' : `Venció hace ${absDays} días`;
+    } else if (daysUntilDue === 0) {
+      urgency = 'hoy';
+      isAlert = true;
+      statusLabel = '¡Vence hoy!';
+    } else if (daysUntilDue <= alertDays) {
+      urgency = 'proximo';
+      isAlert = true;
+      statusLabel = daysUntilDue === 1 ? 'Vence mañana' : `Vence en ${daysUntilDue} días`;
+    } else {
+      urgency = 'aldia';
+      isAlert = false;
+      statusLabel = `En ${daysUntilDue} días`;
+    }
+
+    return {
+      ...sub,
+      daysUntilDue,
+      urgency,
+      isAlert,
+      statusLabel,
+      monthlyEquivalent: getMonthlyEquivalent(sub.amount, sub.frequency)
+    };
   }
 
   function loadSettings() {
@@ -620,6 +846,65 @@ const Store = (function () {
       await client.from('finstack_transactions').delete().eq('id', id);
     } catch (e) {
       console.warn('Offline / delete transaction notice:', e);
+    }
+  }
+
+  function mapSubToCloud(sub, userId) {
+    return {
+      id: sub.id,
+      user_id: userId || getCurrentUserId(),
+      type: 'suscripcion',
+      concept: sub.name,
+      amount: parseFloat(sub.amount) || 0,
+      category: sub.category || 'Servicios',
+      date: sub.nextDueDate || formatDateISO(new Date()),
+      payment_method: sub.paymentMethod || 'Tarjeta Crédito',
+      notes: JSON.stringify({
+        __finstack_sub: true,
+        frequency: sub.frequency || 'mensual',
+        alertDaysBefore: Number(sub.alertDaysBefore !== undefined ? sub.alertDaysBefore : 3),
+        icon: sub.icon || '🔄',
+        status: sub.status || 'Activa',
+        lastPaidDate: sub.lastPaidDate || null,
+        notes: sub.notes || ''
+      }),
+      created_at: sub.createdAt || new Date().toISOString()
+    };
+  }
+
+  function mapSubFromCloud(row) {
+    let meta = {};
+    try {
+      if (row.notes && row.notes.trim().startsWith('{')) {
+        meta = JSON.parse(row.notes);
+      }
+    } catch (e) {}
+
+    return {
+      id: row.id,
+      name: row.concept || 'Gasto Fijo',
+      amount: parseFloat(row.amount) || 0,
+      category: row.category || 'Servicios',
+      frequency: meta.frequency || 'mensual',
+      nextDueDate: row.date || formatDateISO(new Date()),
+      alertDaysBefore: Number(meta.alertDaysBefore !== undefined ? meta.alertDaysBefore : 3),
+      paymentMethod: row.payment_method || row.paymentMethod || 'Tarjeta Crédito',
+      icon: meta.icon || '🔄',
+      status: meta.status || 'Activa',
+      lastPaidDate: meta.lastPaidDate || null,
+      notes: meta.notes !== undefined ? meta.notes : (row.notes || ''),
+      createdAt: row.created_at || row.createdAt || new Date().toISOString()
+    };
+  }
+
+  async function pushSubscriptionToCloud(sub) {
+    const client = getSupabaseClient();
+    if (!client || String(sub.id).startsWith('sub_seed_')) return;
+    try {
+      const payload = mapSubToCloud(sub, getCurrentUserId());
+      await client.from('finstack_transactions').upsert(payload, { onConflict: 'id' });
+    } catch (e) {
+      console.warn('Offline / sync subscription notice:', e);
     }
   }
 
@@ -1274,19 +1559,25 @@ const Store = (function () {
           saveUsers(mergedUsers);
         }
 
-        // 4. Merge transactions
+        // 4. Merge transactions & subscriptions cleanly
+        const cloudNormalRows = (cloudTxs || []).filter(r => r.type !== 'suscripcion');
+        const cloudSubRows = (cloudTxs || []).filter(r => r.type === 'suscripcion');
+
         const localKey = getCurrentStorageKey();
         let localTxs = [];
         try {
           const raw = localStorage.getItem(localKey);
-          if (raw) localTxs = JSON.parse(raw);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) localTxs = parsed.filter(t => t && t.type !== 'suscripcion');
+          }
         } catch (e) {}
 
         const txMap = new Map();
         localTxs.forEach(tx => txMap.set(tx.id, tx));
 
-        if (cloudTxs && cloudTxs.length > 0) {
-          cloudTxs.forEach(ctx => {
+        if (cloudNormalRows.length > 0) {
+          cloudNormalRows.forEach(ctx => {
             const mapped = mapTxFromCloud(ctx);
             txMap.set(mapped.id, mapped);
           });
@@ -1295,14 +1586,31 @@ const Store = (function () {
         const mergedTxs = Array.from(txMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
         saveTransactions(mergedTxs);
 
-        // 5. Bidirectional: upload local-only transactions to Supabase
-        if (localTxs.length > 0) {
-          const cloudIds = new Set((cloudTxs || []).map(t => t.id));
-          const localOnly = localTxs.filter(t => !cloudIds.has(t.id));
-          if (localOnly.length > 0) {
-            const toUpload = localOnly.map(t => mapTxToCloud(t, userId));
-            await client.from('finstack_transactions').upsert(toUpload, { onConflict: 'id' });
-          }
+        // Merge subscriptions
+        const localSubs = loadSubscriptions();
+        const subMap = new Map();
+        localSubs.forEach(s => subMap.set(s.id, s));
+
+        if (cloudSubRows.length > 0) {
+          cloudSubRows.forEach(cs => {
+            const mappedSub = mapSubFromCloud(cs);
+            subMap.set(mappedSub.id, mappedSub);
+          });
+        }
+
+        const mergedSubs = Array.from(subMap.values());
+        saveSubscriptions(mergedSubs);
+
+        // 5. Bidirectional: upload local-only transactions & subscriptions to Supabase
+        const cloudIds = new Set((cloudTxs || []).map(t => t.id));
+        const localOnlyTxs = localTxs.filter(t => !cloudIds.has(t.id)).map(t => mapTxToCloud(t, userId));
+        const localOnlySubs = localSubs
+          .filter(s => !String(s.id).startsWith('sub_seed_') && !cloudIds.has(s.id))
+          .map(s => mapSubToCloud(s, userId));
+
+        const toUpload = [...localOnlyTxs, ...localOnlySubs];
+        if (toUpload.length > 0) {
+          await client.from('finstack_transactions').upsert(toUpload, { onConflict: 'id' });
         }
 
         // 6. Update last sync time in settings
@@ -1333,12 +1641,207 @@ const Store = (function () {
           .select('*')
           .eq('user_id', userId);
         if (!error && cloudTxs) {
-          const mapped = cloudTxs.map(mapTxFromCloud).sort((a, b) => new Date(b.date) - new Date(a.date));
+          const normalRows = cloudTxs.filter(r => r.type !== 'suscripcion');
+          const subRows = cloudTxs.filter(r => r.type === 'suscripcion');
+
+          const mapped = normalRows.map(mapTxFromCloud).sort((a, b) => new Date(b.date) - new Date(a.date));
           saveTransactions(mapped);
+
+          if (subRows.length > 0 || (userId !== 'usr_1' && userId !== 'usr_4')) {
+            const mappedSubs = subRows.map(mapSubFromCloud);
+            if (mappedSubs.length > 0) {
+              saveSubscriptions(mappedSubs);
+            }
+          }
         }
       } catch (e) {
         console.warn('pullCloudTransactions notice:', e);
       }
+    },
+
+    // --- GASTOS FIJOS & SUSCRIPCIONES RECURRENTES ---
+    getSubscriptions: function () {
+      const list = loadSubscriptions().map(computeSubscriptionDueMeta);
+      return list.sort((a, b) => {
+        if (a.status === 'Pausada' && b.status !== 'Pausada') return 1;
+        if (a.status !== 'Pausada' && b.status === 'Pausada') return -1;
+        return a.daysUntilDue - b.daysUntilDue;
+      });
+    },
+
+    getSubscriptionById: function (id) {
+      const list = loadSubscriptions();
+      const found = list.find(s => s.id === id);
+      return found ? computeSubscriptionDueMeta(found) : null;
+    },
+
+    getSubscriptionsByDueDate: function (dateStr) {
+      return loadSubscriptions()
+        .filter(s => s.status !== 'Pausada' && s.nextDueDate === dateStr)
+        .map(computeSubscriptionDueMeta);
+    },
+
+    getSubscriptionAlerts: function () {
+      return this.getSubscriptions().filter(s => s.isAlert);
+    },
+
+    getSubscriptionsSummary: function () {
+      const enriched = this.getSubscriptions();
+      let monthlyTotal = 0;
+      let dueNext7DaysTotal = 0;
+      let activeCount = 0;
+      let pausedCount = 0;
+      let overdueCount = 0;
+      let upcomingCount = 0;
+
+      enriched.forEach(s => {
+        if (s.status === 'Pausada') {
+          pausedCount++;
+          return;
+        }
+        activeCount++;
+        monthlyTotal += s.monthlyEquivalent;
+
+        if (s.daysUntilDue <= 7) {
+          dueNext7DaysTotal += parseFloat(s.amount) || 0;
+        }
+        if (s.urgency === 'vencido' || s.urgency === 'hoy') {
+          overdueCount++;
+        } else if (s.urgency === 'proximo') {
+          upcomingCount++;
+        }
+      });
+
+      return {
+        monthlyTotal,
+        annualProjected: monthlyTotal * 12,
+        dueNext7DaysTotal,
+        activeCount,
+        pausedCount,
+        overdueCount,
+        upcomingCount,
+        alertsCount: overdueCount + upcomingCount
+      };
+    },
+
+    addSubscription: function (subData) {
+      const list = loadSubscriptions();
+      const newSub = {
+        id: 'sub_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        name: (subData.name || 'Suscripción').trim(),
+        amount: parseFloat(subData.amount) || 0,
+        category: subData.category || 'Servicios',
+        frequency: subData.frequency || 'mensual',
+        nextDueDate: subData.nextDueDate || formatDateISO(new Date()),
+        alertDaysBefore: Number(subData.alertDaysBefore !== undefined ? subData.alertDaysBefore : 3),
+        paymentMethod: subData.paymentMethod || 'Tarjeta Crédito',
+        icon: subData.icon || '🔄',
+        status: subData.status || 'Activa',
+        lastPaidDate: null,
+        notes: (subData.notes || '').trim(),
+        createdAt: new Date().toISOString()
+      };
+      list.unshift(newSub);
+      saveSubscriptions(list);
+      pushSubscriptionToCloud(newSub);
+      return computeSubscriptionDueMeta(newSub);
+    },
+
+    updateSubscription: function (id, updatedData) {
+      const list = loadSubscriptions();
+      const idx = list.findIndex(s => s.id === id);
+      if (idx === -1) return null;
+
+      // If editing a seed item in Admin mode, promote ID so it syncs cleanly
+      const updatedId = String(id).startsWith('sub_seed_')
+        ? 'sub_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)
+        : id;
+
+      list[idx] = {
+        ...list[idx],
+        id: updatedId,
+        name: updatedData.name !== undefined ? updatedData.name.trim() : list[idx].name,
+        amount: updatedData.amount !== undefined ? parseFloat(updatedData.amount) : list[idx].amount,
+        category: updatedData.category || list[idx].category,
+        frequency: updatedData.frequency || list[idx].frequency,
+        nextDueDate: updatedData.nextDueDate || list[idx].nextDueDate,
+        alertDaysBefore: updatedData.alertDaysBefore !== undefined ? Number(updatedData.alertDaysBefore) : list[idx].alertDaysBefore,
+        paymentMethod: updatedData.paymentMethod || list[idx].paymentMethod,
+        icon: updatedData.icon || list[idx].icon,
+        status: updatedData.status || list[idx].status,
+        notes: updatedData.notes !== undefined ? updatedData.notes.trim() : list[idx].notes,
+        updatedAt: new Date().toISOString()
+      };
+
+      saveSubscriptions(list);
+      pushSubscriptionToCloud(list[idx]);
+      return computeSubscriptionDueMeta(list[idx]);
+    },
+
+    deleteSubscription: function (id) {
+      let list = loadSubscriptions();
+      const before = list.length;
+      list = list.filter(s => s.id !== id);
+      saveSubscriptions(list);
+      if (!String(id).startsWith('sub_seed_')) {
+        deleteTransactionFromCloud(id);
+      }
+      return list.length < before;
+    },
+
+    toggleSubscriptionStatus: function (id) {
+      const list = loadSubscriptions();
+      const idx = list.findIndex(s => s.id === id);
+      if (idx === -1) return null;
+
+      list[idx].status = list[idx].status === 'Pausada' ? 'Activa' : 'Pausada';
+      list[idx].updatedAt = new Date().toISOString();
+      saveSubscriptions(list);
+      pushSubscriptionToCloud(list[idx]);
+      return computeSubscriptionDueMeta(list[idx]);
+    },
+
+    paySubscription: function (id) {
+      const list = loadSubscriptions();
+      const idx = list.findIndex(s => s.id === id);
+      if (idx === -1) return null;
+
+      const sub = list[idx];
+      const todayISO = formatDateISO(new Date());
+
+      // 1. Register actual expense transaction
+      const createdTx = this.add({
+        type: 'gasto',
+        concept: `Pago fijo: ${sub.name}`,
+        amount: parseFloat(sub.amount) || 0,
+        category: sub.category || 'Servicios',
+        date: todayISO,
+        paymentMethod: sub.paymentMethod || 'Tarjeta Crédito',
+        notes: `Pago automático de suscripción (${sub.frequency || 'mensual'})${sub.notes ? ' • ' + sub.notes : ''}`
+      });
+
+      // 2. Advance subscription due date to next billing cycle
+      const nextDate = calculateNextCycleDate(sub.nextDueDate || todayISO, sub.frequency || 'mensual');
+      const updatedId = String(sub.id).startsWith('sub_seed_')
+        ? 'sub_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)
+        : sub.id;
+
+      list[idx] = {
+        ...sub,
+        id: updatedId,
+        nextDueDate: nextDate,
+        lastPaidDate: todayISO,
+        status: 'Activa',
+        updatedAt: new Date().toISOString()
+      };
+
+      saveSubscriptions(list);
+      pushSubscriptionToCloud(list[idx]);
+
+      return {
+        transaction: createdTx,
+        subscription: computeSubscriptionDueMeta(list[idx])
+      };
     },
 
     pullCloudUsers: async function () {
@@ -1431,6 +1934,7 @@ const Store = (function () {
       return JSON.stringify({
         role: this.getActiveRole(),
         transactions: loadTransactions(),
+        subscriptions: loadSubscriptions(),
         users: loadUsers(),
         settings: loadSettings(),
         exportedAt: new Date().toISOString()
@@ -1442,6 +1946,7 @@ const Store = (function () {
         const data = JSON.parse(jsonString);
         if (Array.isArray(data.transactions)) {
           saveTransactions(data.transactions);
+          if (Array.isArray(data.subscriptions)) saveSubscriptions(data.subscriptions);
           if (Array.isArray(data.users)) saveUsers(data.users);
           if (data.settings) saveSettings(data.settings);
           return true;
@@ -1457,15 +1962,20 @@ const Store = (function () {
       const role = this.getActiveRole();
       const userId = this.getCurrentUserId();
       let seed = [];
+      let subSeed = [];
       if (userId === 'usr_1' || role === 'admin') {
         seed = generateSeedData(true);
+        subSeed = generateSubscriptionSeedData();
       } else if (userId === 'usr_4' || role === 'visita') {
         seed = generateSeedData(false);
+        subSeed = generateSubscriptionSeedData();
       } else {
         // Clean start from 0 for personal / standard clients
         seed = [];
+        subSeed = [];
       }
       saveTransactions(seed);
+      saveSubscriptions(subSeed);
       return seed;
     }
   };

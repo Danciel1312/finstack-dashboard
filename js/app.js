@@ -13,6 +13,8 @@ const App = (function () {
   let isSessionLocked = true;
   let activeFilterType = 'todos';
   let activeSearchQuery = '';
+  let editingSubId = null;
+  let activeSubscriptionFilter = 'todas';
 
   const categoryPresets = {
     gasto: [
@@ -52,6 +54,7 @@ const App = (function () {
     updateKPIs();
     renderTransactionsTable();
     renderUsersTable();
+    refreshSubscriptionsWidgets();
     ChartsManager.refreshAll();
     CalendarManager.init();
     updateBudgetProgressBar();
@@ -1473,6 +1476,8 @@ const App = (function () {
       renderExpenseView();
     } else if (viewName === 'ingresos') {
       renderIncomeView();
+    } else if (viewName === 'suscripciones') {
+      renderSubscriptionsView();
     } else if (viewName === 'versiones') {
       renderChangelog();
     } else if (viewName === 'usuarios') {
@@ -1867,11 +1872,13 @@ const App = (function () {
     updateBudgetProgressBar();
     renderTransactionsTable();
     renderUsersTable();
+    refreshSubscriptionsWidgets();
     ChartsManager.refreshAll();
     CalendarManager.refresh();
 
     if (currentView === 'gastos') renderExpenseView();
     if (currentView === 'ingresos') renderIncomeView();
+    if (currentView === 'suscripciones') renderSubscriptionsView();
     if (currentView === 'versiones') renderChangelog();
     if (currentView === 'usuarios') renderUsersTable();
   }
@@ -2037,6 +2044,568 @@ const App = (function () {
       .replace(/'/g, '&#039;');
   }
 
+  // ==========================================================
+  // GASTOS FIJOS, SUSCRIPCIONES RECURRENTES & ALERTAS
+  // ==========================================================
+  function formatDateDisplay(isoStr) {
+    if (!isoStr || !isoStr.includes('-')) return isoStr || '-';
+    const [y, m, d] = isoStr.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function getFrequencyLabel(freq) {
+    const map = {
+      semanal: 'Semanal',
+      quincenal: 'Quincenal',
+      mensual: 'Mensual',
+      trimestral: 'Trimestral',
+      anual: 'Anual'
+    };
+    return map[freq] || 'Mensual';
+  }
+
+  function refreshSubscriptionsWidgets() {
+    renderNotificationsCenter();
+    renderDashboardUpcomingBills();
+    renderSubscriptionsView();
+  }
+
+  function toggleNotificationsDropdown(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const dropdown = document.getElementById('notificationsDropdown');
+    if (!dropdown) return;
+    const isHidden = dropdown.classList.contains('hidden');
+    if (isHidden) {
+      renderNotificationsCenter();
+      dropdown.classList.remove('hidden');
+    } else {
+      dropdown.classList.add('hidden');
+    }
+  }
+
+  function closeNotificationsDropdown() {
+    const dropdown = document.getElementById('notificationsDropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+  }
+
+  function renderNotificationsCenter() {
+    const alerts = Store.getSubscriptionAlerts();
+    const bellBadge = document.getElementById('bellAlertBadge');
+    const sidebarBadge = document.getElementById('sidebarSubsAlertBadge');
+    const listEl = document.getElementById('notificationsDropdownList');
+
+    // Update header bell badge
+    if (bellBadge) {
+      if (alerts.length > 0) {
+        bellBadge.textContent = alerts.length > 9 ? '9+' : String(alerts.length);
+        bellBadge.classList.remove('hidden');
+        bellBadge.classList.add('flex');
+      } else {
+        bellBadge.classList.add('hidden');
+        bellBadge.classList.remove('flex');
+      }
+    }
+
+    // Update sidebar nav badge
+    if (sidebarBadge) {
+      if (alerts.length > 0) {
+        sidebarBadge.textContent = String(alerts.length);
+        sidebarBadge.classList.remove('hidden');
+      } else {
+        sidebarBadge.classList.add('hidden');
+      }
+    }
+
+    // Populate bell dropdown items
+    if (!listEl) return;
+
+    if (alerts.length === 0) {
+      listEl.innerHTML = `
+        <div class="p-6 text-center">
+          <div class="w-11 h-11 mx-auto mb-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <p class="text-xs font-bold text-slate-800 dark:text-slate-200">¡Todo al día!</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">No tienes gastos fijos vencidos ni próximos a vencer.</p>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = alerts.map(sub => {
+      const isUrgent = sub.urgency === 'vencido' || sub.urgency === 'hoy';
+      const pillClass = isUrgent
+        ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+        : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300';
+
+      return `
+        <div class="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-base shrink-0">
+              ${escapeHtml(sub.icon || '🔄')}
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-slate-900 dark:text-white truncate">${escapeHtml(sub.name)}</p>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${pillClass}">${escapeHtml(sub.statusLabel)}</span>
+                <span class="text-[11px] font-extrabold text-slate-700 dark:text-slate-200">${formatMoney(sub.amount)}</span>
+              </div>
+            </div>
+          </div>
+          <button 
+            type="button"
+            onclick="App.paySubscription('${sub.id}')" 
+            class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shrink-0 shadow-xs transition-colors"
+            title="Registrar pago de hoy y avanzar al próximo ciclo"
+          >
+            Pagar
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderDashboardUpcomingBills() {
+    const banner = document.getElementById('dashboardUpcomingBillsBanner');
+    if (!banner) return;
+
+    const alerts = Store.getSubscriptionAlerts();
+    if (alerts.length === 0) {
+      banner.classList.add('hidden');
+      banner.innerHTML = '';
+      return;
+    }
+
+    const hasOverdue = alerts.some(a => a.urgency === 'vencido' || a.urgency === 'hoy');
+    const borderTone = hasOverdue
+      ? 'border-rose-200 dark:border-rose-900/60 bg-gradient-to-r from-rose-50/90 via-white to-amber-50/60 dark:from-rose-950/30 dark:via-[#1E293B] dark:to-slate-900'
+      : 'border-amber-200 dark:border-amber-900/60 bg-gradient-to-r from-amber-50/90 via-white to-blue-50/50 dark:from-amber-950/30 dark:via-[#1E293B] dark:to-slate-900';
+
+    const topAlerts = alerts.slice(0, 3);
+
+    banner.classList.remove('hidden');
+    banner.innerHTML = `
+      <div class="p-4 md:p-5 rounded-2xl border ${borderTone} shadow-xs space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl ${hasOverdue ? 'bg-rose-500' : 'bg-amber-500'} text-white flex items-center justify-center text-sm shadow-sm shrink-0">
+              <i class="fa-solid fa-bell"></i>
+            </div>
+            <div>
+              <h3 class="text-xs md:text-sm font-extrabold text-slate-900 dark:text-white">
+                Tienes ${alerts.length} ${alerts.length === 1 ? 'pago fijo pendiente de atención' : 'pagos fijos pendientes de atención'}
+              </h3>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300">
+                Registra el pago en 1 clic para descontarlo de tu mes y avanzar la próxima fecha de corte.
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button"
+            onclick="App.switchView('suscripciones')" 
+            class="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors shrink-0"
+          >
+            Ver Gastos Fijos <i class="fa-solid fa-arrow-right text-[10px] ml-1"></i>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+          ${topAlerts.map(sub => {
+            const urgent = sub.urgency === 'vencido' || sub.urgency === 'hoy';
+            return `
+              <div class="p-3 rounded-xl bg-white/90 dark:bg-slate-800/80 border border-gray-100 dark:border-slate-700/70 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="text-xl shrink-0">${escapeHtml(sub.icon || '🔄')}</span>
+                  <div class="min-w-0">
+                    <p class="text-xs font-bold text-slate-900 dark:text-white truncate">${escapeHtml(sub.name)}</p>
+                    <p class="text-[11px] font-semibold ${urgent ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}">
+                      ${escapeHtml(sub.statusLabel)} • <strong>${formatMoney(sub.amount)}</strong>
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  onclick="App.paySubscription('${sub.id}')" 
+                  class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shrink-0 transition-colors"
+                >
+                  <i class="fa-solid fa-check mr-1"></i>Pagar
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function setSubscriptionFilter(filter) {
+    activeSubscriptionFilter = filter || 'todas';
+    document.querySelectorAll('.sub-filter-btn').forEach(btn => {
+      const f = btn.getAttribute('data-sub-filter');
+      if (f === activeSubscriptionFilter) {
+        btn.classList.add('bg-blue-600', 'text-white');
+        btn.classList.remove('text-slate-600', 'dark:text-slate-300', 'hover:text-slate-900');
+      } else {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('text-slate-600', 'dark:text-slate-300', 'hover:text-slate-900');
+      }
+    });
+    renderSubscriptionsView();
+  }
+
+  function renderSubscriptionsView() {
+    const summary = Store.getSubscriptionsSummary();
+    const settings = Store.getSettings();
+    const budget = settings.monthlyBudget || 3500;
+    const budgetShare = budget > 0 ? Math.round((summary.monthlyTotal / budget) * 100) : 0;
+
+    // Update KPIs
+    const elMonthly = document.getElementById('subKpiMonthlyTotal');
+    const elShare = document.getElementById('subKpiBudgetShare');
+    const elAlerts = document.getElementById('subKpiAlertsCount');
+    const elAlertsSub = document.getElementById('subKpiAlertsSubtitle');
+    const elNext7 = document.getElementById('subKpiNext7Days');
+    const elActive = document.getElementById('subKpiActiveCount');
+    const elAnnual = document.getElementById('subKpiAnnualTotal');
+
+    if (elMonthly) elMonthly.textContent = formatMoney(summary.monthlyTotal);
+    if (elShare) elShare.textContent = `${budgetShare}%`;
+    if (elAlerts) {
+      elAlerts.textContent = String(summary.alertsCount);
+      elAlerts.className = `text-2xl font-black mt-1.5 ${
+        summary.alertsCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+      }`;
+    }
+    if (elAlertsSub) {
+      if (summary.overdueCount > 0) {
+        elAlertsSub.innerHTML = `<span class="text-rose-600 dark:text-rose-400 font-bold">${summary.overdueCount} vencido(s)</span> y ${summary.upcomingCount} próximo(s)`;
+      } else if (summary.upcomingCount > 0) {
+        elAlertsSub.innerHTML = `<span class="text-amber-600 dark:text-amber-400 font-bold">${summary.upcomingCount} pago(s) próximo(s)</span> a vencer`;
+      } else {
+        elAlertsSub.textContent = 'Sin cobros vencidos ni urgentes';
+      }
+    }
+    if (elNext7) elNext7.textContent = formatMoney(summary.dueNext7DaysTotal);
+    if (elActive) elActive.textContent = String(summary.activeCount);
+    if (elAnnual) elAnnual.textContent = formatMoney(summary.annualProjected);
+
+    // Render list
+    const listContainer = document.getElementById('subscriptionsListContainer');
+    const emptyState = document.getElementById('subscriptionsEmptyState');
+    if (!listContainer) return;
+
+    let subs = Store.getSubscriptions();
+    if (activeSubscriptionFilter === 'alertas') {
+      subs = subs.filter(s => s.isAlert);
+    } else if (activeSubscriptionFilter === 'activas') {
+      subs = subs.filter(s => s.status !== 'Pausada');
+    } else if (activeSubscriptionFilter === 'pausadas') {
+      subs = subs.filter(s => s.status === 'Pausada');
+    }
+
+    if (subs.length === 0) {
+      listContainer.innerHTML = '';
+      if (emptyState) emptyState.classList.remove('hidden');
+      return;
+    }
+
+    if (emptyState) emptyState.classList.add('hidden');
+
+    listContainer.innerHTML = subs.map(sub => {
+      const isPaused = sub.status === 'Pausada';
+      let badgeClasses = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400';
+      let badgeIcon = 'fa-calendar-check';
+
+      if (isPaused) {
+        badgeClasses = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400';
+        badgeIcon = 'fa-pause';
+      } else if (sub.urgency === 'vencido' || sub.urgency === 'hoy') {
+        badgeClasses = 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 ring-1 ring-rose-500/30';
+        badgeIcon = 'fa-circle-exclamation';
+      } else if (sub.urgency === 'proximo') {
+        badgeClasses = 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 ring-1 ring-amber-500/30';
+        badgeIcon = 'fa-clock';
+      }
+
+      return `
+        <div class="p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors ${isPaused ? 'opacity-65' : ''}">
+          <!-- Left: Icon + Info -->
+          <div class="flex items-start sm:items-center gap-3.5 min-w-0">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-gray-200/70 dark:border-slate-700 flex items-center justify-center text-2xl shrink-0 shadow-xs">
+              ${escapeHtml(sub.icon || '🔄')}
+            </div>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h4 class="text-sm md:text-base font-extrabold text-slate-900 dark:text-white">${escapeHtml(sub.name)}</h4>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${badgeClasses}">
+                  <i class="fa-solid ${badgeIcon} text-[10px]"></i>
+                  ${escapeHtml(sub.statusLabel)}
+                </span>
+              </div>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-300 mt-1">
+                <span><i class="fa-solid fa-tag text-[10px] opacity-60 mr-1"></i>${escapeHtml(sub.category)}</span>
+                <span>•</span>
+                <span><i class="fa-solid fa-repeat text-[10px] opacity-60 mr-1"></i>${getFrequencyLabel(sub.frequency)}</span>
+                <span>•</span>
+                <span><i class="fa-regular fa-calendar text-[10px] opacity-60 mr-1"></i>Próximo corte: <strong>${formatDateDisplay(sub.nextDueDate)}</strong></span>
+                <span>•</span>
+                <span><i class="fa-regular fa-credit-card text-[10px] opacity-60 mr-1"></i>${escapeHtml(sub.paymentMethod)}</span>
+              </div>
+              ${sub.notes ? `<p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">${escapeHtml(sub.notes)}</p>` : ''}
+              ${sub.lastPaidDate ? `<p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1"><i class="fa-solid fa-check-double mr-1"></i>Último pago registrado: ${formatDateDisplay(sub.lastPaidDate)}</p>` : ''}
+            </div>
+          </div>
+
+          <!-- Right: Amount + Actions -->
+          <div class="flex items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0 border-t lg:border-t-0 border-gray-100 dark:border-slate-800 shrink-0">
+            <div class="text-left lg:text-right mr-1">
+              <span class="text-base md:text-lg font-black text-slate-900 dark:text-white block">${formatMoney(sub.amount)}</span>
+              <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Alerta ${sub.alertDaysBefore || 3}d antes</span>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              ${!isPaused ? `
+                <button 
+                  type="button"
+                  onclick="App.paySubscription('${sub.id}')" 
+                  class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
+                  title="Registrar el gasto hoy y programar el próximo vencimiento"
+                >
+                  <i class="fa-solid fa-check"></i>
+                  <span>Registrar Pago</span>
+                </button>
+              ` : ''}
+
+              <button 
+                type="button"
+                onclick="App.toggleSubscriptionStatus('${sub.id}')" 
+                title="${isPaused ? 'Reanudar alertas y cobro' : 'Pausar temporalmente'}"
+                class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xs transition-colors"
+              >
+                <i class="fa-solid ${isPaused ? 'fa-play text-emerald-500' : 'fa-pause'}"></i>
+              </button>
+
+              <button 
+                type="button"
+                onclick="App.openSubscriptionModal('${sub.id}')" 
+                title="Editar gasto fijo"
+                class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/40 text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 flex items-center justify-center text-xs transition-colors"
+              >
+                <i class="fa-solid fa-pen"></i>
+              </button>
+
+              <button 
+                type="button"
+                onclick="App.deleteSubscription('${sub.id}')" 
+                title="Eliminar gasto fijo"
+                class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-900/40 text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-400 flex items-center justify-center text-xs transition-colors"
+              >
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function selectSubIcon(btn, emoji) {
+    const hidden = document.getElementById('subIconInput');
+    if (hidden) hidden.value = emoji;
+    document.querySelectorAll('.sub-icon-btn').forEach(b => {
+      b.className = 'sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0 transition-transform';
+    });
+    if (btn) {
+      btn.className = 'sub-icon-btn w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 text-base flex items-center justify-center shrink-0 scale-105';
+    } else {
+      // Match by emoji text
+      document.querySelectorAll('.sub-icon-btn').forEach(b => {
+        if (b.textContent.trim() === emoji) {
+          b.className = 'sub-icon-btn w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 text-base flex items-center justify-center shrink-0 scale-105';
+        }
+      });
+    }
+  }
+
+  function openSubscriptionModal(editId = null) {
+    if (Store.getActiveRole() === 'visita') {
+      showToast('Modo Demo: Vista previa de solo lectura. Crea tu cuenta para programar tus gastos fijos.', 'warning');
+      return;
+    }
+
+    editingSubId = editId || null;
+    const modal = document.getElementById('subscriptionModal');
+    const titleEl = document.getElementById('subModalTitle');
+    const nameEl = document.getElementById('subName');
+    const amountEl = document.getElementById('subAmount');
+    const freqEl = document.getElementById('subFrequency');
+    const dueEl = document.getElementById('subNextDueDate');
+    const alertEl = document.getElementById('subAlertDays');
+    const catEl = document.getElementById('subCategory');
+    const methodEl = document.getElementById('subPaymentMethod');
+    const notesEl = document.getElementById('subNotes');
+
+    const now = new Date();
+    const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    if (editingSubId) {
+      const sub = Store.getSubscriptionById(editingSubId);
+      if (!sub) return;
+      if (titleEl) titleEl.textContent = 'Editar Gasto Fijo';
+      if (nameEl) nameEl.value = sub.name || '';
+      if (amountEl) amountEl.value = sub.amount || '';
+      if (freqEl) freqEl.value = sub.frequency || 'mensual';
+      if (dueEl) dueEl.value = sub.nextDueDate || todayISO;
+      if (alertEl) alertEl.value = String(sub.alertDaysBefore !== undefined ? sub.alertDaysBefore : 3);
+      if (catEl) catEl.value = sub.category || 'Servicios';
+      if (methodEl) methodEl.value = sub.paymentMethod || 'Tarjeta Crédito';
+      if (notesEl) notesEl.value = sub.notes || '';
+      selectSubIcon(null, sub.icon || '🔄');
+    } else {
+      if (titleEl) titleEl.textContent = 'Nuevo Gasto Fijo';
+      if (nameEl) nameEl.value = '';
+      if (amountEl) amountEl.value = '';
+      if (freqEl) freqEl.value = 'mensual';
+      if (dueEl) dueEl.value = todayISO;
+      if (alertEl) alertEl.value = '3';
+      if (catEl) catEl.value = 'Servicios';
+      if (methodEl) methodEl.value = 'Tarjeta Crédito';
+      if (notesEl) notesEl.value = '';
+      selectSubIcon(null, '🔄');
+    }
+
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => nameEl && nameEl.focus(), 100);
+    }
+  }
+
+  function openSubscriptionFromPreset(name, icon, category, paymentMethod) {
+    if (Store.getActiveRole() === 'visita') {
+      showToast('Modo Demo: Vista previa de solo lectura. Crea tu cuenta para agregar gastos fijos.', 'warning');
+      return;
+    }
+    openSubscriptionModal(null);
+    const nameEl = document.getElementById('subName');
+    const catEl = document.getElementById('subCategory');
+    const methodEl = document.getElementById('subPaymentMethod');
+    const amountEl = document.getElementById('subAmount');
+
+    if (nameEl) nameEl.value = name;
+    if (catEl) catEl.value = category;
+    if (methodEl) methodEl.value = paymentMethod;
+    selectSubIcon(null, icon);
+
+    setTimeout(() => amountEl && amountEl.focus(), 120);
+  }
+
+  function closeSubscriptionModal() {
+    editingSubId = null;
+    const modal = document.getElementById('subscriptionModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  function handleSubscriptionSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    if (Store.getActiveRole() === 'visita') {
+      showToast('Modo Demo: No es posible guardar cambios en vista previa.', 'warning');
+      closeSubscriptionModal();
+      return false;
+    }
+
+    const name = (document.getElementById('subName')?.value || '').trim();
+    const amount = parseFloat(document.getElementById('subAmount')?.value || '0');
+    const frequency = document.getElementById('subFrequency')?.value || 'mensual';
+    const nextDueDate = document.getElementById('subNextDueDate')?.value || '';
+    const alertDaysBefore = parseInt(document.getElementById('subAlertDays')?.value || '3', 10);
+    const category = document.getElementById('subCategory')?.value || 'Servicios';
+    const paymentMethod = document.getElementById('subPaymentMethod')?.value || 'Tarjeta Crédito';
+    const icon = document.getElementById('subIconInput')?.value || '🔄';
+    const notes = (document.getElementById('subNotes')?.value || '').trim();
+
+    if (!name || amount <= 0 || !nextDueDate) {
+      showToast('Por favor completa el nombre, un monto válido y la fecha de vencimiento.', 'warning');
+      return false;
+    }
+
+    const payload = {
+      name,
+      amount,
+      frequency,
+      nextDueDate,
+      alertDaysBefore,
+      category,
+      paymentMethod,
+      icon,
+      notes
+    };
+
+    if (editingSubId) {
+      Store.updateSubscription(editingSubId, payload);
+      showToast(`Gasto fijo "${name}" actualizado correctamente`, 'success');
+    } else {
+      Store.addSubscription(payload);
+      showToast(`Gasto fijo "${name}" programado con alertas activas`, 'success');
+    }
+
+    closeSubscriptionModal();
+    refreshAllUI();
+    return false;
+  }
+
+  function paySubscription(id) {
+    if (Store.getActiveRole() === 'visita') {
+      showToast('Modo Demo: En tu cuenta real, este botón registra el gasto hoy y avanza la fecha al próximo mes.', 'info');
+      return;
+    }
+
+    const result = Store.paySubscription(id);
+    if (!result) return;
+
+    closeNotificationsDropdown();
+    refreshAllUI();
+    showToast(
+      `¡Pago de "${result.subscription.name}" registrado! Próximo vencimiento: ${formatDateDisplay(result.subscription.nextDueDate)}`,
+      'success'
+    );
+  }
+
+  function toggleSubscriptionStatus(id) {
+    if (Store.getActiveRole() === 'visita') {
+      showToast('Modo Demo: No es posible modificar estados en vista previa.', 'warning');
+      return;
+    }
+    const updated = Store.toggleSubscriptionStatus(id);
+    if (updated) {
+      refreshAllUI();
+      showToast(
+        updated.status === 'Pausada'
+          ? `"${updated.name}" en pausa (sin alertas)`
+          : `"${updated.name}" reactivada`,
+        'info'
+      );
+    }
+  }
+
+  function deleteSubscription(id) {
+    if (Store.getActiveRole() === 'visita') {
+      showToast('Modo Demo: No es posible eliminar gastos fijos en vista previa.', 'warning');
+      return;
+    }
+    const sub = Store.getSubscriptionById(id);
+    if (!sub) return;
+    if (confirm(`¿Deseas eliminar el gasto fijo "${sub.name}" de tus cobros recurrentes?`)) {
+      Store.deleteSubscription(id);
+      refreshAllUI();
+      showToast(`"${sub.name}" eliminado de tus gastos fijos`, 'success');
+    }
+  }
+
   // --- EVENT LISTENERS ---
   function setupEventListeners() {
     const txForm = document.getElementById('txForm');
@@ -2059,6 +2628,14 @@ const App = (function () {
         }
       });
     }
+
+    // Close notifications dropdown when clicking outside
+    document.addEventListener('click', e => {
+      const container = document.getElementById('notificationsBellContainer');
+      if (container && typeof container.contains === 'function' && !container.contains(e.target)) {
+        closeNotificationsDropdown();
+      }
+    });
   }
 
   // Public API
@@ -2120,6 +2697,18 @@ const App = (function () {
     closeUserModal,
     deleteUser,
     toggleUserStatus,
+    toggleNotificationsDropdown,
+    closeNotificationsDropdown,
+    renderSubscriptionsView,
+    setSubscriptionFilter,
+    openSubscriptionModal,
+    openSubscriptionFromPreset,
+    closeSubscriptionModal,
+    selectSubIcon,
+    handleSubscriptionSubmit,
+    paySubscription,
+    toggleSubscriptionStatus,
+    deleteSubscription,
     exportCSV,
     exportJSON,
     triggerImportJSON,

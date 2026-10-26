@@ -45,10 +45,10 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
 
 ¿En qué puedo ayudarte hoy?`,
         actions: [
+          '¿Qué pagos fijos vencen pronto?',
           '¿Cómo está mi salud financiera?',
           '¿En qué categoría gasto más?',
-          'Registrar: $45 en combustible',
-          'Dame 3 consejos de ahorro'
+          'Registrar: $45 en combustible'
         ]
       }
     ];
@@ -346,6 +346,31 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
         sender: 'ai',
         text: `📉 **Control de Gastos del Mes:**\n\n- **Total Gastado:** **${currency}${Number(stats.totalExpense).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**\n- **Presupuesto Mensual:** ${currency}${budget.toLocaleString('es-ES')}\n- **Consumo del Presupuesto:** **${percent}%** consumido\n- **Disponible restante:** ${currency}${Math.max(0, budget - stats.totalExpense).toLocaleString('es-ES', { minimumFractionDigits: 2 })}\n\n${stats.totalExpense === 0 ? '✨ *Aún no tienes gastos registrados este mes. ¡Excelente momento para empezar desde cero!*' : ''}`,
         actions: ['¿En qué categoría gasto más?', '¿Cuánto dinero tengo?']
+      };
+    }
+
+    // 6.5. Subscriptions, Fixed Bills & Upcoming Due Dates Query
+    if (/(?:gastos?\s+fijos?|suscripci[oó]n|suscripciones|vencen|vencimiento|pagos?\s+fijos?|pr[oó]ximos?\s+pagos?|recibos?)/i.test(lower)) {
+      const subSummary = Store.getSubscriptionsSummary();
+      const alerts = Store.getSubscriptionAlerts();
+      const allSubs = Store.getSubscriptions().filter(s => s.status !== 'Pausada');
+
+      if (allSubs.length === 0) {
+        return {
+          sender: 'ai',
+          text: `🔄 **Gastos Fijos & Suscripciones:**\n\nActualmente no tienes ningún gasto fijo ni suscripción programada en tu perfil.\n\nPuedes ir al menú **Gastos Fijos** para registrar servicios como Internet, Luz, Alquiler o Netflix y recibir alertas automáticas antes de su fecha de corte.`,
+          actions: ['¿Cuánto dinero tengo?', 'Dame 3 consejos de ahorro']
+        };
+      }
+
+      const alertsText = alerts.length > 0
+        ? `\n\n🔔 **Alertas urgentes (${alerts.length}):**\n` + alerts.map(a => `- ${a.icon || '🔄'} **${a.name}** (${currency}${Number(a.amount).toFixed(2)}) — *${a.statusLabel}*`).join('\n')
+        : `\n\n✅ **¡Excelente!** No tienes pagos vencidos ni próximos a vencer en los siguientes días.`;
+
+      return {
+        sender: 'ai',
+        text: `🔄 **Diagnóstico de tus Gastos Fijos:**\n\n- **Servicios activos:** ${subSummary.activeCount}\n- **Compromiso mensual fijo:** **${currency}${subSummary.monthlyTotal.toFixed(2)}**\n- **Por pagar en próximos 7 días:** ${currency}${subSummary.dueNext7DaysTotal.toFixed(2)}\n- **Proyección anual fija:** ${currency}${subSummary.annualProjected.toFixed(2)}${alertsText}`,
+        actions: ['¿Cómo está mi salud financiera?', '¿Cuánto dinero tengo?']
       };
     }
 

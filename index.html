@@ -136,6 +136,17 @@
           </button>
 
           <button 
+            onclick="App.switchView('suscripciones')" 
+            data-view="suscripciones" 
+            class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            title="Gastos Fijos & Suscripciones"
+          >
+            <i class="fa-solid fa-rotate text-base w-5 text-center text-amber-500 shrink-0"></i>
+            <span class="sidebar-text">Gastos Fijos</span>
+            <span id="sidebarSubsAlertBadge" class="sidebar-text hidden ml-auto text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-rose-500 text-white shadow-xs">0</span>
+          </button>
+
+          <button 
             onclick="App.switchView('calendario')" 
             data-view="calendario" 
             class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
@@ -163,7 +174,7 @@
           >
             <i class="fa-solid fa-code-branch text-base w-5 text-center text-indigo-500 shrink-0"></i>
             <span class="sidebar-text">Novedades & Versiones</span>
-            <span class="sidebar-text ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v1.3</span>
+            <span class="sidebar-text ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v1.4</span>
           </button>
 
           <!-- Admin Only: Gestión de Usuarios -->
@@ -297,15 +308,41 @@
             <i id="themeToggleIcon" class="fa-solid fa-moon text-base"></i>
           </button>
 
-          <!-- Notifications Bell -->
-          <div class="relative">
+          <!-- Notifications Bell (Centro de Alertas de Vencimiento) -->
+          <div class="relative" id="notificationsBellContainer">
             <button 
-              onclick="App.showToast('No tienes alertas financieras pendientes', 'info')" 
+              type="button"
+              id="notificationsBellBtn"
+              onclick="App.toggleNotificationsDropdown(event)" 
+              title="Alertas de pagos fijos y vencimientos"
               class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors relative"
             >
               <i class="fa-regular fa-bell text-base"></i>
-              <span class="w-2 h-2 rounded-full bg-rose-500 absolute top-2.5 right-2.5 pulse-subtle"></span>
+              <span id="bellAlertBadge" class="hidden min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold items-center justify-center absolute -top-1 -right-1 shadow-sm pulse-subtle">0</span>
             </button>
+
+            <!-- Dropdown Panel: Alertas de Vencimiento -->
+            <div 
+              id="notificationsDropdown" 
+              class="hidden absolute right-0 mt-2.5 w-80 sm:w-96 rounded-2xl bg-white dark:bg-[#1E293B] border border-gray-100 dark:border-slate-800 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-bell text-amber-500 text-xs"></i>
+                  <span class="text-xs font-extrabold text-slate-900 dark:text-white">Alertas de Vencimiento</span>
+                </div>
+                <button 
+                  type="button"
+                  onclick="App.switchView('suscripciones'); App.closeNotificationsDropdown();" 
+                  class="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Gestionar todos
+                </button>
+              </div>
+              <div id="notificationsDropdownList" class="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800/80">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
           </div>
 
           <!-- Vertical Divider -->
@@ -448,6 +485,11 @@
           </div>
 
         </div>
+
+        <!-- ========================================== -->
+        <!-- SMART BANNER: ALERTAS DE GASTOS FIJOS / SUSCRIPCIONES -->
+        <!-- ========================================== -->
+        <div id="dashboardUpcomingBillsBanner" class="hidden"></div>
 
         <!-- ========================================== -->
         <!-- CHARTS SECTION: CASH FLOW & CATEGORIES -->
@@ -664,6 +706,161 @@
             <!-- Dynamically populated -->
           </div>
         </div>
+      </main>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 3.5: GASTOS FIJOS & SUSCRIPCIONES RECURRENTES       -->
+      <!-- ======================================================== -->
+      <main id="view-suscripciones" class="view-section hidden p-4 md:p-8 space-y-6">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+              <span>Gastos Fijos & Suscripciones</span>
+              <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Alertas Inteligentes</span>
+            </h1>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300 mt-0.5">
+              Controla pagos mensuales, servicios básicos y membresías con avisos automáticos antes de su vencimiento.
+            </p>
+          </div>
+          <button 
+            type="button"
+            onclick="App.openSubscriptionModal()" 
+            class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold shadow-md shadow-blue-500/25 inline-flex items-center justify-center gap-2 transition-all transform active:scale-95 shrink-0"
+          >
+            <i class="fa-solid fa-plus"></i> Nuevo Gasto Fijo
+          </button>
+        </div>
+
+        <!-- 4 KPI Cards for Subscriptions -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+          <!-- KPI 1: Compromiso Mensual -->
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Compromiso Mensual</span>
+                <h3 id="subKpiMonthlyTotal" class="text-2xl font-black text-slate-900 dark:text-white mt-1.5">$0.00</h3>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shadow-sm">
+                <i class="fa-solid fa-rotate"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-50 dark:border-slate-800/50 text-xs text-slate-500 dark:text-slate-400">
+              <span id="subKpiBudgetShare" class="font-semibold text-blue-600 dark:text-blue-400">0%</span> de tu presupuesto mensual
+            </div>
+          </div>
+
+          <!-- KPI 2: Alertas Activas -->
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Alertas de Vencimiento</span>
+                <h3 id="subKpiAlertsCount" class="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1.5">0</h3>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xl shadow-sm">
+                <i class="fa-solid fa-bell"></i>
+              </div>
+            </div>
+            <div id="subKpiAlertsSubtitle" class="mt-4 pt-3 border-t border-gray-50 dark:border-slate-800/50 text-xs font-medium text-slate-500 dark:text-slate-400">
+              Sin cobros vencidos ni urgentes
+            </div>
+          </div>
+
+          <!-- KPI 3: Próximos 7 Días -->
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Por Pagar (7 Días)</span>
+                <h3 id="subKpiNext7Days" class="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1.5">$0.00</h3>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl shadow-sm">
+                <i class="fa-solid fa-hourglass-half"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-50 dark:border-slate-800/50 text-xs text-slate-500 dark:text-slate-400">
+              Efectivo requerido esta semana
+            </div>
+          </div>
+
+          <!-- KPI 4: Proyección Anual & Activas -->
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">Servicios Activos</span>
+                <h3 id="subKpiActiveCount" class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1.5">0</h3>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shadow-sm">
+                <i class="fa-solid fa-layer-group"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-50 dark:border-slate-800/50 text-xs text-slate-500 dark:text-slate-400">
+              Proyección anual: <span id="subKpiAnnualTotal" class="font-bold text-slate-700 dark:text-slate-200">$0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Templates Strip -->
+        <div class="bg-white dark:bg-[#1E293B] p-4 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-wand-magic-sparkles text-blue-500"></i> Plantillas Rápidas (1 clic):
+            </span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">Toca un servicio común para precargar sus datos</span>
+          </div>
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            <button type="button" onclick="App.openSubscriptionFromPreset('Alquiler / Vivienda', '🏠', 'Vivienda', 'Transferencia')" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/30 border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0 transition-colors">🏠 Alquiler</button>
+            <button type="button" onclick="App.openSubscriptionFromPreset('Energía Eléctrica', '💡', 'Servicios', 'Transferencia')" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/30 border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0 transition-colors">💡 Luz Eléctrica</button>
+            <button type="button" onclick="App.openSubscriptionFromPreset('Internet Hogar', '🌐', 'Servicios', 'Tarjeta Débito')" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/30 border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0 transition-colors">🌐 Internet</button>
+            <button type="button" onclick="App.openSubscriptionFromPreset('Agua Potable', '💧', 'Servicios', 'Efectivo')" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/30 border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0 transition-colors">💧 Agua</button>
+            <button type="button" onclick="App.openSubscriptionFromPreset('Plan Celular', '📱', 'Servicios', 'Tarjeta Crédito')" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/30 border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0 transition-colors">📱 Plan Móvil</button>
+            <button type="button" onclick="App.openSubscriptionFromPreset('Netflix', '🎬', 'Entretenimiento', 'Tarjeta Crédito')" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/30 border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0 transition-colors">🎬 Netflix</button>
+            <button type="button" onclick="App.openSubscriptionFromPreset('Spotify', '🎵', 'Entretenimiento', 'Tarjeta Crédito')" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/30 border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0 transition-colors">🎵 Spotify</button>
+            <button type="button" onclick="App.openSubscriptionFromPreset('Gimnasio', '🏋️', 'Salud', 'Tarjeta Débito')" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/30 border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0 transition-colors">🏋️ Gimnasio</button>
+            <button type="button" onclick="App.openSubscriptionFromPreset('Seguro Vehículo', '🚗', 'Transporte', 'Tarjeta Crédito')" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/30 border border-gray-200/80 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0 transition-colors">🚗 Seguro</button>
+          </div>
+        </div>
+
+        <!-- Subscriptions List Card -->
+        <div class="bg-white dark:bg-[#1E293B] rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-gray-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Calendario de Cobros Recurrentes</h3>
+              <p class="text-xs text-slate-600 dark:text-slate-300">Al pulsar "Registrar Pago", se descuenta el gasto hoy y se programa automáticamente el siguiente ciclo.</p>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 text-xs font-semibold self-start sm:self-auto">
+              <button type="button" onclick="App.setSubscriptionFilter('todas')" data-sub-filter="todas" class="sub-filter-btn px-3 py-1.5 rounded-lg bg-blue-600 text-white transition-all">Todas</button>
+              <button type="button" onclick="App.setSubscriptionFilter('alertas')" data-sub-filter="alertas" class="sub-filter-btn px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 transition-all">Por Vencer</button>
+              <button type="button" onclick="App.setSubscriptionFilter('activas')" data-sub-filter="activas" class="sub-filter-btn px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 transition-all">Activas</button>
+              <button type="button" onclick="App.setSubscriptionFilter('pausadas')" data-sub-filter="pausadas" class="sub-filter-btn px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 transition-all">Pausadas</button>
+            </div>
+          </div>
+
+          <div id="subscriptionsListContainer" class="divide-y divide-gray-100 dark:divide-slate-800/80">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Empty State -->
+          <div id="subscriptionsEmptyState" class="hidden py-16 px-4 text-center">
+            <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center text-3xl">
+              <i class="fa-solid fa-rotate"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">No tienes gastos fijos en esta vista</h4>
+            <p class="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-sm mx-auto">
+              Agrega tus servicios mensuales (internet, luz, alquiler, streaming) para recibir alertas antes de cada fecha de corte.
+            </p>
+            <button 
+              type="button"
+              onclick="App.openSubscriptionModal()" 
+              class="mt-4 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold inline-flex items-center gap-2 shadow-sm transition-colors"
+            >
+              <i class="fa-solid fa-plus"></i> Agregar Primer Gasto Fijo
+            </button>
+          </div>
+        </div>
+
       </main>
 
       <!-- ======================================================== -->
@@ -1089,6 +1286,186 @@
         </div>
       </form>
 
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: AGREGAR / EDITAR GASTO FIJO / SUSCRIPCIÓN         -->
+  <!-- ======================================================== -->
+  <div id="subscriptionModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-lg rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl overflow-hidden my-auto transform transition-all animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm shadow-xs">
+            <i class="fa-solid fa-rotate"></i>
+          </div>
+          <div>
+            <h3 id="subModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Nuevo Gasto Fijo</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Programa alertas automáticas para tus pagos recurrentes</p>
+          </div>
+        </div>
+        <button type="button" onclick="App.closeSubscriptionModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Modal Form -->
+      <form id="subscriptionForm" onsubmit="event.preventDefault(); App.handleSubscriptionSubmit(event); return false;" class="p-6 space-y-4">
+        <input type="hidden" id="subIconInput" value="🔄" />
+
+        <!-- Selector de Ícono Emoji -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Ícono del Servicio</label>
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+            <button type="button" onclick="App.selectSubIcon(this, '🏠')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🏠</button>
+            <button type="button" onclick="App.selectSubIcon(this, '💡')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">💡</button>
+            <button type="button" onclick="App.selectSubIcon(this, '🌐')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🌐</button>
+            <button type="button" onclick="App.selectSubIcon(this, '💧')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">💧</button>
+            <button type="button" onclick="App.selectSubIcon(this, '📱')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">📱</button>
+            <button type="button" onclick="App.selectSubIcon(this, '🎬')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🎬</button>
+            <button type="button" onclick="App.selectSubIcon(this, '🎵')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🎵</button>
+            <button type="button" onclick="App.selectSubIcon(this, '🏋️')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🏋️</button>
+            <button type="button" onclick="App.selectSubIcon(this, '🚗')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🚗</button>
+            <button type="button" onclick="App.selectSubIcon(this, '💳')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">💳</button>
+            <button type="button" onclick="App.selectSubIcon(this, '☁️')" class="sub-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">☁️</button>
+            <button type="button" onclick="App.selectSubIcon(this, '🔄')" class="sub-icon-btn w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 text-base flex items-center justify-center shrink-0">🔄</button>
+          </div>
+        </div>
+
+        <!-- Nombre del Gasto Fijo -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre del Gasto Fijo o Suscripción *</label>
+          <input 
+            type="text" 
+            id="subName" 
+            required 
+            placeholder="Ej. Internet Hogar, Netflix, Alquiler, Luz..." 
+            class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
+          />
+        </div>
+
+        <!-- Monto & Frecuencia (2 cols) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto a Pagar *</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
+              <input 
+                type="number" 
+                id="subAmount" 
+                step="0.01" 
+                min="0.01" 
+                required 
+                placeholder="0.00" 
+                class="w-full pl-8 pr-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-semibold"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Frecuencia de Cobro *</label>
+            <select 
+              id="subFrequency" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+            >
+              <option value="mensual">Mensual (Cada mes)</option>
+              <option value="quincenal">Quincenal (Cada 15 días)</option>
+              <option value="semanal">Semanal (Cada 7 días)</option>
+              <option value="trimestral">Trimestral (Cada 3 meses)</option>
+              <option value="anual">Anual (Cada año)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Próximo Vencimiento & Alerta Anticipada (2 cols) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Próxima Fecha de Vencimiento *</label>
+            <input 
+              type="date" 
+              id="subNextDueDate" 
+              required 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Avisarme con anticipación</label>
+            <select 
+              id="subAlertDays" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+            >
+              <option value="1">1 día antes</option>
+              <option value="3" selected>3 días antes (Recomendado)</option>
+              <option value="5">5 días antes</option>
+              <option value="7">7 días antes</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Categoría & Método de Pago (2 cols) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
+            <select 
+              id="subCategory" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+            >
+              <option value="Servicios">Servicios</option>
+              <option value="Vivienda">Vivienda</option>
+              <option value="Entretenimiento">Entretenimiento</option>
+              <option value="Salud">Salud</option>
+              <option value="Transporte">Transporte</option>
+              <option value="Educación">Educación</option>
+              <option value="Alimentación">Alimentación</option>
+              <option value="Otros">Otros</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Método de Pago</label>
+            <select 
+              id="subPaymentMethod" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+            >
+              <option value="Tarjeta Crédito">Tarjeta Crédito</option>
+              <option value="Tarjeta Débito">Tarjeta Débito</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Efectivo">Efectivo</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Notas -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Notas (Opcional)</label>
+          <input 
+            type="text" 
+            id="subNotes" 
+            placeholder="Ej. Cuenta #4491, débito automático, compartir con familia..." 
+            class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          />
+        </div>
+
+        <!-- Footer -->
+        <div class="pt-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+          <button 
+            type="button" 
+            onclick="App.closeSubscriptionModal()" 
+            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            class="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25 transition-all transform active:scale-95"
+          >
+            Guardar Gasto Fijo
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

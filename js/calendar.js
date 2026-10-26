@@ -84,8 +84,9 @@ const CalendarManager = (function () {
       const isToday = dateStr === todayISO;
       const isSelected = dateStr === selectedDateStr;
 
-      // Fetch transactions for this specific day
+      // Fetch transactions and scheduled subscriptions for this specific day
       const dayTxs = Store.getByDate(dateStr);
+      const dueSubs = typeof Store.getSubscriptionsByDueDate === 'function' ? Store.getSubscriptionsByDueDate(dateStr) : [];
       let dayIncome = 0;
       let dayExpense = 0;
 
@@ -99,7 +100,7 @@ const CalendarManager = (function () {
         }
       });
 
-      const hasActivity = dayTxs.length > 0;
+      const hasActivity = dayTxs.length > 0 || dueSubs.length > 0;
 
       html += `
         <div 
@@ -123,12 +124,18 @@ const CalendarManager = (function () {
               ${day}
             </span>
             ${hasActivity ? `
-              <span class="w-2 h-2 rounded-full ${dayIncome > dayExpense ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
+              <span class="w-2 h-2 rounded-full ${dayIncome > dayExpense ? 'bg-emerald-500' : (dayExpense > 0 ? 'bg-rose-500' : 'bg-amber-500')}"></span>
             ` : ''}
           </div>
 
           <!-- Activity Chips / Badges -->
           <div class="space-y-1 mt-auto">
+            ${dueSubs.length > 0 ? `
+              <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-[10px] font-bold leading-tight truncate">
+                <span class="truncate">🔄 Vence (${dueSubs.length})</span>
+              </div>
+            ` : ''}
+
             ${dayIncome > 0 ? `
               <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-semibold leading-tight truncate">
                 <span class="truncate">+$${formatMoneyCompact(dayIncome).replace('$', '')}</span>
@@ -204,6 +211,7 @@ const CalendarManager = (function () {
     const formattedDateTitle = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 
     const txs = Store.getByDate(dateStr);
+    const dueSubs = typeof Store.getSubscriptionsByDueDate === 'function' ? Store.getSubscriptionsByDueDate(dateStr) : [];
     let dayIncome = 0;
     let dayExpense = 0;
 
@@ -214,9 +222,38 @@ const CalendarManager = (function () {
 
     const dayBalance = dayIncome - dayExpense;
 
-    let itemsHtml = '';
+    const dueSubsHtml = dueSubs.length > 0 ? `
+      <div class="mb-3 p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 space-y-2">
+        <div class="text-[11px] font-extrabold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-rotate"></i>
+          <span>Gastos Fijos Programados (${dueSubs.length})</span>
+        </div>
+        <div class="space-y-1.5">
+          ${dueSubs.map(sub => `
+            <div class="p-2 rounded-lg bg-white dark:bg-slate-800/90 flex items-center justify-between gap-2 shadow-2xs">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-base shrink-0">${escapeHtml(sub.icon || '🔄')}</span>
+                <div class="min-w-0">
+                  <p class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">${escapeHtml(sub.name)}</p>
+                  <p class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">${escapeHtml(sub.statusLabel)} • ${formatMoney(sub.amount)}</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onclick="App.paySubscription('${sub.id}')" 
+                class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold shrink-0 transition-colors"
+              >
+                Pagar
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : '';
+
+    let itemsHtml = dueSubsHtml;
     if (txs.length === 0) {
-      itemsHtml = `
+      itemsHtml += `
         <div class="py-12 px-4 text-center">
           <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center text-2xl">
             <i class="fa-regular fa-calendar-xmark"></i>
@@ -234,7 +271,7 @@ const CalendarManager = (function () {
         </div>
       `;
     } else {
-      itemsHtml = `
+      itemsHtml += `
         <div class="divide-y divide-gray-100 dark:divide-slate-800/80">
           ${txs.map(tx => {
             const isInc = tx.type === 'ingreso';
