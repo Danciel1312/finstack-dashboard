@@ -174,7 +174,7 @@
           >
             <i class="fa-solid fa-code-branch text-base w-5 text-center text-indigo-500 shrink-0"></i>
             <span class="sidebar-text">Novedades & Versiones</span>
-            <span class="sidebar-text ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v1.4</span>
+            <span class="sidebar-text ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v1.5</span>
           </button>
 
           <!-- Admin Only: Gestión de Usuarios -->
@@ -292,11 +292,16 @@
           <select 
             id="currencySelector" 
             onchange="App.changeCurrency(this.value)" 
-            class="hidden lg:block text-xs font-semibold py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
+            title="Cambiar moneda local"
+            class="hidden sm:block text-xs font-semibold py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
           >
+            <option value="GTQ">🇬🇹 GTQ (Q)</option>
             <option value="USD">🇺🇸 USD ($)</option>
-            <option value="EUR">🇪🇺 EUR (€)</option>
             <option value="MXN">🇲🇽 MXN ($)</option>
+            <option value="EUR">🇪🇺 EUR (€)</option>
+            <option value="HNL">🇭🇳 HNL (L)</option>
+            <option value="CRC">🇨🇷 CRC (₡)</option>
+            <option value="COP">🇨🇴 COP ($)</option>
           </select>
 
           <!-- Dark / Light Mode Toggle Button -->
@@ -1205,9 +1210,9 @@
         <!-- Monto & Fecha (2 cols) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto ($) *</label>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto (<span class="currency-symbol-prefix">$</span>) *</label>
             <div class="relative">
-              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
+              <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
               <input 
                 type="number" 
                 id="txAmount" 
@@ -1351,7 +1356,7 @@
           <div>
             <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto a Pagar *</label>
             <div class="relative">
-              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
+              <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
               <input 
                 type="number" 
                 id="subAmount" 
@@ -1518,7 +1523,7 @@
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Presupuesto ($) *</label>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Presupuesto (<span class="currency-symbol-prefix">$</span>) *</label>
             <input 
               type="number" 
               id="userBudgetInput" 
@@ -1680,6 +1685,22 @@
   <!-- PORTAL DE ACCESO / LOGIN & REGISTRO / VISTA DEMO        -->
   <!-- ======================================================== -->
   <div id="authLockScreen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
+    <script>
+      (function () {
+        try {
+          var hasTab = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('finstack_active_tab_session_v5');
+          var hasPersistent = typeof localStorage !== 'undefined' && localStorage.getItem('finstack_persistent_session_v5');
+          if (hasTab || hasPersistent) {
+            var el = document.getElementById('authLockScreen');
+            if (el) {
+              el.style.display = 'none';
+              el.classList.add('hidden');
+              el.classList.remove('flex');
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
     <div class="bg-white dark:bg-[#1E293B] w-full max-w-lg rounded-3xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-5 my-auto animate-in fade-in zoom-in-95 duration-200">
       
       <!-- Brand & Header -->
@@ -1767,6 +1788,22 @@
           <p id="portalLoginError" class="hidden text-xs text-rose-500 font-semibold mt-1.5 animate-in fade-in">
             <i class="fa-solid fa-circle-exclamation mr-1"></i> Credenciales incorrectas. Verifica tu correo y contraseña.
           </p>
+        </div>
+
+        <!-- Mantener sesión iniciada ("Recordarme") -->
+        <div class="flex items-center justify-between pt-0.5">
+          <label for="portalRememberMe" class="inline-flex items-center gap-2 cursor-pointer select-none group">
+            <input 
+              type="checkbox" 
+              id="portalRememberMe" 
+              checked 
+              class="w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+            />
+            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+              Mantener mi sesión iniciada
+            </span>
+          </label>
+          <span class="text-[10px] text-slate-400 dark:text-slate-500 hidden sm:inline">No pedirá clave al recargar</span>
         </div>
 
         <button 
@@ -1915,10 +1952,10 @@
   </div>
 
   <!-- ======================================================== -->
-  <!-- MODAL: PERSONALIZAR PERFIL Y AVATAR INTERACTIVO          -->
+  <!-- MODAL: PERSONALIZAR PERFIL, MONEDA, PRESUPUESTO & CLAVE  -->
   <!-- ======================================================== -->
-  <div id="userProfileModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
-    <div class="bg-white dark:bg-[#1E293B] w-full max-w-lg rounded-3xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+  <div id="userProfileModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-lg rounded-3xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-4 my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
@@ -1927,24 +1964,24 @@
             <i class="fa-solid fa-sliders"></i>
           </div>
           <div>
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">Personalizar Perfil</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Edita tu avatar interactivo y datos de usuario</p>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">Configuración de Perfil</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Edita tu avatar, presupuesto mensual, moneda local y contraseña</p>
           </div>
         </div>
-        <button onclick="App.closeProfileModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
+        <button type="button" onclick="App.closeProfileModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
           <i class="fa-solid fa-xmark text-sm"></i>
         </button>
       </div>
 
       <!-- Current Avatar Preview & Name -->
-      <div class="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-100 dark:border-slate-700/60">
-        <div id="profilePreviewAvatar" class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white text-3xl flex items-center justify-center shadow-lg shadow-indigo-500/20 select-none">
+      <div class="flex items-center gap-4 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-gray-100 dark:border-slate-700/60">
+        <div id="profilePreviewAvatar" class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white text-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 select-none shrink-0">
           🚗
         </div>
-        <div>
-          <h4 id="profilePreviewName" class="text-sm font-extrabold text-slate-900 dark:text-white">Dany Ramos</h4>
-          <span id="profilePreviewRole" class="inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 mt-1">CLIENTE</span>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Toca cualquier avatar abajo para seleccionarlo</p>
+        <div class="min-w-0">
+          <h4 id="profilePreviewName" class="text-sm font-extrabold text-slate-900 dark:text-white truncate">Dany Ramos</h4>
+          <span id="profilePreviewRole" class="inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 mt-0.5">CLIENTE</span>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Toca cualquier avatar abajo para personalizar tu perfil</p>
         </div>
       </div>
 
@@ -1969,33 +2006,158 @@
         </div>
 
         <!-- Avatars Grid -->
-        <div id="avatarGridContainer" class="grid grid-cols-6 sm:grid-cols-8 gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 max-h-40 overflow-y-auto">
+        <div id="avatarGridContainer" class="grid grid-cols-6 sm:grid-cols-8 gap-2 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 max-h-32 overflow-y-auto">
           <!-- Populated dynamically by App.renderAvatarGrid() -->
         </div>
       </div>
 
       <!-- Profile Form Fields -->
-      <form onsubmit="App.saveUserProfile(event)" class="space-y-4">
+      <form onsubmit="event.preventDefault(); App.saveUserProfile(event); return false;" class="space-y-3.5">
         <input type="hidden" id="profileSelectedAvatar" value="🚗" />
 
-        <div>
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre Completo</label>
-          <input 
-            type="text" 
-            id="profileEditName" 
-            required 
-            class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
-          />
+        <!-- Nombre y Correo (2 cols) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre Completo *</label>
+            <input 
+              type="text" 
+              id="profileEditName" 
+              required 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Correo Electrónico *</label>
+            <input 
+              type="email" 
+              id="profileEditEmail" 
+              required 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
+            />
+          </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Correo Electrónico</label>
-          <input 
-            type="email" 
-            id="profileEditEmail" 
-            required 
-            class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
-          />
+        <!-- Presupuesto Mensual y Moneda Preferida (2 cols) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Presupuesto Mensual *</label>
+            <div class="relative">
+              <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs sm:text-sm">$</span>
+              <input 
+                type="number" 
+                id="profileEditBudget" 
+                step="50" 
+                min="1" 
+                required 
+                placeholder="3500"
+                class="w-full pl-8 pr-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Moneda Preferida *</label>
+            <select 
+              id="profileEditCurrency" 
+              class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-semibold cursor-pointer"
+            >
+              <option value="GTQ">🇬🇹 Quetzales - GTQ (Q)</option>
+              <option value="USD">🇺🇸 Dólares - USD ($)</option>
+              <option value="MXN">🇲🇽 Pesos - MXN ($)</option>
+              <option value="EUR">🇪🇺 Euros - EUR (€)</option>
+              <option value="HNL">🇭🇳 Lempiras - HNL (L)</option>
+              <option value="CRC">🇨🇷 Colones - CRC (₡)</option>
+              <option value="COP">🇨🇴 Pesos - COP ($)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Sección Desplegable: Seguridad / Cambiar Contraseña -->
+        <div class="rounded-2xl border border-gray-200/80 dark:border-slate-700/80 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
+          <button 
+            type="button" 
+            onclick="App.toggleProfilePasswordSection()" 
+            class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-colors"
+          >
+            <span class="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+              <i class="fa-solid fa-key text-amber-500"></i>
+              <span>Seguridad: Cambiar mi Contraseña</span>
+            </span>
+            <i id="profilePasswordChevron" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform duration-200"></i>
+          </button>
+
+          <div id="profilePasswordSection" class="hidden px-4 pb-4 pt-2 space-y-3 border-t border-gray-200/60 dark:border-slate-700/60">
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">
+              Deja estos campos en blanco si no deseas modificar tu contraseña actual.
+            </p>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Contraseña Actual</label>
+              <div class="relative">
+                <input 
+                  type="password" 
+                  id="profileCurrentPassword" 
+                  autocomplete="current-password"
+                  placeholder="Ingresa tu clave actual" 
+                  class="w-full px-3.5 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 pr-10"
+                />
+                <button 
+                  type="button" 
+                  onclick="App.togglePasswordVisibility('profileCurrentPassword')" 
+                  class="absolute right-3 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <i class="fa-regular fa-eye text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Nueva Contraseña</label>
+                <div class="relative">
+                  <input 
+                    type="password" 
+                    id="profileNewPassword" 
+                    autocomplete="new-password"
+                    placeholder="Mínimo 4 caracteres" 
+                    class="w-full px-3.5 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 pr-9"
+                  />
+                  <button 
+                    type="button" 
+                    onclick="App.togglePasswordVisibility('profileNewPassword')" 
+                    class="absolute right-3 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <i class="fa-regular fa-eye text-xs"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Confirmar Nueva Clave</label>
+                <div class="relative">
+                  <input 
+                    type="password" 
+                    id="profileConfirmPassword" 
+                    autocomplete="new-password"
+                    placeholder="Repite la nueva clave" 
+                    class="w-full px-3.5 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 pr-9"
+                  />
+                  <button 
+                    type="button" 
+                    onclick="App.togglePasswordVisibility('profileConfirmPassword')" 
+                    class="absolute right-3 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <i class="fa-regular fa-eye text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <p id="profilePasswordError" class="hidden text-xs font-semibold text-rose-500">
+              <i class="fa-solid fa-circle-exclamation mr-1"></i> Verifica los datos de contraseña.
+            </p>
+          </div>
         </div>
 
         <div class="flex items-center gap-2 pt-2">

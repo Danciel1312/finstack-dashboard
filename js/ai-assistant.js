@@ -48,7 +48,7 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
           '¿Qué pagos fijos vencen pronto?',
           '¿Cómo está mi salud financiera?',
           '¿En qué categoría gasto más?',
-          'Registrar: $45 en combustible'
+          `Registrar: ${currency}45 en combustible`
         ]
       }
     ];
@@ -88,7 +88,7 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
                   </div>
                   <div class="text-[11px] text-slate-700 dark:text-slate-200">
                     <div><strong>Concepto:</strong> ${escapeHtml(msg.pendingTransaction.concept)}</div>
-                    <div><strong>Monto:</strong> $${msg.pendingTransaction.amount.toFixed(2)}</div>
+                    <div><strong>Monto:</strong> ${(Store.getSettings().currencySymbol || '$')}${msg.pendingTransaction.amount.toFixed(2)}</div>
                     <div><strong>Categoría:</strong> ${escapeHtml(msg.pendingTransaction.category)}</div>
                   </div>
                   <button 
@@ -200,8 +200,8 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
     }
 
     // 1. Extract Number / Amount (anywhere in the phrase)
-    // Matches "$100", "100.50", "100$", "100 usd", "100", etc.
-    const numberRegex = /(?:\$|usd|pesos|eur|€)?\s*(\d+(?:[.,]\d{1,2})?)\s*(?:\$|usd|pesos|eur|€|d[oó]lares)?/i;
+    // Matches "$100", "Q100", "100.50", "100 gtq", "100 quetzales", "100 usd", "100", etc.
+    const numberRegex = /(?:\$|q|gtq|usd|pesos|quetzales|eur|€|l|₡)?\s*(\d+(?:[.,]\d{1,2})?)\s*(?:\$|q|gtq|quetzales|usd|pesos|eur|€|d[oó]lares|lempiras|colones)?/i;
     const match = raw.match(numberRegex);
     if (!match) return null;
 
@@ -217,7 +217,7 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
     let concept = raw
       .replace(match[0], ' ')
       .replace(/\b(?:gast[eé]|gasto|gastos|anota|anotar|registr[ao]|registrar|guarda|guardar|compr[eé]|compra|compras|pagu[eé]|pago|pagos|ingres[oeé]|ingreso|gan[eé]|ganancia|cobr[eé]|cobro|recib[ií])\b/gi, ' ')
-      .replace(/\b(?:de|en|por|un|una|el|la|los|las|mi|mis|al|del|para|d[oó]lares|pesos|usd|euros)\b/gi, ' ')
+      .replace(/\b(?:de|en|por|un|una|el|la|los|las|mi|mis|al|del|para|d[oó]lares|pesos|quetzales|gtq|usd|euros|lempiras|colones)\b/gi, ' ')
       .replace(/[^\w\sáéíóúñÁÉÍÓÚÑ]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -315,7 +315,7 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
           return {
             sender: 'ai',
             text: `🟢 **¡Sí, puedes permitírtelo!**\n\n- **Monto consultado:** ${currency}${askAmount.toFixed(2)}\n- **Presupuesto disponible este mes:** ${currency}${remainingBudget.toFixed(2)}\n- **Margen restante después del gasto:** ${currency}${afterSpend.toFixed(2)}\n\nTu saldo y presupuesto tienen suficiente holgura para realizar esta compra de forma segura.`,
-            actions: [`Registrar: $${askAmount.toFixed(2)} en Compra`, '¿Cómo está mi salud financiera?']
+            actions: [`Registrar: ${currency}${askAmount.toFixed(2)} en Compra`, '¿Cómo está mi salud financiera?']
           };
         } else {
           const deficit = askAmount - remainingBudget;
@@ -505,6 +505,12 @@ Responde en español de forma amigable, estructurada con viñetas y formato Mark
   }
 
   function confirmPendingTransaction(messageIndex) {
+    if (Store.getActiveRole() === 'visita') {
+      if (window.App && typeof App.showToast === 'function') {
+        App.showToast('Modo Demo: No es posible registrar transacciones en vista previa.', 'warning');
+      }
+      return;
+    }
     const msg = chatHistory[messageIndex];
     if (!msg || !msg.pendingTransaction) return;
 

@@ -159,8 +159,9 @@ const ChartsManager = (function () {
               color: theme.textColor,
               font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 },
               callback: function (value) {
-                if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
-                return `$${value}`;
+                const sym = Store.getSettings().currencySymbol || '$';
+                if (value >= 1000) return `${sym}${(value / 1000).toFixed(0)}k`;
+                return `${sym}${value}`;
               }
             }
           }
@@ -335,7 +336,8 @@ const ChartsManager = (function () {
               color: theme.textColor,
               font: { family: "'Plus Jakarta Sans', sans-serif", size: 11 },
               callback: function (val) {
-                return `$${val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val}`;
+                const sym = Store.getSettings().currencySymbol || '$';
+                return `${sym}${val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val}`;
               }
             }
           }

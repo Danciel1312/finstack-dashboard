@@ -46,6 +46,13 @@ const App = (function () {
       } catch (e) {}
     }
 
+    // Check for active tab or persistent ("Remember Me") session before rendering
+    const restoredUser = Store.getRestorableSessionUser();
+    if (restoredUser) {
+      Store.switchUser(restoredUser.id);
+      isSessionLocked = false;
+    }
+
     setupTheme();
     setupCurrency();
     applySidebarMode(Store.getSidebarMode());
@@ -60,24 +67,45 @@ const App = (function () {
     updateBudgetProgressBar();
     renderChangelog();
     AIAssistant.init();
-    initLockScreen();
+
+    if (restoredUser) {
+      const lockScreen = document.getElementById('authLockScreen');
+      if (lockScreen) {
+        lockScreen.classList.add('hidden');
+        lockScreen.classList.remove('flex');
+        lockScreen.style.setProperty('display', 'none', 'important');
+      }
+    } else {
+      initLockScreen();
+    }
 
     // Multi-Device Cloud Sync Initialization
     if (Store.isCloudConfigured()) {
       Store.syncCloud().then(res => {
         if (res.success) {
+          if (!isSessionLocked) {
+            const activeAfterSync = Store.getCurrentUser();
+            if (!activeAfterSync || activeAfterSync.status === 'Inactivo') {
+              lockSession();
+              return;
+            }
+          }
+          setupCurrency();
+          setupRoleUI();
           refreshAllUI();
           updateCloudSyncUI();
         }
       });
       Store.initRealtime(() => {
+        setupCurrency();
+        setupRoleUI();
         refreshAllUI();
         showToast('Actualización en tiempo real recibida de la nube', 'info');
       });
     }
     updateCloudSyncUI();
 
-    console.log('FinStack Pro initialized with Strict Security, Temporary Passwords & Multi-Device Cloud Sync.');
+    console.log('FinStack Pro v1.5 initialized with Persistent Sessions, Regional Currencies & Cloud Sync.');
   }
 
   // --- THEME MANAGEMENT (Dark / Light) ---
@@ -107,28 +135,53 @@ const App = (function () {
     }
   }
 
-  // --- CURRENCY SELECTOR ---
+  // --- CURRENCY SELECTOR & REGIONAL SYMBOLS ---
+  const CURRENCY_MAP = {
+    GTQ: 'Q',
+    USD: '$',
+    MXN: '$',
+    COP: '$',
+    EUR: '€',
+    GBP: '£',
+    HNL: 'L',
+    CRC: '₡'
+  };
+
   function setupCurrency() {
     const settings = Store.getSettings();
+    const code = settings.currency || 'USD';
+    const symbol = settings.currencySymbol || CURRENCY_MAP[code] || '$';
+
     const select = document.getElementById('currencySelector');
     if (select) {
-      select.value = settings.currency || 'USD';
+      select.value = code;
     }
+
+    const profileSelect = document.getElementById('profileEditCurrency');
+    if (profileSelect) {
+      profileSelect.value = code;
+    }
+
+    document.querySelectorAll('.currency-symbol-prefix').forEach(el => {
+      el.textContent = symbol;
+    });
   }
 
   function changeCurrency(val) {
-    let symbol = '$';
-    if (val === 'EUR') symbol = '€';
-    else if (val === 'GBP') symbol = '£';
-    else symbol = '$';
+    const code = CURRENCY_MAP[val] ? val : 'USD';
+    const symbol = CURRENCY_MAP[code] || '$';
 
-    Store.updateSettings({ currency: val, currencySymbol: symbol });
-    updateKPIs();
-    renderTransactionsTable();
-    renderUsersTable();
-    ChartsManager.refreshAll();
-    CalendarManager.refresh();
-    showToast(`Moneda cambiada a ${val}`, 'info');
+    Store.updateSettings({ currency: code, currencySymbol: symbol });
+
+    const currentUser = Store.getCurrentUser();
+    if (currentUser && currentUser.role !== 'visita') {
+      Store.updateUserProfile(currentUser.id, { currency: code, currencySymbol: symbol });
+    }
+
+    setupCurrency();
+    refreshAllUI();
+    AIAssistant.init();
+    showToast(`Moneda actualizada a ${code} (${symbol})`, 'info');
   }
 
   // --- MULTI-ROLE & MULTI-USER SYSTEM UI ---
@@ -394,7 +447,11 @@ const App = (function () {
       idInput.value = '';
       pwdInput.value = '';
 
+      const rememberCheckbox = document.getElementById('portalRememberMe');
+      const rememberMe = rememberCheckbox ? !!rememberCheckbox.checked : true;
+
       Store.switchUser(user.id);
+      Store.saveActiveSession(user.id, rememberMe);
       isSessionLocked = false;
 
       const lockScreen = document.getElementById('authLockScreen');
@@ -404,8 +461,10 @@ const App = (function () {
         lockScreen.style.setProperty('display', 'none', 'important');
       }
 
+      setupCurrency();
       setupRoleUI();
       refreshAllUI();
+      AIAssistant.init();
       showToast(`¡Bienvenido de nuevo, ${user.name}!`, 'success');
 
       // Automatic background cloud sync
@@ -457,6 +516,7 @@ const App = (function () {
     try {
       const newUser = Store.registerClient({ name, email, password, avatar });
       Store.switchUser(newUser.id);
+      Store.saveActiveSession(newUser.id, true);
       isSessionLocked = false;
 
       // Reset fields
@@ -471,8 +531,10 @@ const App = (function () {
         lockScreen.style.setProperty('display', 'none', 'important');
       }
 
+      setupCurrency();
       setupRoleUI();
       refreshAllUI();
+      AIAssistant.init();
       showToast(`¡Cuenta creada con éxito! Bienvenido a FinStack, ${newUser.name}.`, 'success');
 
       // Auto cloud sync
@@ -500,6 +562,7 @@ const App = (function () {
     }
 
     Store.switchUser(demoUser.id);
+    Store.saveActiveSession(demoUser.id, false);
     isSessionLocked = false;
 
     const lockScreen = document.getElementById('authLockScreen');
@@ -509,19 +572,22 @@ const App = (function () {
       lockScreen.style.display = 'none';
     }
 
+    setupCurrency();
     setupRoleUI();
     refreshAllUI();
+    AIAssistant.init();
     showToast('👁️ Has ingresado al Modo Demo (Vista Previa). Las modificaciones de datos están deshabilitadas.', 'info');
   }
 
   function openSupportHelp(type) {
     if (type === 'password') {
-      showToast('Si eres Admin, tu contraseña predeterminada es Dany2207. Para otros usuarios, consulta con el Administrador o contáctanos por WhatsApp.', 'info');
+      showToast('Si olvidaste tu contraseña, solicita una clave temporal al Administrador o escríbenos por WhatsApp.', 'info');
     }
   }
 
   function lockSession() {
     isSessionLocked = true;
+    Store.clearActiveSession();
     const lockScreen = document.getElementById('authLockScreen');
     const pwdInput = document.getElementById('portalLoginPassword');
     const errorMsg = document.getElementById('portalLoginError');
@@ -538,7 +604,7 @@ const App = (function () {
       lockScreen.style.display = '';
     }
     switchAuthPortalTab('login');
-    showToast('Sesión bloqueada por seguridad', 'info');
+    showToast('Sesión cerrada de forma segura', 'info');
     const idInput = document.getElementById('portalLoginIdentifier');
     if (idInput) setTimeout(() => idInput.focus(), 150);
   }
@@ -557,9 +623,12 @@ const App = (function () {
     const user = Store.getCurrentUser();
     if (!user) return;
 
+    const settings = Store.getSettings();
     const modal = document.getElementById('userProfileModal');
     const nameInput = document.getElementById('profileEditName');
     const emailInput = document.getElementById('profileEditEmail');
+    const budgetInput = document.getElementById('profileEditBudget');
+    const currencySelect = document.getElementById('profileEditCurrency');
     const previewAvatar = document.getElementById('profilePreviewAvatar');
     const previewName = document.getElementById('profilePreviewName');
     const previewRole = document.getElementById('profilePreviewRole');
@@ -567,6 +636,21 @@ const App = (function () {
 
     if (nameInput) nameInput.value = user.name || '';
     if (emailInput) emailInput.value = user.email || '';
+    if (budgetInput) budgetInput.value = user.budget || settings.monthlyBudget || 3500;
+
+    const activeCurrency = user.currency || settings.currency || 'USD';
+    if (currencySelect) {
+      currencySelect.value = CURRENCY_MAP[activeCurrency] ? activeCurrency : 'USD';
+      currencySelect.onchange = function () {
+        const previewSym = CURRENCY_MAP[this.value] || '$';
+        if (modal) {
+          modal.querySelectorAll('.currency-symbol-prefix').forEach(el => {
+            el.textContent = previewSym;
+          });
+        }
+      };
+    }
+
     if (previewName) previewName.textContent = user.name || '';
     if (previewRole) previewRole.textContent = (user.role || 'cliente').toUpperCase();
 
@@ -574,11 +658,44 @@ const App = (function () {
     if (previewAvatar) previewAvatar.textContent = avatar;
     if (hiddenAvatar) hiddenAvatar.value = avatar;
 
+    // Reset password change fields & collapse section
+    ['profileCurrentPassword', 'profileNewPassword', 'profileConfirmPassword'].forEach(id => {
+      const inp = document.getElementById(id);
+      if (inp) {
+        inp.value = '';
+        inp.type = 'password';
+        inp.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+      }
+    });
+    const pwdErr = document.getElementById('profilePasswordError');
+    if (pwdErr) pwdErr.classList.add('hidden');
+    toggleProfilePasswordSection(false);
+
+    setupCurrency();
     filterAvatarCategory('autos');
 
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+    }
+  }
+
+  function toggleProfilePasswordSection(forceOpen = null) {
+    const section = document.getElementById('profilePasswordSection');
+    const chevron = document.getElementById('profilePasswordChevron');
+    if (!section) return;
+
+    const shouldOpen = forceOpen !== null ? !!forceOpen : section.classList.contains('hidden');
+    if (shouldOpen) {
+      section.classList.remove('hidden');
+      if (chevron) chevron.classList.add('rotate-180');
+      if (forceOpen === null) {
+        const currInput = document.getElementById('profileCurrentPassword');
+        if (currInput) setTimeout(() => currInput.focus(), 100);
+      }
+    } else {
+      section.classList.add('hidden');
+      if (chevron) chevron.classList.remove('rotate-180');
     }
   }
 
@@ -637,23 +754,106 @@ const App = (function () {
   }
 
   function saveUserProfile(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const user = Store.getCurrentUser();
     if (!user) return;
+
+    if (Store.getActiveRole() === 'visita' || user.role === 'visita') {
+      showToast('Modo Demo: Las modificaciones de perfil y seguridad están deshabilitadas en vista previa.', 'warning');
+      return;
+    }
 
     const name = document.getElementById('profileEditName')?.value.trim();
     const email = document.getElementById('profileEditEmail')?.value.trim();
     const avatar = document.getElementById('profileSelectedAvatar')?.value || '🚗';
+    const budgetVal = parseFloat(document.getElementById('profileEditBudget')?.value);
+    const currencyRaw = document.getElementById('profileEditCurrency')?.value || Store.getSettings().currency || 'USD';
+    const currency = CURRENCY_MAP[currencyRaw] ? currencyRaw : 'USD';
+    const currencySymbol = CURRENCY_MAP[currency] || '$';
 
     if (!name) {
-      showToast('El nombre no puede estar vacío', 'warning');
+      showToast('El nombre completo no puede estar vacío', 'warning');
       return;
     }
 
-    Store.updateUserProfile(user.id, { name, email, avatar });
+    if (!email || !email.includes('@')) {
+      showToast('Ingresa un correo electrónico válido', 'warning');
+      return;
+    }
+
+    if (isNaN(budgetVal) || budgetVal <= 0) {
+      showToast('Ingresa un presupuesto mensual válido mayor a 0', 'warning');
+      return;
+    }
+
+    // Optional Password Change Validation
+    const currPwdInput = document.getElementById('profileCurrentPassword');
+    const newPwdInput = document.getElementById('profileNewPassword');
+    const confPwdInput = document.getElementById('profileConfirmPassword');
+    const pwdErr = document.getElementById('profilePasswordError');
+
+    const currPwd = currPwdInput ? currPwdInput.value.trim() : '';
+    const newPwd = newPwdInput ? newPwdInput.value.trim() : '';
+    const confPwd = confPwdInput ? confPwdInput.value.trim() : '';
+    const wantsPasswordChange = !!(currPwd || newPwd || confPwd);
+
+    const showPwdError = (msg, targetInput) => {
+      toggleProfilePasswordSection(true);
+      if (pwdErr) {
+        pwdErr.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> ${msg}`;
+        pwdErr.classList.remove('hidden');
+      }
+      [currPwdInput, newPwdInput, confPwdInput].forEach(inp => {
+        if (inp) inp.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+      });
+      if (targetInput) {
+        targetInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+        targetInput.focus();
+      }
+    };
+
+    if (wantsPasswordChange) {
+      if (!currPwd) {
+        showPwdError('Ingresa tu contraseña actual para autorizar el cambio.', currPwdInput);
+        return;
+      }
+      if (!Store.verifyPassword(user.id, currPwd)) {
+        showPwdError('La contraseña actual es incorrecta. Verifícala e inténtalo de nuevo.', currPwdInput);
+        return;
+      }
+      if (!newPwd || newPwd.length < 4) {
+        showPwdError('La nueva contraseña debe tener al menos 4 caracteres.', newPwdInput);
+        return;
+      }
+      if (newPwd !== confPwd) {
+        showPwdError('La nueva contraseña y su confirmación no coinciden.', confPwdInput);
+        return;
+      }
+    }
+
+    if (pwdErr) pwdErr.classList.add('hidden');
+
+    Store.updateUserProfile(user.id, {
+      name,
+      email,
+      avatar,
+      budget: budgetVal,
+      currency,
+      currencySymbol,
+      newPassword: wantsPasswordChange ? newPwd : undefined
+    });
+
     closeProfileModal();
+    setupCurrency();
     setupRoleUI();
-    showToast('¡Perfil y avatar actualizados con éxito!', 'success');
+    refreshAllUI();
+    AIAssistant.init();
+
+    if (wantsPasswordChange) {
+      showToast('¡Perfil, presupuesto, moneda y nueva contraseña actualizados con éxito!', 'success');
+    } else {
+      showToast('¡Configuración de perfil actualizada con éxito!', 'success');
+    }
   }
 
   // --- SIDEBAR MODE (FIJA VS DESPLEGABLE) ---
@@ -700,8 +900,12 @@ const App = (function () {
 
     if (bypassAuth) {
       Store.switchUser(targetUserId);
+      const hadPersistent = !!(typeof localStorage !== 'undefined' && localStorage.getItem('finstack_persistent_session_v5'));
+      Store.saveActiveSession(targetUserId, user.role === 'visita' ? false : hadPersistent);
+      setupCurrency();
       setupRoleUI();
       refreshAllUI();
+      AIAssistant.init();
       showToast(`Sesión activa: ${user.name} (${user.role.toUpperCase()})`, 'success');
 
       if (currentView === 'usuarios' && user.role !== 'admin') {
@@ -870,9 +1074,12 @@ const App = (function () {
     pendingForcedChangeUserId = null;
 
     Store.switchUser(targetUserId);
+    Store.saveActiveSession(targetUserId, true);
     isSessionLocked = false;
+    setupCurrency();
     setupRoleUI();
     refreshAllUI();
+    AIAssistant.init();
     showToast(`¡Contraseña establecida con éxito! Bienvenido, ${updatedUser.name}.`, 'success');
 
     // Automatic background cloud synchronization
@@ -2658,6 +2865,7 @@ const App = (function () {
     openSupportHelp,
     openProfileModal,
     closeProfileModal,
+    toggleProfilePasswordSection,
     filterAvatarCategory,
     selectProfileAvatar,
     saveUserProfile,

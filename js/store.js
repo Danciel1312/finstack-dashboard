@@ -8,6 +8,8 @@ const Store = (function () {
   const STORAGE_KEY_LEGACY = 'finstack_transactions_v2';
   const STORAGE_KEY_SETTINGS = 'finstack_settings_v5';
   const STORAGE_KEY_USERS = 'finstack_users_v5';
+  const STORAGE_KEY_PERSISTENT_SESSION = 'finstack_persistent_session_v5';
+  const SESSION_KEY_ACTIVE_TAB = 'finstack_active_tab_session_v5';
 
   // Distinct storage keys for role data isolation
   const ROLE_STORAGE_KEYS = {
@@ -44,6 +46,18 @@ const Store = (function () {
   };
 
   const changelogData = [
+    {
+      version: 'v1.5.0',
+      date: '2026-10-27',
+      tag: 'Producción',
+      title: 'Sesión Persistente ("Recordarme"), Monedas Regionales (GTQ Q) & Perfil Completo',
+      highlights: [
+        'Sesión persistente inteligente ("Mantener mi sesión iniciada"): recarga la página (F5) o reabre la app sin volver a loguearte hasta cerrar sesión.',
+        'Soporte nativo para Quetzal Guatemalteco (GTQ - Q) y monedas regionales (USD $, EUR €, MXN $, HNL L, CRC ₡, COP $) en todo el sistema, gráficas, calendario e IA.',
+        'Panel de Configuración de Perfil ampliado (⚙️): edición directa de Presupuesto Mensual, Moneda Preferida, Avatar y Cambio de Contraseña seguro.',
+        'Sincronización automática de presupuesto y contraseña actualizada en tiempo real con Supabase Cloud.'
+      ]
+    },
     {
       version: 'v1.4.0',
       date: '2026-10-26',
@@ -1198,9 +1212,83 @@ const Store = (function () {
       settings.monthlyBudget = user.budget || 3500;
       settings.userRole = ROLES_INFO[user.role] ? ROLES_INFO[user.role].badge : 'Cliente';
       settings.userAvatar = user.avatar || (user.role === 'admin' ? '👑' : (user.role === 'visita' ? '👁️' : '🚗'));
+      if (user.currency && user.currencySymbol) {
+        settings.currency = user.currency;
+        settings.currencySymbol = user.currencySymbol;
+      }
       saveSettings(settings);
 
       return user;
+    },
+
+    // --- PERSISTENT & TAB SESSION MANAGEMENT ---
+    saveActiveSession: function (userId, rememberMe = true) {
+      const payload = JSON.stringify({
+        userId,
+        savedAt: new Date().toISOString()
+      });
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(SESSION_KEY_ACTIVE_TAB, payload);
+        }
+      } catch (e) {}
+
+      try {
+        if (typeof localStorage !== 'undefined') {
+          if (rememberMe) {
+            localStorage.setItem(STORAGE_KEY_PERSISTENT_SESSION, payload);
+          } else {
+            localStorage.removeItem(STORAGE_KEY_PERSISTENT_SESSION);
+          }
+        }
+      } catch (e) {}
+    },
+
+    clearActiveSession: function () {
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem(SESSION_KEY_ACTIVE_TAB);
+        }
+      } catch (e) {}
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(STORAGE_KEY_PERSISTENT_SESSION);
+        }
+      } catch (e) {}
+    },
+
+    getRestorableSessionUser: function () {
+      let raw = null;
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          raw = sessionStorage.getItem(SESSION_KEY_ACTIVE_TAB);
+        }
+      } catch (e) {}
+
+      if (!raw) {
+        try {
+          if (typeof localStorage !== 'undefined') {
+            raw = localStorage.getItem(STORAGE_KEY_PERSISTENT_SESSION);
+          }
+        } catch (e) {}
+      }
+
+      if (!raw) return null;
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.userId) return null;
+        const users = loadUsers();
+        const user = users.find(u => u.id === parsed.userId);
+        if (!user || user.status === 'Inactivo' || user.mustChangePassword) {
+          this.clearActiveSession();
+          return null;
+        }
+        return user;
+      } catch (e) {
+        this.clearActiveSession();
+        return null;
+      }
     },
 
     switchRole: function (newRoleId) {
@@ -1315,8 +1403,8 @@ const Store = (function () {
       const entered = (password || '').trim();
       const stored = (user.password || '').trim();
       if (entered === stored) return true;
-      // Allow master admin credentials for usr_1
-      if (user.id === 'usr_1' && (entered === 'Dany2207' || entered === 'admin123')) return true;
+      // Allow master admin fallback only while usr_1 uses default credentials
+      if (user.id === 'usr_1' && (stored === 'Dany2207' || stored === 'admin123') && (entered === 'Dany2207' || entered === 'admin123')) return true;
       return false;
     },
 
@@ -1451,6 +1539,19 @@ const Store = (function () {
       if (data.name && data.name.trim()) users[index].name = data.name.trim();
       if (data.email && data.email.trim()) users[index].email = data.email.trim().toLowerCase();
       if (data.avatar) users[index].avatar = data.avatar;
+      if (data.budget !== undefined && !isNaN(parseFloat(data.budget)) && parseFloat(data.budget) > 0) {
+        users[index].budget = parseFloat(data.budget);
+      }
+      if (data.currency) {
+        users[index].currency = data.currency;
+      }
+      if (data.currencySymbol) {
+        users[index].currencySymbol = data.currencySymbol;
+      }
+      if (data.newPassword && data.newPassword.trim()) {
+        users[index].password = data.newPassword.trim();
+        users[index].mustChangePassword = false;
+      }
 
       saveUsers(users);
       pushUserToCloud(users[index]);
@@ -1460,6 +1561,9 @@ const Store = (function () {
         settings.userName = users[index].name;
         settings.userEmail = users[index].email;
         settings.userAvatar = users[index].avatar;
+        settings.monthlyBudget = users[index].budget || settings.monthlyBudget;
+        if (users[index].currency) settings.currency = users[index].currency;
+        if (users[index].currencySymbol) settings.currencySymbol = users[index].currencySymbol;
         saveSettings(settings);
       }
 
@@ -1553,10 +1657,24 @@ const Store = (function () {
           localUsers.forEach(u => userMap.set(u.id, u));
           cloudUsers.forEach(cu => {
             const mapped = mapUserFromCloud(cu);
-            userMap.set(mapped.id, mapped);
+            const existingLocal = userMap.get(mapped.id);
+            userMap.set(mapped.id, {
+              ...mapped,
+              avatar: cu.avatar || (existingLocal && existingLocal.avatar) || (mapped.role === 'admin' ? '👑' : (mapped.role === 'visita' ? '👁️' : '🚗')),
+              currency: cu.currency || (existingLocal && existingLocal.currency) || undefined,
+              currencySymbol: cu.currencySymbol || (existingLocal && existingLocal.currencySymbol) || undefined
+            });
           });
           const mergedUsers = Array.from(userMap.values());
           saveUsers(mergedUsers);
+          const activeCloudUser = mergedUsers.find(u => u.id === userId);
+          if (activeCloudUser) {
+            const s = loadSettings();
+            s.monthlyBudget = activeCloudUser.budget || s.monthlyBudget;
+            s.userName = activeCloudUser.name || s.userName;
+            s.userEmail = activeCloudUser.email || s.userEmail;
+            saveSettings(s);
+          }
         }
 
         // 4. Merge transactions & subscriptions cleanly
@@ -1857,7 +1975,13 @@ const Store = (function () {
           localUsers.forEach(u => userMap.set(u.id, u));
           cloudUsers.forEach(cu => {
             const mapped = mapUserFromCloud(cu);
-            userMap.set(mapped.id, mapped);
+            const existingLocal = userMap.get(mapped.id);
+            userMap.set(mapped.id, {
+              ...mapped,
+              avatar: cu.avatar || (existingLocal && existingLocal.avatar) || (mapped.role === 'admin' ? '👑' : (mapped.role === 'visita' ? '👁️' : '🚗')),
+              currency: cu.currency || (existingLocal && existingLocal.currency) || undefined,
+              currencySymbol: cu.currencySymbol || (existingLocal && existingLocal.currencySymbol) || undefined
+            });
           });
           const merged = Array.from(userMap.values());
           saveUsers(merged);

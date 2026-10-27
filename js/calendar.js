@@ -138,14 +138,14 @@ const CalendarManager = (function () {
 
             ${dayIncome > 0 ? `
               <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-semibold leading-tight truncate">
-                <span class="truncate">+$${formatMoneyCompact(dayIncome).replace('$', '')}</span>
+                <span class="truncate">+${formatMoneyCompact(dayIncome)}</span>
                 <i class="fa-solid fa-arrow-trend-up text-[9px] ml-0.5"></i>
               </div>
             ` : ''}
 
             ${dayExpense > 0 ? `
               <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 text-[10px] font-semibold leading-tight truncate">
-                <span class="truncate">-$${formatMoneyCompact(dayExpense).replace('$', '')}</span>
+                <span class="truncate">-${formatMoneyCompact(dayExpense)}</span>
                 <i class="fa-solid fa-arrow-trend-down text-[9px] ml-0.5"></i>
               </div>
             ` : ''}
