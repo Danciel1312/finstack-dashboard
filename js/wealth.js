@@ -1,12 +1,11 @@
 /**
- * FinStack Pro v2.0 - Wealth, Wallets, Savings Goals, Debts, Category Traffic Lights,
+ * FinStack Pro v2.0 - Debts & Payment Dates, Savings Goals, Category Traffic Lights,
  * Executive PDF Statement & Native PWA Offline Controller.
  */
 
 const WealthManager = (function () {
-  let activePatrimonioTab = 'metas'; // 'metas' | 'billeteras' | 'deudas'
-  let activeDebtFilter = 'todos';    // 'todos' | 'me_deben' | 'debo' | 'saldadas'
-  let editingWalletId = null;
+  let activePatrimonioTab = 'deudas'; // 'deudas' | 'metas'
+  let activeDebtFilter = 'todos';     // 'todos' | 'debo' | 'me_deben' | 'saldadas'
   let editingGoalId = null;
   let contributingGoalId = null;
   let editingDebtId = null;
@@ -67,8 +66,6 @@ const WealthManager = (function () {
   }
 
   function refreshAll() {
-    syncWalletSelectOptions();
-    renderDashboardWalletsStrip();
     renderCategoryTrafficLights();
     renderPatrimonioView();
   }
@@ -172,274 +169,11 @@ const WealthManager = (function () {
   }
 
   // =========================================================================
-  // 2. WALLETS & ACCOUNT-TO-ACCOUNT TRANSFERS
-  // =========================================================================
-  function syncWalletSelectOptions() {
-    const wallets = Store.getWallets();
-    if (!wallets.length) return;
-
-    const selectIds = [
-      'txPaymentMethod',
-      'subPaymentMethod',
-      'transferFromWallet',
-      'transferToWallet',
-      'goalContributeWallet',
-      'debtPayWallet'
-    ];
-
-    selectIds.forEach(id => {
-      const sel = document.getElementById(id);
-      if (!sel) return;
-      const prevVal = sel.value;
-      sel.innerHTML = wallets.map(w => `
-        <option value="${escapeHtml(w.name)}">${escapeHtml(w.icon || '🏦')} ${escapeHtml(w.name)}</option>
-      `).join('');
-
-      if (prevVal && wallets.some(w => w.name === prevVal)) {
-        sel.value = prevVal;
-      } else if (id === 'transferToWallet' && wallets.length > 1) {
-        sel.value = wallets[1].name;
-      }
-    });
-  }
-
-  function renderDashboardWalletsStrip() {
-    const container = document.getElementById('dashboardWalletsStrip');
-    if (!container) return;
-
-    const wallets = Store.getWalletsWithBalances();
-    const colorMap = {
-      emerald: 'from-emerald-500/10 to-teal-500/5 border-emerald-200/70 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300',
-      blue: 'from-blue-500/10 to-indigo-500/5 border-blue-200/70 dark:border-blue-800/50 text-blue-700 dark:text-blue-300',
-      purple: 'from-purple-500/10 to-fuchsia-500/5 border-purple-200/70 dark:border-purple-800/50 text-purple-700 dark:text-purple-300',
-      amber: 'from-amber-500/10 to-orange-500/5 border-amber-200/70 dark:border-amber-800/50 text-amber-700 dark:text-amber-300',
-      rose: 'from-rose-500/10 to-pink-500/5 border-rose-200/70 dark:border-rose-800/50 text-rose-700 dark:text-rose-300'
-    };
-
-    container.innerHTML = `
-      <div class="bg-white dark:bg-[#1E293B] p-4 md:p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm space-y-3.5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div class="flex items-center gap-2">
-            <i class="fa-solid fa-building-columns text-blue-600 dark:text-blue-400 text-sm"></i>
-            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Mis Cuentas y Billeteras</h3>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${wallets.length} activas</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="WealthManager.openTransferModal()" class="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-bold inline-flex items-center gap-1.5 transition-colors">
-              <i class="fa-solid fa-right-left text-[11px]"></i> Transferir
-            </button>
-            <button type="button" onclick="WealthManager.openWalletModal()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold inline-flex items-center gap-1.5 transition-colors">
-              <i class="fa-solid fa-plus text-[11px]"></i> Cuenta
-            </button>
-            <button type="button" onclick="App.switchView('patrimonio'); WealthManager.switchTab('billeteras');" class="text-xs font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 px-1.5">
-              Ver detalle
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          ${wallets.map(w => {
-            const themeCls = colorMap[w.color] || colorMap.blue;
-            const isNeg = w.currentBalance < 0;
-            return `
-              <div onclick="WealthManager.openWalletModal('${escapeHtml(w.id)}')" title="Clic para editar saldo inicial o nombre" class="p-3.5 rounded-xl bg-gradient-to-br ${themeCls} border cursor-pointer hover:scale-[1.01] transition-transform">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-lg select-none">${escapeHtml(w.icon || '🏦')}</span>
-                  <span class="text-[10px] font-semibold opacity-75">${w.txCount} mov.</span>
-                </div>
-                <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">${escapeHtml(w.name)}</div>
-                <div class="text-sm md:text-base font-black mt-0.5 ${isNeg ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}">
-                  ${formatMoney(w.currentBalance)}
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
-  }
-
-  function openWalletModal(walletId = null) {
-    if (isDemoRestricted()) return;
-    editingWalletId = walletId;
-    const modal = document.getElementById('walletModal');
-    const title = document.getElementById('walletModalTitle');
-    const form = document.getElementById('walletForm');
-    if (!modal || !form) return;
-
-    form.reset();
-    let icon = '🏦';
-
-    if (walletId) {
-      const w = Store.getWallets().find(item => item.id === walletId);
-      if (w) {
-        if (title) title.textContent = `Editar Cuenta: ${w.name}`;
-        document.getElementById('walletNameInput').value = w.name;
-        document.getElementById('walletTypeSelect').value = w.type || 'banco';
-        document.getElementById('walletColorSelect').value = w.color || 'blue';
-        document.getElementById('walletInitialBalanceInput').value = w.initialBalance || 0;
-        icon = w.icon || '🏦';
-      }
-    } else {
-      if (title) title.textContent = 'Nueva Cuenta o Billetera';
-      document.getElementById('walletInitialBalanceInput').value = 0;
-    }
-
-    const iconInput = document.getElementById('walletIconInput');
-    if (iconInput) iconInput.value = icon;
-    document.querySelectorAll('.wallet-icon-btn').forEach(btn => {
-      const isSel = btn.textContent.trim() === icon;
-      btn.className = isSel
-        ? 'wallet-icon-btn w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 text-base flex items-center justify-center shrink-0'
-        : 'wallet-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0';
-    });
-
-    if (window.App && typeof App.changeCurrency === 'function') {
-      // Ensure currency symbol prefix inside modal matches
-      const sym = Store.getSettings().currencySymbol || '$';
-      modal.querySelectorAll('.currency-symbol-prefix').forEach(el => { el.textContent = sym; });
-    }
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-  }
-
-  function closeWalletModal() {
-    editingWalletId = null;
-    const modal = document.getElementById('walletModal');
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-  }
-
-  function selectWalletIcon(btn, emoji) {
-    const inp = document.getElementById('walletIconInput');
-    if (inp) inp.value = emoji;
-    document.querySelectorAll('.wallet-icon-btn').forEach(b => {
-      b.className = 'wallet-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0';
-    });
-    if (btn) {
-      btn.className = 'wallet-icon-btn w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 text-base flex items-center justify-center shrink-0';
-    }
-  }
-
-  function handleWalletSubmit(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    if (isDemoRestricted()) return;
-
-    const name = document.getElementById('walletNameInput')?.value.trim();
-    const type = document.getElementById('walletTypeSelect')?.value || 'banco';
-    const color = document.getElementById('walletColorSelect')?.value || 'blue';
-    const initialBalance = parseFloat(document.getElementById('walletInitialBalanceInput')?.value) || 0;
-    const icon = document.getElementById('walletIconInput')?.value || '🏦';
-
-    if (!name) {
-      App.showToast('Ingresa el nombre de la cuenta o billetera', 'warning');
-      return;
-    }
-
-    Store.saveWallet({
-      id: editingWalletId || undefined,
-      name,
-      type,
-      color,
-      initialBalance,
-      icon
-    });
-
-    closeWalletModal();
-    App.refreshAllUI();
-    App.showToast(`Cuenta "${name}" guardada correctamente`, 'success');
-  }
-
-  function deleteWallet(id) {
-    if (isDemoRestricted()) return;
-    if (!confirm('¿Eliminar esta cuenta personalizada? Los movimientos pasados se conservarán.')) return;
-    const ok = Store.deleteWallet(id);
-    if (ok) {
-      App.refreshAllUI();
-      App.showToast('Cuenta eliminada', 'info');
-    } else {
-      App.showToast('Las cuentas principales predeterminadas no se pueden eliminar (puedes renombrarlas).', 'warning');
-    }
-  }
-
-  function openTransferModal(defaultFrom = null) {
-    if (isDemoRestricted()) return;
-    syncWalletSelectOptions();
-    const modal = document.getElementById('transferModal');
-    const form = document.getElementById('transferForm');
-    if (!modal || !form) return;
-
-    form.reset();
-    syncWalletSelectOptions();
-
-    const dateInp = document.getElementById('transferDateInput');
-    if (dateInp) dateInp.value = new Date().toISOString().split('T')[0];
-
-    const fromSel = document.getElementById('transferFromWallet');
-    const toSel = document.getElementById('transferToWallet');
-    const wallets = Store.getWallets();
-    if (defaultFrom && fromSel) fromSel.value = defaultFrom;
-    if (fromSel && toSel && fromSel.value === toSel.value && wallets.length > 1) {
-      const alt = wallets.find(w => w.name !== fromSel.value);
-      if (alt) toSel.value = alt.name;
-    }
-
-    const sym = Store.getSettings().currencySymbol || '$';
-    modal.querySelectorAll('.currency-symbol-prefix').forEach(el => { el.textContent = sym; });
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-  }
-
-  function closeTransferModal() {
-    const modal = document.getElementById('transferModal');
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-  }
-
-  function handleTransferSubmit(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    if (isDemoRestricted()) return;
-
-    const fromWallet = document.getElementById('transferFromWallet')?.value;
-    const toWallet = document.getElementById('transferToWallet')?.value;
-    const amount = parseFloat(document.getElementById('transferAmountInput')?.value);
-    const date = document.getElementById('transferDateInput')?.value;
-    const concept = document.getElementById('transferConceptInput')?.value.trim();
-
-    if (!fromWallet || !toWallet || fromWallet === toWallet) {
-      App.showToast('Selecciona una cuenta origen y una cuenta destino diferentes', 'warning');
-      return;
-    }
-    if (isNaN(amount) || amount <= 0) {
-      App.showToast('Ingresa un monto válido mayor a 0', 'warning');
-      return;
-    }
-
-    Store.addTransfer({
-      fromWallet,
-      toWallet,
-      amount,
-      date,
-      concept: concept || `Traspaso: ${fromWallet} → ${toWallet}`
-    });
-
-    closeTransferModal();
-    App.refreshAllUI();
-    App.showToast(`Transferencia de ${formatMoney(amount)} realizada (${fromWallet} → ${toWallet})`, 'success');
-  }
-
-  // =========================================================================
-  // 3. UNIFIED PATRIMONIO VIEW (METAS, BILLETERAS & PRÉSTAMOS)
+  // 2. UNIFIED METAS & PRÉSTAMOS VIEW (FECHAS DE ABONO / PAGO)
   // =========================================================================
   function switchTab(tabName) {
     activePatrimonioTab = tabName;
-    ['metas', 'billeteras', 'deudas'].forEach(t => {
+    ['deudas', 'metas'].forEach(t => {
       const btn = document.getElementById(`patrimonioTabBtn_${t}`);
       const panel = document.getElementById(`patrimonioPanel_${t}`);
       if (btn) {
@@ -458,23 +192,29 @@ const WealthManager = (function () {
   function renderPatrimonioView() {
     const goalSummary = Store.getGoalsSummary();
     const debtSummary = Store.getDebtsSummary();
-    const wallets = Store.getWalletsWithBalances();
-    const walletsTotal = wallets.reduce((acc, w) => acc + w.currentBalance, 0);
 
-    const kpiWallets = document.getElementById('patKpiWalletsTotal');
     const kpiGoals = document.getElementById('patKpiGoalsSaved');
     const kpiGoalsPct = document.getElementById('patKpiGoalsSubtitle');
     const kpiOwedToMe = document.getElementById('patKpiOwedToMe');
     const kpiIOwe = document.getElementById('patKpiIOwe');
+    const kpiUpcoming = document.getElementById('patKpiUpcomingDates');
+    const kpiUpcomingSub = document.getElementById('patKpiUpcomingSubtitle');
 
-    if (kpiWallets) kpiWallets.textContent = formatMoney(walletsTotal);
     if (kpiGoals) kpiGoals.textContent = formatMoney(goalSummary.totalSaved);
     if (kpiGoalsPct) kpiGoalsPct.textContent = `${goalSummary.overallPercent}% de ${formatMoney(goalSummary.totalTarget)} (${goalSummary.count} metas)`;
     if (kpiOwedToMe) kpiOwedToMe.textContent = formatMoney(debtSummary.owedToMe);
     if (kpiIOwe) kpiIOwe.textContent = formatMoney(debtSummary.iOwe);
+    if (kpiUpcoming) {
+      kpiUpcoming.textContent = String(debtSummary.upcomingDueCount || 0);
+      kpiUpcoming.className = `text-2xl font-black mt-1.5 ${(debtSummary.upcomingDueCount || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`;
+    }
+    if (kpiUpcomingSub) {
+      kpiUpcomingSub.textContent = (debtSummary.upcomingDueCount || 0) > 0
+        ? `${debtSummary.upcomingDueCount} fecha(s) de abono próximas o vencidas`
+        : 'Sin abonos urgentes en los próximos 7 días';
+    }
 
     renderGoalsGrid();
-    renderWalletsDetailGrid(wallets);
     renderDebtsList();
   }
 
@@ -569,59 +309,6 @@ const WealthManager = (function () {
         </div>
       `;
     }).join('');
-  }
-
-  function renderWalletsDetailGrid(wallets) {
-    const container = document.getElementById('walletsDetailContainer');
-    if (!container) return;
-
-    container.innerHTML = wallets.map(w => `
-      <div class="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4">
-        <div class="flex items-start justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-2xl flex items-center justify-center select-none">
-              ${escapeHtml(w.icon || '🏦')}
-            </div>
-            <div>
-              <h4 class="text-sm font-extrabold text-slate-900 dark:text-white">${escapeHtml(w.name)}</h4>
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${escapeHtml(w.type || 'cuenta')}</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-1">
-            <button type="button" onclick="WealthManager.openWalletModal('${escapeHtml(w.id)}')" title="Editar cuenta" class="w-8 h-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
-              <i class="fa-solid fa-pen text-xs"></i>
-            </button>
-            ${!w.isDefault ? `
-              <button type="button" onclick="WealthManager.deleteWallet('${escapeHtml(w.id)}')" title="Eliminar cuenta" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center">
-                <i class="fa-solid fa-trash-can text-xs"></i>
-              </button>
-            ` : ''}
-          </div>
-        </div>
-
-        <div>
-          <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Saldo Disponible Actual</span>
-          <div class="text-2xl font-black ${w.currentBalance < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'} mt-0.5">
-            ${formatMoney(w.currentBalance)}
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 pt-3 border-t border-gray-100 dark:border-slate-800 text-[11px]">
-          <div>
-            <span class="text-slate-400 block">Saldo Inicial</span>
-            <strong class="text-slate-700 dark:text-slate-200">${formatMoney(w.initialBalance)}</strong>
-          </div>
-          <div class="text-right">
-            <span class="text-slate-400 block">Movimientos</span>
-            <strong class="text-slate-700 dark:text-slate-200">${w.txCount} registros</strong>
-          </div>
-        </div>
-
-        <button type="button" onclick="WealthManager.openTransferModal('${escapeHtml(w.name)}')" class="w-full py-2 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-colors flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-right-left text-[11px]"></i> Transferir desde esta cuenta
-        </button>
-      </div>
-    `).join('');
   }
 
   // =========================================================================
@@ -733,7 +420,6 @@ const WealthManager = (function () {
     const goal = Store.getGoalById(goalId);
     if (!goal) return;
     contributingGoalId = goalId;
-    syncWalletSelectOptions();
 
     const modal = document.getElementById('goalContributeModal');
     const title = document.getElementById('goalContributeTitle');
@@ -766,7 +452,7 @@ const WealthManager = (function () {
     if (isDemoRestricted() || !contributingGoalId) return;
 
     const amount = parseFloat(document.getElementById('goalContributeAmount')?.value);
-    const walletName = document.getElementById('goalContributeWallet')?.value || 'Cuenta Bancaria';
+    const walletName = document.getElementById('goalContributeWallet')?.value || 'Efectivo';
     const recordExpense = !!document.getElementById('goalContributeDeductCheck')?.checked;
 
     if (isNaN(amount) || amount <= 0) {
@@ -825,7 +511,30 @@ const WealthManager = (function () {
       const badgeCls = isSettled
         ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
         : (isOwedToMe ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300');
-      const badgeLabel = isSettled ? '✅ Saldada' : (isOwedToMe ? '🟢 Me deben (Por cobrar)' : '🔴 Debo (Por pagar)');
+      const badgeLabel = isSettled ? '✅ Saldada' : (isOwedToMe ? '🟢 Me deben (Por cobrar)' : '🔴 Yo debo (Por pagar)');
+
+      let dueBadgeHtml = '';
+      if (d.dueDate && !isSettled) {
+        const [yy, mm, dd] = d.dueDate.split('-');
+        const fmtDue = yy && mm && dd ? `${dd}/${mm}/${yy}` : d.dueDate;
+        let dueTone = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+        let dueIcon = 'fa-calendar-day';
+        if (d.dueUrgency === 'vencido' || d.dueUrgency === 'hoy') {
+          dueTone = 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 ring-1 ring-rose-500/30';
+          dueIcon = 'fa-bell';
+        } else if (d.dueUrgency === 'proximo') {
+          dueTone = 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 ring-1 ring-amber-500/30';
+          dueIcon = 'fa-clock';
+        }
+        dueBadgeHtml = `
+          <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${dueTone}">
+            <i class="fa-solid ${dueIcon} text-[9px]"></i>
+            Fecha de ${isOwedToMe ? 'cobro' : 'pago'}: ${escapeHtml(fmtDue)} (${escapeHtml(d.dueLabel)})
+          </span>
+        `;
+      }
+
+      const lastPayment = Array.isArray(d.payments) && d.payments.length > 0 ? d.payments[d.payments.length - 1] : null;
 
       return `
         <div class="p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
@@ -837,8 +546,9 @@ const WealthManager = (function () {
               <div class="flex items-center gap-2 flex-wrap">
                 <h4 class="text-sm font-extrabold text-slate-900 dark:text-white">${escapeHtml(d.personName)}</h4>
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeCls}">${badgeLabel}</span>
+                ${dueBadgeHtml}
               </div>
-              <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">${escapeHtml(d.concept)} ${d.dueDate ? `• Vence: <strong>${escapeHtml(d.dueDate)}</strong>` : ''}</p>
+              <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">${escapeHtml(d.concept)}${d.notes ? ` • <span class="italic text-slate-500">${escapeHtml(d.notes)}</span>` : ''}</p>
               
               <div class="mt-2.5 max-w-md space-y-1">
                 <div class="flex items-center justify-between text-[11px]">
@@ -848,6 +558,7 @@ const WealthManager = (function () {
                 <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                   <div class="h-2 rounded-full ${isOwedToMe ? 'bg-emerald-500' : 'bg-rose-500'}" style="width: ${d.percent}%"></div>
                 </div>
+                ${lastPayment ? `<p class="text-[10px] text-slate-400 pt-0.5">Último abono registrado: ${escapeHtml(lastPayment.date)} (${formatMoney(lastPayment.amount)})</p>` : ''}
               </div>
             </div>
           </div>
@@ -980,7 +691,6 @@ const WealthManager = (function () {
     const d = Store.getDebtById(debtId);
     if (!d) return;
     payingDebtId = debtId;
-    syncWalletSelectOptions();
 
     const modal = document.getElementById('debtPaymentModal');
     const title = document.getElementById('debtPayModalTitle');
@@ -1216,7 +926,7 @@ const WealthManager = (function () {
     const settings = Store.getSettings();
     const user = Store.getCurrentUser() || { name: settings.userName || 'Usuario FinStack', email: settings.userEmail || '' };
     const stats = Store.getKPIStats(month, year);
-    const wallets = Store.getWalletsWithBalances();
+    const activeDebts = Store.getDebts().filter(d => d.status !== 'Saldada');
     const traffic = Store.getCategoryTrafficLights(month, year);
     const goalsList = Store.getGoals();
     const goalsSummary = Store.getGoalsSummary();
@@ -1286,23 +996,25 @@ const WealthManager = (function () {
     </div>
   </div>
 
-  <h3>Saldos por Cuenta / Billetera</h3>
-  <table>
-    <thead>
-      <tr><th>Cuenta</th><th>Tipo</th><th class="right">Saldo Inicial</th><th class="right">Movimientos</th><th class="right">Saldo Actual</th></tr>
-    </thead>
-    <tbody>
-      ${wallets.map(w => `
-        <tr>
-          <td><strong>${escapeHtml(w.icon || '')} ${escapeHtml(w.name)}</strong></td>
-          <td>${escapeHtml(w.type || 'cuenta')}</td>
-          <td class="right">${formatMoney(w.initialBalance)}</td>
-          <td class="right">${w.txCount}</td>
-          <td class="right"><strong>${formatMoney(w.currentBalance)}</strong></td>
-        </tr>
-      `).join('')}
-    </tbody>
-  </table>
+  ${activeDebts.length > 0 ? `
+    <h3>Préstamos y Deudas Activas (Fechas de Abono / Pago)</h3>
+    <table>
+      <thead>
+        <tr><th>Persona / Entidad</th><th>Concepto</th><th>Tipo</th><th>Fecha de Pago/Cobro</th><th class="right">Saldo Pendiente</th></tr>
+      </thead>
+      <tbody>
+        ${activeDebts.map(d => `
+          <tr>
+            <td><strong>${escapeHtml(d.personName)}</strong></td>
+            <td>${escapeHtml(d.concept)}</td>
+            <td>${d.direction === 'me_deben' ? '🟢 Me deben' : '🔴 Yo debo'}</td>
+            <td>${escapeHtml(d.dueDate || 'Sin fecha')} (${escapeHtml(d.dueLabel)})</td>
+            <td class="right"><strong>${formatMoney(d.remaining)}</strong></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  ` : ''}
 
   ${traffic.length > 0 ? `
     <h3>Semáforo de Presupuestos por Categoría</h3>
@@ -1347,12 +1059,12 @@ const WealthManager = (function () {
   <h3>Detalle de Movimientos del Mes (${monthTxs.length})</h3>
   <table>
     <thead>
-      <tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Cuenta / Método</th><th class="right">Monto</th></tr>
+      <tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Método de Pago</th><th class="right">Monto</th></tr>
     </thead>
     <tbody>
       ${monthTxs.length === 0 ? `<tr><td colspan="5" style="text-align:center; color:#64748B; padding:16px;">No hay transacciones registradas en este mes.</td></tr>` : monthTxs.map(tx => {
-        const sign = tx.type === 'ingreso' ? '+' : (tx.type === 'gasto' ? '-' : '⇄ ');
-        const cls = tx.type === 'ingreso' ? 'inc' : (tx.type === 'gasto' ? 'exp' : '');
+        const sign = tx.type === 'ingreso' ? '+' : '-';
+        const cls = tx.type === 'ingreso' ? 'inc' : 'exp';
         return `
           <tr>
             <td>${escapeHtml(tx.date)}</td>
@@ -1409,16 +1121,7 @@ const WealthManager = (function () {
     init,
     refreshAll,
     triggerInstallApp,
-    syncWalletSelectOptions,
     switchTab,
-    openWalletModal,
-    closeWalletModal,
-    selectWalletIcon,
-    handleWalletSubmit,
-    deleteWallet,
-    openTransferModal,
-    closeTransferModal,
-    handleTransferSubmit,
     openGoalModal,
     closeGoalModal,
     selectGoalIcon,

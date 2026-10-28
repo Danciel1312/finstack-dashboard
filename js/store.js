@@ -48,14 +48,13 @@ const Store = (function () {
   const changelogData = [
     {
       version: 'v2.0.0',
-      date: '2026-10-27',
+      date: '2026-10-28',
       tag: 'Major Release',
-      title: 'FinStack Pro 2.0: Billeteras, Metas de Ahorro, Préstamos, Semáforo, PDF & PWA Offline',
+      title: 'FinStack Pro 2.0: Préstamos y Fechas de Pago, Metas de Ahorro, Semáforo, PDF & PWA Offline',
       highlights: [
-        'Múltiples Billeteras y Cuentas (Efectivo, Banco, Ahorros, Tarjetas y personalizadas) con Transferencias internas sin inflar gastos.',
+        'Control de Deudas y Préstamos ("Debo" vs "Me deben") con alertas de próximas fechas de abono/pago e historial de cuotas.',
         'Módulo de Metas de Ahorro ("Alcancías") con cálculo inteligente de cuota mensual sugerida y abonos directos.',
-        'Control integral de Deudas y Préstamos ("Me deben" vs "Debo") con historial de abonos parciales y liquidación automática.',
-        'Semáforo de Presupuestos por Categoría (Verde / Amarillo / Rojo) para detectar excesos antes de fin de mes.',
+        'Semáforo de Presupuestos por Categoría (Verde / Amarillo / Rojo) para detectar excesos de gasto antes de fin de mes.',
         'Generador de Estado de Cuenta Ejecutivo en PDF membretado listo para guardar, imprimir o compartir por WhatsApp.',
         'PWA Nativa Offline completa (Service Worker sw.js + botón directo "Instalar App" + auto-sincronización al recuperar internet).'
       ]
@@ -428,11 +427,6 @@ const Store = (function () {
     return `finstack_subs_v5_user_${userId}`;
   }
 
-  function getWalletsStorageKey() {
-    const userId = getCurrentUserId();
-    return `finstack_wallets_v5_user_${userId}`;
-  }
-
   function getGoalsStorageKey() {
     const userId = getCurrentUserId();
     return `finstack_goals_v5_user_${userId}`;
@@ -449,16 +443,7 @@ const Store = (function () {
   }
 
   function isNormalTransactionType(type) {
-    return type === 'ingreso' || type === 'gasto' || type === 'transferencia';
-  }
-
-  function generateDefaultWallets() {
-    return [
-      { id: 'wallet_cash', name: 'Efectivo', type: 'efectivo', icon: '💵', color: 'emerald', initialBalance: 0, isDefault: true },
-      { id: 'wallet_bank', name: 'Cuenta Bancaria', type: 'banco', icon: '🏦', color: 'blue', initialBalance: 0, isDefault: true },
-      { id: 'wallet_savings', name: 'Cuenta de Ahorros', type: 'ahorro', icon: '🐷', color: 'purple', initialBalance: 0, isDefault: true },
-      { id: 'wallet_credit', name: 'Tarjeta de Crédito', type: 'credito', icon: '💳', color: 'amber', initialBalance: 0, isDefault: true }
-    ];
+    return type === 'ingreso' || type === 'gasto';
   }
 
   function generateGoalSeedData() {
@@ -666,33 +651,6 @@ const Store = (function () {
     } catch (e) {
       console.error('Error saving transactions to localStorage:', e);
     }
-  }
-
-  function loadWallets() {
-    try {
-      const key = getWalletsStorageKey();
-      const raw = localStorage.getItem(key);
-      if (!raw) {
-        const defaults = generateDefaultWallets();
-        saveWallets(defaults);
-        return defaults;
-      }
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        const defaults = generateDefaultWallets();
-        saveWallets(defaults);
-        return defaults;
-      }
-      return parsed;
-    } catch (e) {
-      return generateDefaultWallets();
-    }
-  }
-
-  function saveWallets(wallets) {
-    try {
-      localStorage.setItem(getWalletsStorageKey(), JSON.stringify(wallets || []));
-    } catch (e) {}
   }
 
   function loadGoals() {
@@ -1153,62 +1111,6 @@ const Store = (function () {
     }
   }
 
-  function toCloudWalletId(walletId, userId) {
-    const uid = userId || getCurrentUserId();
-    const prefix = `wlt_${uid}_`;
-    return String(walletId).startsWith(prefix) ? String(walletId) : `${prefix}${walletId}`;
-  }
-
-  function mapWalletToCloud(wallet, userId) {
-    const uid = userId || getCurrentUserId();
-    return {
-      id: toCloudWalletId(wallet.id, uid),
-      user_id: uid,
-      type: 'cuenta',
-      concept: wallet.name,
-      amount: parseFloat(wallet.initialBalance) || 0,
-      category: wallet.type || 'banco',
-      date: formatDateISO(new Date()),
-      payment_method: wallet.icon || '🏦',
-      notes: JSON.stringify({
-        __finstack_wallet: true,
-        localId: wallet.id,
-        color: wallet.color || 'blue',
-        isDefault: !!wallet.isDefault
-      }),
-      created_at: wallet.createdAt || new Date().toISOString()
-    };
-  }
-
-  function mapWalletFromCloud(row) {
-    let meta = {};
-    try {
-      if (row.notes && row.notes.trim().startsWith('{')) meta = JSON.parse(row.notes);
-    } catch (e) {}
-    const prefix = `wlt_${row.user_id || getCurrentUserId()}_`;
-    const localId = meta.localId || (String(row.id).startsWith(prefix) ? String(row.id).slice(prefix.length) : row.id);
-    return {
-      id: localId,
-      name: row.concept || 'Cuenta',
-      type: row.category || 'banco',
-      icon: row.payment_method || '🏦',
-      color: meta.color || 'blue',
-      initialBalance: parseFloat(row.amount) || 0,
-      isDefault: !!meta.isDefault,
-      createdAt: row.created_at || new Date().toISOString()
-    };
-  }
-
-  async function pushWalletToCloud(wallet) {
-    const client = getSupabaseClient();
-    if (!client) return;
-    try {
-      await client.from('finstack_transactions').upsert(mapWalletToCloud(wallet, getCurrentUserId()), { onConflict: 'id' });
-    } catch (e) {
-      console.warn('Offline / sync wallet notice:', e);
-    }
-  }
-
   function mapGoalToCloud(goal, userId) {
     return {
       id: goal.id,
@@ -1497,8 +1399,7 @@ const Store = (function () {
         ? (((totalExpense - prevTotalExpense) / prevTotalExpense) * 100).toFixed(1) 
         : '+0.0';
 
-      const walletsInitial = loadWallets().reduce((sum, w) => sum + (parseFloat(w.initialBalance) || 0), 0);
-      let allTimeBalance = walletsInitial;
+      let allTimeBalance = 0;
       let allTimeIncome = 0;
       let allTimeExpense = 0;
       list.forEach(tx => {
@@ -2107,10 +2008,9 @@ const Store = (function () {
           }
         }
 
-        // 4. Merge transactions, subscriptions, wallets, goals, debts & category budgets cleanly
+        // 4. Merge transactions, subscriptions, goals, debts & category budgets cleanly
         const cloudNormalRows = (cloudTxs || []).filter(r => isNormalTransactionType(r.type));
         const cloudSubRows = (cloudTxs || []).filter(r => r.type === 'suscripcion');
-        const cloudWalletRows = (cloudTxs || []).filter(r => r.type === 'cuenta');
         const cloudGoalRows = (cloudTxs || []).filter(r => r.type === 'meta');
         const cloudDebtRows = (cloudTxs || []).filter(r => r.type === 'deuda');
         const cloudCatBudgetRow = (cloudTxs || []).find(r => r.type === 'presupuesto_cat');
@@ -2151,19 +2051,6 @@ const Store = (function () {
         const mergedSubs = Array.from(subMap.values());
         saveSubscriptions(mergedSubs);
 
-        // Merge wallets
-        const localWallets = loadWallets();
-        const walletMap = new Map();
-        localWallets.forEach(w => walletMap.set(w.id, w));
-        if (cloudWalletRows.length > 0) {
-          cloudWalletRows.forEach(cw => {
-            const mappedW = mapWalletFromCloud(cw);
-            walletMap.set(mappedW.id, mappedW);
-          });
-        }
-        const mergedWallets = Array.from(walletMap.values());
-        saveWallets(mergedWallets);
-
         // Merge goals
         const localGoals = loadGoals();
         const goalMap = new Map();
@@ -2201,9 +2088,6 @@ const Store = (function () {
         const localOnlySubs = localSubs
           .filter(s => !String(s.id).startsWith('sub_seed_') && !cloudIds.has(s.id))
           .map(s => mapSubToCloud(s, userId));
-        const localOnlyWallets = localWallets
-          .filter(w => (!w.isDefault || parseFloat(w.initialBalance) !== 0) && !cloudIds.has(toCloudWalletId(w.id, userId)))
-          .map(w => mapWalletToCloud(w, userId));
         const localOnlyGoals = localGoals
           .filter(g => !String(g.id).startsWith('goal_seed_') && !cloudIds.has(g.id))
           .map(g => mapGoalToCloud(g, userId));
@@ -2211,7 +2095,7 @@ const Store = (function () {
           .filter(d => !String(d.id).startsWith('debt_seed_') && !cloudIds.has(d.id))
           .map(d => mapDebtToCloud(d, userId));
 
-        const toUpload = [...localOnlyTxs, ...localOnlySubs, ...localOnlyWallets, ...localOnlyGoals, ...localOnlyDebts];
+        const toUpload = [...localOnlyTxs, ...localOnlySubs, ...localOnlyGoals, ...localOnlyDebts];
         if (!cloudCatBudgetRow && Object.keys(localCatBudgets).length > 0 && userId !== 'usr_1' && userId !== 'usr_4') {
           toUpload.push(mapCatBudgetsToCloud(localCatBudgets, userId));
         }
@@ -2250,7 +2134,6 @@ const Store = (function () {
         if (!error && cloudTxs) {
           const normalRows = cloudTxs.filter(r => isNormalTransactionType(r.type));
           const subRows = cloudTxs.filter(r => r.type === 'suscripcion');
-          const walletRows = cloudTxs.filter(r => r.type === 'cuenta');
           const goalRows = cloudTxs.filter(r => r.type === 'meta');
           const debtRows = cloudTxs.filter(r => r.type === 'deuda');
           const catBudgetRow = cloudTxs.find(r => r.type === 'presupuesto_cat');
@@ -2261,17 +2144,6 @@ const Store = (function () {
           if (subRows.length > 0 || (userId !== 'usr_1' && userId !== 'usr_4')) {
             const mappedSubs = subRows.map(mapSubFromCloud);
             if (mappedSubs.length > 0) saveSubscriptions(mappedSubs);
-          }
-
-          if (walletRows.length > 0) {
-            const localWallets = loadWallets();
-            const wMap = new Map();
-            localWallets.forEach(w => wMap.set(w.id, w));
-            walletRows.forEach(cw => {
-              const mw = mapWalletFromCloud(cw);
-              wMap.set(mw.id, mw);
-            });
-            saveWallets(Array.from(wMap.values()));
           }
 
           if (goalRows.length > 0) {
@@ -2532,128 +2404,6 @@ const Store = (function () {
       }
     },
 
-    // --- MÚLTIPLES BILLETERAS / CUENTAS & TRANSFERENCIAS ---
-    getWallets: function () {
-      return loadWallets();
-    },
-
-    getWalletsWithBalances: function () {
-      const wallets = loadWallets().map(w => ({
-        ...w,
-        initialBalance: parseFloat(w.initialBalance) || 0,
-        currentBalance: parseFloat(w.initialBalance) || 0,
-        incomeTotal: 0,
-        expenseTotal: 0,
-        txCount: 0
-      }));
-      if (wallets.length === 0) return [];
-
-      const findWallet = (nameOrAlias) => {
-        const term = String(nameOrAlias || '').trim().toLowerCase();
-        if (!term) return wallets[0];
-        const exact = wallets.find(w => w.name.toLowerCase() === term || w.id.toLowerCase() === term);
-        if (exact) return exact;
-        if (term === 'efectivo') return wallets.find(w => w.id === 'wallet_cash' || w.type === 'efectivo') || wallets[0];
-        if (term === 'transferencia' || term === 'tarjeta débito' || term === 'tarjeta debito') {
-          return wallets.find(w => w.id === 'wallet_bank' || w.type === 'banco') || wallets[0];
-        }
-        if (term === 'tarjeta crédito' || term === 'tarjeta credito') {
-          return wallets.find(w => w.id === 'wallet_credit' || w.type === 'credito') || wallets[0];
-        }
-        return wallets[0];
-      };
-
-      const txs = loadTransactions();
-      txs.forEach(tx => {
-        const amt = parseFloat(tx.amount) || 0;
-        if (tx.type === 'transferencia') {
-          const parts = String(tx.paymentMethod || '').split('→').map(s => s.trim());
-          if (parts.length === 2) {
-            const wFrom = findWallet(parts[0]);
-            const wTo = findWallet(parts[1]);
-            if (wFrom) {
-              wFrom.currentBalance -= amt;
-              wFrom.txCount++;
-            }
-            if (wTo) {
-              wTo.currentBalance += amt;
-              wTo.txCount++;
-            }
-          }
-        } else if (tx.type === 'ingreso') {
-          const w = findWallet(tx.paymentMethod);
-          if (w) {
-            w.currentBalance += amt;
-            w.incomeTotal += amt;
-            w.txCount++;
-          }
-        } else if (tx.type === 'gasto') {
-          const w = findWallet(tx.paymentMethod);
-          if (w) {
-            w.currentBalance -= amt;
-            w.expenseTotal += amt;
-            w.txCount++;
-          }
-        }
-      });
-
-      return wallets;
-    },
-
-    saveWallet: function (walletData) {
-      const wallets = loadWallets();
-      const id = walletData.id || ('wallet_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
-      const idx = wallets.findIndex(w => w.id === id);
-
-      const record = {
-        id,
-        name: (walletData.name || 'Cuenta').trim(),
-        type: walletData.type || 'banco',
-        icon: walletData.icon || '🏦',
-        color: walletData.color || 'blue',
-        initialBalance: parseFloat(walletData.initialBalance) || 0,
-        isDefault: idx !== -1 ? !!wallets[idx].isDefault : false,
-        createdAt: idx !== -1 ? (wallets[idx].createdAt || new Date().toISOString()) : new Date().toISOString()
-      };
-
-      if (idx !== -1) {
-        wallets[idx] = record;
-      } else {
-        wallets.push(record);
-      }
-
-      saveWallets(wallets);
-      pushWalletToCloud(record);
-      return record;
-    },
-
-    deleteWallet: function (id) {
-      let wallets = loadWallets();
-      const target = wallets.find(w => w.id === id);
-      if (!target || target.isDefault) return false;
-      wallets = wallets.filter(w => w.id !== id);
-      saveWallets(wallets);
-      deleteTransactionFromCloud(toCloudWalletId(id, getCurrentUserId()));
-      return true;
-    },
-
-    addTransfer: function (transferData) {
-      const fromName = (transferData.fromWallet || '').trim();
-      const toName = (transferData.toWallet || '').trim();
-      const amount = parseFloat(transferData.amount) || 0;
-      if (!fromName || !toName || fromName === toName || amount <= 0) return null;
-
-      return this.add({
-        type: 'transferencia',
-        concept: (transferData.concept || `Transferencia: ${fromName} a ${toName}`).trim(),
-        amount,
-        category: 'Transferencia',
-        date: transferData.date || formatDateISO(new Date()),
-        paymentMethod: `${fromName} → ${toName}`,
-        notes: (transferData.notes || '').trim()
-      });
-    },
-
     // --- METAS DE AHORRO ("ALCANCÍAS") ---
     getGoals: function () {
       const now = new Date();
@@ -2811,20 +2561,64 @@ const Store = (function () {
 
     // --- CONTROL DE DEUDAS Y PRÉSTAMOS ("ME DEBEN" vs "DEBO") ---
     getDebts: function () {
+      const now = new Date();
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
       return loadDebts().map(d => {
         const total = Math.max(0.01, parseFloat(d.totalAmount) || 0);
         const paid = Math.max(0, parseFloat(d.paidAmount) || 0);
         const remaining = Math.max(0, total - paid);
         const percent = Math.min(100, Math.round((paid / total) * 100));
         const isSettled = remaining <= 0.009 || d.status === 'Saldada';
+
+        let daysUntilDue = null;
+        let dueUrgency = 'sin_fecha';
+        let dueLabel = 'Sin fecha límite';
+
+        if (d.dueDate && /^\d{4}-\d{2}-\d{2}$/.test(d.dueDate)) {
+          const [yy, mm, dd] = d.dueDate.split('-').map(Number);
+          const dueMidnight = new Date(yy, mm - 1, dd).getTime();
+          daysUntilDue = Math.round((dueMidnight - todayMidnight) / 86400000);
+
+          if (!isSettled) {
+            if (daysUntilDue < 0) {
+              const abs = Math.abs(daysUntilDue);
+              dueUrgency = 'vencido';
+              dueLabel = abs === 1 ? 'Venció ayer' : `Vencido hace ${abs} días`;
+            } else if (daysUntilDue === 0) {
+              dueUrgency = 'hoy';
+              dueLabel = '¡Toca hoy!';
+            } else if (daysUntilDue <= 7) {
+              dueUrgency = 'proximo';
+              dueLabel = daysUntilDue === 1 ? 'Toca mañana' : `Toca en ${daysUntilDue} días`;
+            } else {
+              dueUrgency = 'aldia';
+              dueLabel = `En ${daysUntilDue} días`;
+            }
+          } else {
+            dueUrgency = 'saldada';
+            dueLabel = 'Liquidada';
+          }
+        }
+
         return {
           ...d,
           totalAmount: total,
           paidAmount: paid,
           remaining: isSettled ? 0 : remaining,
           percent: isSettled ? 100 : percent,
-          status: isSettled ? 'Saldada' : 'Pendiente'
+          status: isSettled ? 'Saldada' : 'Pendiente',
+          daysUntilDue,
+          dueUrgency,
+          dueLabel
         };
+      }).sort((a, b) => {
+        if (a.status === 'Saldada' && b.status !== 'Saldada') return 1;
+        if (a.status !== 'Saldada' && b.status === 'Saldada') return -1;
+        if (a.daysUntilDue !== null && b.daysUntilDue !== null) return a.daysUntilDue - b.daysUntilDue;
+        if (a.daysUntilDue !== null) return -1;
+        if (b.daysUntilDue !== null) return 1;
+        return 0;
       });
     },
 
@@ -2838,6 +2632,7 @@ const Store = (function () {
       let iOwe = 0;
       let pendingCount = 0;
       let settledCount = 0;
+      let upcomingDueCount = 0;
 
       list.forEach(d => {
         if (d.status === 'Saldada') {
@@ -2847,6 +2642,10 @@ const Store = (function () {
         pendingCount++;
         if (d.direction === 'me_deben') owedToMe += d.remaining;
         else iOwe += d.remaining;
+
+        if (d.dueUrgency === 'vencido' || d.dueUrgency === 'hoy' || d.dueUrgency === 'proximo') {
+          upcomingDueCount++;
+        }
       });
 
       return {
@@ -2855,6 +2654,7 @@ const Store = (function () {
         netPosition: owedToMe - iOwe,
         pendingCount,
         settledCount,
+        upcomingDueCount,
         totalCount: list.length
       };
     },
@@ -3062,7 +2862,6 @@ const Store = (function () {
         role: this.getActiveRole(),
         transactions: loadTransactions(),
         subscriptions: loadSubscriptions(),
-        wallets: loadWallets(),
         goals: loadGoals(),
         debts: loadDebts(),
         categoryBudgets: loadCatBudgets(),
@@ -3078,7 +2877,6 @@ const Store = (function () {
         if (Array.isArray(data.transactions)) {
           saveTransactions(data.transactions);
           if (Array.isArray(data.subscriptions)) saveSubscriptions(data.subscriptions);
-          if (Array.isArray(data.wallets)) saveWallets(data.wallets);
           if (Array.isArray(data.goals)) saveGoals(data.goals);
           if (Array.isArray(data.debts)) saveDebts(data.debts);
           if (data.categoryBudgets && typeof data.categoryBudgets === 'object') saveCatBudgets(data.categoryBudgets);
@@ -3116,7 +2914,6 @@ const Store = (function () {
       }
       saveTransactions(seed);
       saveSubscriptions(subSeed);
-      saveWallets(generateDefaultWallets());
       saveGoals(goalSeed);
       saveDebts(debtSeed);
       saveCatBudgets(catBudgetSeed);

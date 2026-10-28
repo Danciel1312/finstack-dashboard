@@ -4,7 +4,7 @@
  * while bypassing live cloud API endpoints (Supabase & Gemini) so data is never stale.
  */
 
-const CACHE_NAME = 'finstack-pro-shell-v2.0';
+const CACHE_NAME = 'finstack-pro-shell-v2.1';
 const APP_SHELL = [
   './',
   './index.html',

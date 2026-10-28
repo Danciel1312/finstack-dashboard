@@ -374,24 +374,6 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
       };
     }
 
-    // 6.6. Wallets / Accounts Breakdown Query
-    if (/(?:billeteras?|mis\s+cuentas|saldos?\s+por\s+cuenta|cu[aá]nto\s+tengo\s+en\s+(?:efectivo|banco))/i.test(lower)) {
-      const wallets = typeof Store.getWalletsWithBalances === 'function' ? Store.getWalletsWithBalances() : [];
-      if (!wallets.length) {
-        return {
-          sender: 'ai',
-          text: `👛 **Mis Cuentas:** Aún no tienes cuentas configuradas.`,
-          actions: ['¿Cuánto dinero tengo?']
-        };
-      }
-      const lines = wallets.map(w => `- ${w.icon || '💳'} **${w.name}:** **${currency}${Number(w.currentBalance).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**`).join('\n');
-      return {
-        sender: 'ai',
-        text: `👛 **Saldos por Billetera / Cuenta:**\n\n${lines}\n\n- **Balance Consolidado:** **${currency}${Number(stats.allTimeBalance).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**`,
-        actions: ['¿Cómo van mis metas de ahorro?', '¿Tengo deudas o préstamos?']
-      };
-    }
-
     // 6.7. Savings Goals ("Alcancías") Query
     if (/(?:metas?|alcanc[ií]as?|objetivos?\s+de\s+ahorro)/i.test(lower)) {
       const goals = typeof Store.getGoals === 'function' ? Store.getGoals() : [];
@@ -407,12 +389,12 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
       return {
         sender: 'ai',
         text: `🐷 **Progreso de tus Metas de Ahorro:**\n\n- **Total Acumulado:** **${currency}${Number(gSum.totalSaved).toLocaleString('es-ES', { minimumFractionDigits: 2 })}** de ${currency}${Number(gSum.totalTarget).toLocaleString('es-ES', { minimumFractionDigits: 2 })} (${gSum.overallPercent}%)\n- **Metas completadas:** ${gSum.completedCount} de ${goals.length}\n\n${lines}`,
-        actions: ['¿Cuáles son mis billeteras?', '¿Tengo deudas o préstamos?']
+        actions: ['¿Tengo deudas o préstamos?', '¿Cómo está mi salud financiera?']
       };
     }
 
-    // 6.8. Debts & Loans ("Me deben" vs "Debo") Query
-    if (/(?:deudas?|pr[eé]stamos?|me\s+deben|cu[aá]nto\s+debo)/i.test(lower)) {
+    // 6.8. Debts & Loans ("Me deben" vs "Debo") + Payment Dates Query
+    if (/(?:deudas?|pr[eé]stamos?|me\s+deben|cu[aá]nto\s+debo|fechas?\s+de\s+(?:abono|pago)|abonos?)/i.test(lower)) {
       const debts = typeof Store.getDebts === 'function' ? Store.getDebts() : [];
       const dSum = typeof Store.getDebtsSummary === 'function' ? Store.getDebtsSummary() : { owedToMe: 0, iOwe: 0, netPosition: 0 };
       const activeDebts = debts.filter(d => d.status !== 'Saldada');
@@ -423,11 +405,14 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
           actions: ['¿Cuánto dinero tengo?', '¿Cómo van mis metas de ahorro?']
         };
       }
-      const lines = activeDebts.slice(0, 5).map(d => `- ${d.direction === 'me_deben' ? '🟢 *Me debe*' : '🔴 *Debo a*'} **${d.personName}** (${d.concept}): resta **${currency}${Number(d.remaining).toFixed(2)}**`).join('\n');
+      const lines = activeDebts.slice(0, 5).map(d => {
+        const dueTxt = d.dueDate ? ` — 📅 *${d.dueDate} (${d.dueLabel})*` : '';
+        return `- ${d.direction === 'me_deben' ? '🟢 *Me debe*' : '🔴 *Debo a*'} **${d.personName}** (${d.concept}): resta **${currency}${Number(d.remaining).toFixed(2)}**${dueTxt}`;
+      }).join('\n');
       return {
         sender: 'ai',
-        text: `🤝 **Control de Deudas y Préstamos:**\n\n- **Por cobrar (Me deben):** **${currency}${Number(dSum.owedToMe).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**\n- **Por pagar (Yo debo):** **${currency}${Number(dSum.iOwe).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**\n- **Posición Neta:** ${currency}${Number(dSum.netPosition).toLocaleString('es-ES', { minimumFractionDigits: 2 })}\n\n**Pendientes activos:**\n${lines}`,
-        actions: ['¿Cuánto dinero tengo?', '¿Cuáles son mis billeteras?']
+        text: `🤝 **Control de Deudas, Préstamos y Fechas de Pago:**\n\n- **Por pagar (Yo debo):** **${currency}${Number(dSum.iOwe).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**\n- **Por cobrar (Me deben):** **${currency}${Number(dSum.owedToMe).toLocaleString('es-ES', { minimumFractionDigits: 2 })}**\n\n**Pendientes y próximas fechas:**\n${lines}`,
+        actions: ['¿Cuánto dinero tengo?', '¿Cómo van mis metas de ahorro?']
       };
     }
 
@@ -525,14 +510,12 @@ He analizado tus finanzas actuales: tienes un **Balance Total de ${currency}${Nu
    * Google Gemini API Integration via official REST Endpoint
    */
   async function callGeminiAPI(prompt, apiKey, stats, categories, currency) {
-    const wallets = typeof Store.getWalletsWithBalances === 'function' ? Store.getWalletsWithBalances() : [];
     const goalsSum = typeof Store.getGoalsSummary === 'function' ? Store.getGoalsSummary() : null;
     const debtsSum = typeof Store.getDebtsSummary === 'function' ? Store.getDebtsSummary() : null;
 
     const systemContext = `Eres FinStack AI, un asesor financiero personal experto, analítico, conciso y motivador.
 Datos del usuario:
-- Balance Total Consolidado: ${currency}${stats.allTimeBalance}
-- Cuentas / Billeteras: ${wallets.map(w => `${w.name}: ${currency}${w.currentBalance}`).join(', ')}
+- Balance Total: ${currency}${stats.allTimeBalance}
 - Ingresos del mes: ${currency}${stats.totalIncome}
 - Gastos del mes: ${currency}${stats.totalExpense}
 - Ahorro neto: ${currency}${stats.netSavings} (Tasa: ${stats.savingsRate}%)

@@ -108,7 +108,7 @@ const App = (function () {
     }
     updateCloudSyncUI();
 
-    console.log('FinStack Pro v2.0 initialized with Wallets, Goals, Debts, Traffic-Light Budgets, PDF Reports & Offline PWA.');
+    console.log('FinStack Pro v2.0 initialized with Debts, Goals, Traffic-Light Budgets, PDF Reports & Offline PWA.');
   }
 
   // --- THEME MANAGEMENT (Dark / Light) ---
@@ -1774,42 +1774,19 @@ const App = (function () {
 
     tableBody.innerHTML = list.map(tx => {
       const isInc = tx.type === 'ingreso';
-      const isTransfer = tx.type === 'transferencia';
       const [y, m, d] = tx.date.split('-');
       const dateFormatted = `${d}/${m}/${y}`;
-
-      const iconWrapClass = isTransfer
-        ? 'bg-blue-100/70 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400'
-        : isInc
-          ? 'bg-emerald-100/70 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
-          : 'bg-rose-100/70 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400';
-
-      const iconGlyph = isTransfer
-        ? 'fa-right-left'
-        : isInc
-          ? 'fa-arrow-down-left'
-          : 'fa-arrow-up-right';
-
-      const catBadgeClass = isTransfer
-        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400'
-        : isInc
-          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
-          : 'bg-slate-100 text-slate-700 dark:bg-slate-700/60 dark:text-slate-300';
-
-      const amountClass = isTransfer
-        ? 'text-blue-600 dark:text-blue-400'
-        : isInc
-          ? 'text-emerald-600 dark:text-emerald-400'
-          : 'text-rose-600 dark:text-rose-400';
-
-      const amountPrefix = isTransfer ? '⇄ ' : (isInc ? '+' : '-');
 
       return `
         <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 border-b border-gray-100 dark:border-slate-800 transition-colors">
           <td class="py-3.5 px-4">
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconWrapClass}">
-                <i class="fa-solid ${iconGlyph} text-sm"></i>
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                isInc 
+                  ? 'bg-emerald-100/70 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400' 
+                  : 'bg-rose-100/70 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
+              }">
+                <i class="fa-solid ${isInc ? 'fa-arrow-down-left' : 'fa-arrow-up-right'} text-sm"></i>
               </div>
               <div>
                 <span class="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-100 block">${escapeHtml(tx.concept)}</span>
@@ -1818,7 +1795,11 @@ const App = (function () {
             </div>
           </td>
           <td class="py-3.5 px-4">
-            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${catBadgeClass}">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+              isInc 
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' 
+                : 'bg-slate-100 text-slate-700 dark:bg-slate-700/60 dark:text-slate-300'
+            }">
               ${escapeHtml(tx.category)}
             </span>
           </td>
@@ -1826,16 +1807,15 @@ const App = (function () {
             ${dateFormatted}
           </td>
           <td class="py-3.5 px-4 text-xs text-slate-500 dark:text-slate-400">
-            <i class="fa-solid ${isTransfer ? 'fa-wallet' : 'fa-credit-card'} text-[11px] mr-1.5 opacity-60"></i>${escapeHtml(tx.paymentMethod)}
+            <i class="fa-regular fa-credit-card text-[11px] mr-1.5 opacity-60"></i>${escapeHtml(tx.paymentMethod)}
           </td>
           <td class="py-3.5 px-4 text-right">
-            <span class="text-xs md:text-sm font-bold ${amountClass}">
-              ${amountPrefix}${formatMoney(tx.amount)}
+            <span class="text-xs md:text-sm font-bold ${isInc ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">
+              ${isInc ? '+' : '-'}${formatMoney(tx.amount)}
             </span>
           </td>
           <td class="py-3.5 px-4 text-center">
             <div class="flex items-center justify-center gap-1.5">
-              ${!isTransfer ? `
               <button 
                 onclick="App.editTransaction('${tx.id}')" 
                 title="Editar transacción" 
@@ -1843,10 +1823,9 @@ const App = (function () {
               >
                 <i class="fa-solid fa-pen text-xs"></i>
               </button>
-              ` : ''}
               <button 
                 onclick="App.confirmDeleteTransaction('${tx.id}')" 
-                title="Eliminar registro" 
+                title="Eliminar transacción" 
                 class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
               >
                 <i class="fa-solid fa-trash-can text-xs"></i>
@@ -1967,9 +1946,6 @@ const App = (function () {
   // --- MODAL: ADD / EDIT TRANSACTION ---
   function openTransactionModal(defaultType = 'gasto', prefillDate = null) {
     editingTxId = null;
-    if (typeof WealthManager !== 'undefined') {
-      WealthManager.syncWalletSelectOptions();
-    }
     document.getElementById('txModalTitle').textContent = 'Nueva Transacción';
     document.getElementById('txForm').reset();
 
@@ -1990,15 +1966,7 @@ const App = (function () {
     const tx = Store.getById(id);
     if (!tx) return;
 
-    if (tx.type === 'transferencia') {
-      showToast('Para modificar un traspaso entre cuentas, elimínalo y registra uno nuevo en Transferir.', 'info');
-      return;
-    }
-
     editingTxId = id;
-    if (typeof WealthManager !== 'undefined') {
-      WealthManager.syncWalletSelectOptions();
-    }
     document.getElementById('txModalTitle').textContent = 'Editar Transacción';
 
     setModalTypeTab(tx.type);
@@ -2695,9 +2663,6 @@ const App = (function () {
     }
 
     editingSubId = editId || null;
-    if (typeof WealthManager !== 'undefined') {
-      WealthManager.syncWalletSelectOptions();
-    }
     const modal = document.getElementById('subscriptionModal');
     const titleEl = document.getElementById('subModalTitle');
     const nameEl = document.getElementById('subName');
@@ -2722,7 +2687,7 @@ const App = (function () {
       if (dueEl) dueEl.value = sub.nextDueDate || todayISO;
       if (alertEl) alertEl.value = String(sub.alertDaysBefore !== undefined ? sub.alertDaysBefore : 3);
       if (catEl) ensureSelectOption(catEl, sub.category || 'Servicios');
-      if (methodEl) ensureSelectOption(methodEl, sub.paymentMethod || 'Tarjeta de Crédito');
+      if (methodEl) ensureSelectOption(methodEl, sub.paymentMethod || 'Tarjeta Crédito');
       if (notesEl) notesEl.value = sub.notes || '';
       selectSubIcon(null, sub.icon || '🔄');
     } else {
@@ -2733,7 +2698,7 @@ const App = (function () {
       if (dueEl) dueEl.value = todayISO;
       if (alertEl) alertEl.value = '3';
       if (catEl) catEl.value = 'Servicios';
-      if (methodEl) ensureSelectOption(methodEl, 'Tarjeta de Crédito');
+      if (methodEl) ensureSelectOption(methodEl, 'Tarjeta Crédito');
       if (notesEl) notesEl.value = '';
       selectSubIcon(null, '🔄');
     }
@@ -2758,12 +2723,7 @@ const App = (function () {
 
     if (nameEl) nameEl.value = name;
     if (catEl) ensureSelectOption(catEl, category);
-    const normalizedMethod = paymentMethod === 'Tarjeta Crédito'
-      ? 'Tarjeta de Crédito'
-      : paymentMethod === 'Transferencia'
-        ? 'Cuenta Bancaria'
-        : paymentMethod;
-    if (methodEl) ensureSelectOption(methodEl, normalizedMethod);
+    if (methodEl) ensureSelectOption(methodEl, paymentMethod);
     selectSubIcon(null, icon);
 
     setTimeout(() => amountEl && amountEl.focus(), 120);
