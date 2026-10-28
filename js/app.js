@@ -400,7 +400,7 @@ const App = (function () {
 
       if (!user) {
         if (errorMsg) {
-          errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Usuario no encontrado. Puedes escribir <strong>admin</strong>, tu nombre o tu correo.';
+          errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Credenciales incorrectas. Verifica tu usuario o correo y tu contraseña.';
           errorMsg.classList.remove('hidden');
         }
         idInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
@@ -410,7 +410,7 @@ const App = (function () {
       }
 
       if (user.status === 'Inactivo') {
-        showToast(`La cuenta de "${user.name}" está inactiva. Contacta a soporte o al administrador.`, 'warning');
+        showToast('Esta cuenta se encuentra inactiva. Contacta a soporte para reactivarla.', 'warning');
         resetSubmitBtn();
         return false;
       }
@@ -418,7 +418,7 @@ const App = (function () {
       const isValid = Store.verifyPassword(user.id, password);
       if (!isValid) {
         if (errorMsg) {
-          errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> Contraseña incorrecta para <strong>${escapeHtml(user.name)}</strong>. Inténtalo de nuevo.`;
+          errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Credenciales incorrectas. Verifica tu usuario o correo y tu contraseña.';
           errorMsg.classList.remove('hidden');
         }
         idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
@@ -592,9 +592,14 @@ const App = (function () {
     isSessionLocked = true;
     Store.clearActiveSession();
     const lockScreen = document.getElementById('authLockScreen');
+    const idInput = document.getElementById('portalLoginIdentifier');
     const pwdInput = document.getElementById('portalLoginPassword');
     const errorMsg = document.getElementById('portalLoginError');
 
+    if (idInput) {
+      idInput.value = '';
+      idInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
+    }
     if (pwdInput) {
       pwdInput.value = '';
       pwdInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50');
@@ -608,7 +613,6 @@ const App = (function () {
     }
     switchAuthPortalTab('login');
     showToast('Sesión cerrada de forma segura', 'info');
-    const idInput = document.getElementById('portalLoginIdentifier');
     if (idInput) setTimeout(() => idInput.focus(), 150);
   }
 

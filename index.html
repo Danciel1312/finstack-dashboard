@@ -1924,7 +1924,7 @@
       </div>
 
       <!-- FORM 1: LOGIN -->
-      <form id="portalLoginForm" onsubmit="event.preventDefault(); App.submitPortalLogin(event); return false;" class="space-y-4">
+      <form id="portalLoginForm" autocomplete="off" onsubmit="event.preventDefault(); App.submitPortalLogin(event); return false;" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Usuario o Correo Electrónico</label>
           <div class="relative">
@@ -1933,15 +1933,18 @@
               type="text" 
               id="portalLoginIdentifier" 
               required 
-              placeholder="Ej: admin, Dany o tu correo"
-              autocomplete="username"
+              placeholder="Ingresa tu usuario o correo"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
               onkeydown="if(event.key === 'Enter'){ event.preventDefault(); document.getElementById('portalLoginPassword')?.focus(); }"
               class="w-full pl-10 pr-4 py-3 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium transition-all"
             />
           </div>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
-            Puedes escribir <strong>admin</strong>, tu nombre o tu correo.
-          </p>
         </div>
 
         <div>
@@ -1962,7 +1965,7 @@
               id="portalLoginPassword" 
               required 
               placeholder="••••••••"
-              autocomplete="current-password"
+              autocomplete="off"
               onkeydown="if(event.key === 'Enter'){ event.preventDefault(); App.submitPortalLogin(event); }"
               class="w-full pl-10 pr-11 py-3 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium transition-all"
             />
@@ -2007,7 +2010,7 @@
       </form>
 
       <!-- FORM 2: REGISTER (SOLO ROL CLIENTE) -->
-      <form id="portalRegisterForm" onsubmit="event.preventDefault(); App.submitPortalRegister(event); return false;" class="space-y-4 hidden">
+      <form id="portalRegisterForm" autocomplete="off" onsubmit="event.preventDefault(); App.submitPortalRegister(event); return false;" class="space-y-4 hidden">
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Nombre Completo</label>
           <div class="relative">
@@ -2016,7 +2019,8 @@
               type="text" 
               id="portalRegisterName" 
               required 
-              placeholder="Ej: Dany Ramos"
+              autocomplete="off"
+              placeholder="Ingresa tu nombre completo"
               class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
             />
           </div>
@@ -2030,6 +2034,7 @@
               type="email" 
               id="portalRegisterEmail" 
               required 
+              autocomplete="off"
               placeholder="tu@correo.com"
               class="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
             />
@@ -2045,6 +2050,7 @@
               id="portalRegisterPassword" 
               required 
               minlength="4"
+              autocomplete="new-password"
               placeholder="Crea tu contraseña"
               onkeydown="if(event.key === 'Enter'){ event.preventDefault(); App.submitPortalRegister(event); }"
               class="w-full pl-10 pr-11 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium"
@@ -2078,7 +2084,7 @@
 
         <div class="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/40 text-[11px] text-blue-700 dark:text-blue-300 flex items-start gap-2">
           <i class="fa-solid fa-circle-info text-blue-500 mt-0.5"></i>
-          <span>Tu cuenta se creará con perfil <strong>Cliente / Personal</strong>. El acceso Administrador está protegido internamente.</span>
+          <span>Tu cuenta personal contará con un espacio privado y seguro para tus finanzas.</span>
         </div>
 
         <button 
