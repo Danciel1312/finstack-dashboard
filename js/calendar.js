@@ -89,14 +89,17 @@ const CalendarManager = (function () {
       const dueSubs = typeof Store.getSubscriptionsByDueDate === 'function' ? Store.getSubscriptionsByDueDate(dateStr) : [];
       let dayIncome = 0;
       let dayExpense = 0;
+      let dayTransferCount = 0;
 
       dayTxs.forEach(tx => {
         if (tx.type === 'ingreso') {
           dayIncome += tx.amount;
           monthTotalIncome += tx.amount;
-        } else {
+        } else if (tx.type === 'gasto') {
           dayExpense += tx.amount;
           monthTotalExpense += tx.amount;
+        } else if (tx.type === 'transferencia') {
+          dayTransferCount += 1;
         }
       });
 
@@ -147,6 +150,12 @@ const CalendarManager = (function () {
               <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 text-[10px] font-semibold leading-tight truncate">
                 <span class="truncate">-${formatMoneyCompact(dayExpense)}</span>
                 <i class="fa-solid fa-arrow-trend-down text-[9px] ml-0.5"></i>
+              </div>
+            ` : ''}
+
+            ${dayTransferCount > 0 ? `
+              <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 text-[10px] font-semibold leading-tight truncate">
+                <span class="truncate">⇄ Traspaso (${dayTransferCount})</span>
               </div>
             ` : ''}
 
@@ -217,7 +226,7 @@ const CalendarManager = (function () {
 
     txs.forEach(tx => {
       if (tx.type === 'ingreso') dayIncome += tx.amount;
-      else dayExpense += tx.amount;
+      else if (tx.type === 'gasto') dayExpense += tx.amount;
     });
 
     const dayBalance = dayIncome - dayExpense;
@@ -275,28 +284,39 @@ const CalendarManager = (function () {
         <div class="divide-y divide-gray-100 dark:divide-slate-800/80">
           ${txs.map(tx => {
             const isInc = tx.type === 'ingreso';
+            const isTransfer = tx.type === 'transferencia';
+            const iconWrap = isTransfer
+              ? 'bg-blue-100/70 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400'
+              : isInc
+                ? 'bg-emerald-100/70 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
+                : 'bg-rose-100/70 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400';
+            const iconCls = isTransfer ? 'fa-right-left' : (isInc ? 'fa-arrow-down-left' : 'fa-arrow-up-right');
+            const badgeWrap = isTransfer
+              ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400'
+              : isInc
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400';
+            const amtCls = isTransfer
+              ? 'text-blue-600 dark:text-blue-400'
+              : isInc
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-rose-600 dark:text-rose-400';
+            const amtPrefix = isTransfer ? '⇄ ' : (isInc ? '+' : '-');
+
             return `
               <div class="py-3 px-3.5 flex items-center justify-between hover:bg-slate-50/80 dark:hover:bg-slate-800/40 rounded-xl transition-colors group">
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl flex items-center justify-center ${
-                    isInc 
-                      ? 'bg-emerald-100/70 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400' 
-                      : 'bg-rose-100/70 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
-                  }">
-                    <i class="fa-solid ${isInc ? 'fa-arrow-down-left' : 'fa-arrow-up-right'} text-sm"></i>
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center ${iconWrap}">
+                    <i class="fa-solid ${iconCls} text-sm"></i>
                   </div>
                   <div>
                     <h5 class="text-xs font-bold text-slate-800 dark:text-slate-100">${escapeHtml(tx.concept)}</h5>
                     <div class="flex items-center gap-2 mt-0.5">
-                      <span class="inline-block px-1.5 py-0.5 text-[10px] font-semibold rounded ${
-                        isInc 
-                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' 
-                          : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400'
-                      }">
+                      <span class="inline-block px-1.5 py-0.5 text-[10px] font-semibold rounded ${badgeWrap}">
                         ${escapeHtml(tx.category)}
                       </span>
                       <span class="text-[10px] text-slate-600 dark:text-slate-300">
-                        <i class="fa-regular fa-credit-card text-[9px] mr-1"></i>${escapeHtml(tx.paymentMethod)}
+                        <i class="fa-solid ${isTransfer ? 'fa-wallet' : 'fa-credit-card'} text-[9px] mr-1 opacity-70"></i>${escapeHtml(tx.paymentMethod)}
                       </span>
                     </div>
                     ${tx.notes ? `
@@ -306,13 +326,12 @@ const CalendarManager = (function () {
                 </div>
 
                 <div class="flex items-center gap-3">
-                  <span class="text-xs font-bold ${
-                    isInc ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                  }">
-                    ${isInc ? '+' : '-'}${formatMoney(tx.amount)}
+                  <span class="text-xs font-bold ${amtCls}">
+                    ${amtPrefix}${formatMoney(tx.amount)}
                   </span>
                   
                   <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    ${!isTransfer ? `
                     <button 
                       onclick="App.editTransaction('${tx.id}')" 
                       title="Editar" 
@@ -320,6 +339,7 @@ const CalendarManager = (function () {
                     >
                       <i class="fa-solid fa-pen text-xs"></i>
                     </button>
+                    ` : ''}
                     <button 
                       onclick="App.confirmDeleteTransaction('${tx.id}')" 
                       title="Eliminar" 

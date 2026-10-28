@@ -47,6 +47,20 @@ const Store = (function () {
 
   const changelogData = [
     {
+      version: 'v2.0.0',
+      date: '2026-10-27',
+      tag: 'Major Release',
+      title: 'FinStack Pro 2.0: Billeteras, Metas de Ahorro, Préstamos, Semáforo, PDF & PWA Offline',
+      highlights: [
+        'Múltiples Billeteras y Cuentas (Efectivo, Banco, Ahorros, Tarjetas y personalizadas) con Transferencias internas sin inflar gastos.',
+        'Módulo de Metas de Ahorro ("Alcancías") con cálculo inteligente de cuota mensual sugerida y abonos directos.',
+        'Control integral de Deudas y Préstamos ("Me deben" vs "Debo") con historial de abonos parciales y liquidación automática.',
+        'Semáforo de Presupuestos por Categoría (Verde / Amarillo / Rojo) para detectar excesos antes de fin de mes.',
+        'Generador de Estado de Cuenta Ejecutivo en PDF membretado listo para guardar, imprimir o compartir por WhatsApp.',
+        'PWA Nativa Offline completa (Service Worker sw.js + botón directo "Instalar App" + auto-sincronización al recuperar internet).'
+      ]
+    },
+    {
       version: 'v1.5.0',
       date: '2026-10-27',
       tag: 'Producción',
@@ -414,6 +428,118 @@ const Store = (function () {
     return `finstack_subs_v5_user_${userId}`;
   }
 
+  function getWalletsStorageKey() {
+    const userId = getCurrentUserId();
+    return `finstack_wallets_v5_user_${userId}`;
+  }
+
+  function getGoalsStorageKey() {
+    const userId = getCurrentUserId();
+    return `finstack_goals_v5_user_${userId}`;
+  }
+
+  function getDebtsStorageKey() {
+    const userId = getCurrentUserId();
+    return `finstack_debts_v5_user_${userId}`;
+  }
+
+  function getCatBudgetsStorageKey() {
+    const userId = getCurrentUserId();
+    return `finstack_catbudgets_v5_user_${userId}`;
+  }
+
+  function isNormalTransactionType(type) {
+    return type === 'ingreso' || type === 'gasto' || type === 'transferencia';
+  }
+
+  function generateDefaultWallets() {
+    return [
+      { id: 'wallet_cash', name: 'Efectivo', type: 'efectivo', icon: '💵', color: 'emerald', initialBalance: 0, isDefault: true },
+      { id: 'wallet_bank', name: 'Cuenta Bancaria', type: 'banco', icon: '🏦', color: 'blue', initialBalance: 0, isDefault: true },
+      { id: 'wallet_savings', name: 'Cuenta de Ahorros', type: 'ahorro', icon: '🐷', color: 'purple', initialBalance: 0, isDefault: true },
+      { id: 'wallet_credit', name: 'Tarjeta de Crédito', type: 'credito', icon: '💳', color: 'amber', initialBalance: 0, isDefault: true }
+    ];
+  }
+
+  function generateGoalSeedData() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    return [
+      {
+        id: 'goal_seed_1',
+        name: 'Fondo de Emergencia',
+        icon: '🛡️',
+        targetAmount: 5000,
+        currentAmount: 2150,
+        deadline: formatDateISO(new Date(y, m + 5, 28)),
+        color: 'emerald',
+        notes: 'Reserva de seguridad de 3 a 6 meses',
+        contributions: [{ date: formatDateISO(new Date(y, m, 5)), amount: 500 }],
+        createdAt: new Date(y, m - 2, 1).toISOString()
+      },
+      {
+        id: 'goal_seed_2',
+        name: 'Vacaciones Familiares',
+        icon: '🏖️',
+        targetAmount: 2500,
+        currentAmount: 900,
+        deadline: formatDateISO(new Date(y, m + 4, 15)),
+        color: 'blue',
+        notes: 'Boletos, hospedaje y actividades',
+        contributions: [{ date: formatDateISO(new Date(y, m, 10)), amount: 300 }],
+        createdAt: new Date(y, m - 1, 10).toISOString()
+      }
+    ];
+  }
+
+  function generateDebtSeedData() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    return [
+      {
+        id: 'debt_seed_1',
+        direction: 'me_deben',
+        personName: 'Carlos Méndez',
+        concept: 'Préstamo personal puente',
+        totalAmount: 600,
+        paidAmount: 250,
+        dueDate: formatDateISO(new Date(y, m + 1, 15)),
+        icon: '🤝',
+        status: 'Pendiente',
+        payments: [{ date: formatDateISO(new Date(y, m, 8)), amount: 250 }],
+        notes: 'Acordado en 2 pagos quincenales',
+        createdAt: new Date(y, m, 1).toISOString()
+      },
+      {
+        id: 'debt_seed_2',
+        direction: 'debo',
+        personName: 'Tienda Electrónica (Cuotas)',
+        concept: 'Monitor UltraWide Trabajo',
+        totalAmount: 800,
+        paidAmount: 400,
+        dueDate: formatDateISO(new Date(y, m + 2, 5)),
+        icon: '💳',
+        status: 'Pendiente',
+        payments: [{ date: formatDateISO(new Date(y, m - 1, 5)), amount: 400 }],
+        notes: 'Cuotas sin intereses',
+        createdAt: new Date(y, m - 1, 5).toISOString()
+      }
+    ];
+  }
+
+  function generateCategoryBudgetSeedData() {
+    return {
+      'Alimentación': 600,
+      'Vivienda': 1100,
+      'Transporte': 200,
+      'Servicios': 180,
+      'Entretenimiento': 120,
+      'Salud': 150
+    };
+  }
+
   function generateSubscriptionSeedData() {
     const now = new Date();
     const y = now.getFullYear();
@@ -525,7 +651,7 @@ const Store = (function () {
         return initialData;
       }
       const parsed = JSON.parse(data);
-      return Array.isArray(parsed) ? parsed.filter(item => item && item.type !== 'suscripcion') : [];
+      return Array.isArray(parsed) ? parsed.filter(item => item && isNormalTransactionType(item.type)) : [];
     } catch (e) {
       console.error('Error loading transactions from localStorage:', e);
       return [];
@@ -535,11 +661,116 @@ const Store = (function () {
   function saveTransactions(transactions) {
     try {
       const key = getCurrentStorageKey();
-      const clean = (transactions || []).filter(item => item && item.type !== 'suscripcion');
+      const clean = (transactions || []).filter(item => item && isNormalTransactionType(item.type));
       localStorage.setItem(key, JSON.stringify(clean));
     } catch (e) {
       console.error('Error saving transactions to localStorage:', e);
     }
+  }
+
+  function loadWallets() {
+    try {
+      const key = getWalletsStorageKey();
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        const defaults = generateDefaultWallets();
+        saveWallets(defaults);
+        return defaults;
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        const defaults = generateDefaultWallets();
+        saveWallets(defaults);
+        return defaults;
+      }
+      return parsed;
+    } catch (e) {
+      return generateDefaultWallets();
+    }
+  }
+
+  function saveWallets(wallets) {
+    try {
+      localStorage.setItem(getWalletsStorageKey(), JSON.stringify(wallets || []));
+    } catch (e) {}
+  }
+
+  function loadGoals() {
+    try {
+      const key = getGoalsStorageKey();
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        const userId = getCurrentUserId();
+        const user = loadUsers().find(u => u.id === userId) || { role: 'cliente' };
+        const initial = (userId === 'usr_1' || user.role === 'admin' || userId === 'usr_4' || user.role === 'visita')
+          ? generateGoalSeedData()
+          : [];
+        saveGoals(initial);
+        return initial;
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveGoals(goals) {
+    try {
+      localStorage.setItem(getGoalsStorageKey(), JSON.stringify(goals || []));
+    } catch (e) {}
+  }
+
+  function loadDebts() {
+    try {
+      const key = getDebtsStorageKey();
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        const userId = getCurrentUserId();
+        const user = loadUsers().find(u => u.id === userId) || { role: 'cliente' };
+        const initial = (userId === 'usr_1' || user.role === 'admin' || userId === 'usr_4' || user.role === 'visita')
+          ? generateDebtSeedData()
+          : [];
+        saveDebts(initial);
+        return initial;
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveDebts(debts) {
+    try {
+      localStorage.setItem(getDebtsStorageKey(), JSON.stringify(debts || []));
+    } catch (e) {}
+  }
+
+  function loadCatBudgets() {
+    try {
+      const key = getCatBudgetsStorageKey();
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        const userId = getCurrentUserId();
+        const user = loadUsers().find(u => u.id === userId) || { role: 'cliente' };
+        const initial = (userId === 'usr_1' || user.role === 'admin' || userId === 'usr_4' || user.role === 'visita')
+          ? generateCategoryBudgetSeedData()
+          : {};
+        saveCatBudgets(initial);
+        return initial;
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveCatBudgets(obj) {
+    try {
+      localStorage.setItem(getCatBudgetsStorageKey(), JSON.stringify(obj || {}));
+    } catch (e) {}
   }
 
   function loadSubscriptions() {
@@ -922,6 +1153,204 @@ const Store = (function () {
     }
   }
 
+  function toCloudWalletId(walletId, userId) {
+    const uid = userId || getCurrentUserId();
+    const prefix = `wlt_${uid}_`;
+    return String(walletId).startsWith(prefix) ? String(walletId) : `${prefix}${walletId}`;
+  }
+
+  function mapWalletToCloud(wallet, userId) {
+    const uid = userId || getCurrentUserId();
+    return {
+      id: toCloudWalletId(wallet.id, uid),
+      user_id: uid,
+      type: 'cuenta',
+      concept: wallet.name,
+      amount: parseFloat(wallet.initialBalance) || 0,
+      category: wallet.type || 'banco',
+      date: formatDateISO(new Date()),
+      payment_method: wallet.icon || '🏦',
+      notes: JSON.stringify({
+        __finstack_wallet: true,
+        localId: wallet.id,
+        color: wallet.color || 'blue',
+        isDefault: !!wallet.isDefault
+      }),
+      created_at: wallet.createdAt || new Date().toISOString()
+    };
+  }
+
+  function mapWalletFromCloud(row) {
+    let meta = {};
+    try {
+      if (row.notes && row.notes.trim().startsWith('{')) meta = JSON.parse(row.notes);
+    } catch (e) {}
+    const prefix = `wlt_${row.user_id || getCurrentUserId()}_`;
+    const localId = meta.localId || (String(row.id).startsWith(prefix) ? String(row.id).slice(prefix.length) : row.id);
+    return {
+      id: localId,
+      name: row.concept || 'Cuenta',
+      type: row.category || 'banco',
+      icon: row.payment_method || '🏦',
+      color: meta.color || 'blue',
+      initialBalance: parseFloat(row.amount) || 0,
+      isDefault: !!meta.isDefault,
+      createdAt: row.created_at || new Date().toISOString()
+    };
+  }
+
+  async function pushWalletToCloud(wallet) {
+    const client = getSupabaseClient();
+    if (!client) return;
+    try {
+      await client.from('finstack_transactions').upsert(mapWalletToCloud(wallet, getCurrentUserId()), { onConflict: 'id' });
+    } catch (e) {
+      console.warn('Offline / sync wallet notice:', e);
+    }
+  }
+
+  function mapGoalToCloud(goal, userId) {
+    return {
+      id: goal.id,
+      user_id: userId || getCurrentUserId(),
+      type: 'meta',
+      concept: goal.name,
+      amount: parseFloat(goal.targetAmount) || 0,
+      category: goal.color || 'blue',
+      date: goal.deadline || formatDateISO(new Date()),
+      payment_method: goal.icon || '🎯',
+      notes: JSON.stringify({
+        __finstack_goal: true,
+        currentAmount: parseFloat(goal.currentAmount) || 0,
+        deadline: goal.deadline || '',
+        notes: goal.notes || '',
+        contributions: Array.isArray(goal.contributions) ? goal.contributions.slice(-30) : []
+      }),
+      created_at: goal.createdAt || new Date().toISOString()
+    };
+  }
+
+  function mapGoalFromCloud(row) {
+    let meta = {};
+    try {
+      if (row.notes && row.notes.trim().startsWith('{')) meta = JSON.parse(row.notes);
+    } catch (e) {}
+    return {
+      id: row.id,
+      name: row.concept || 'Meta de Ahorro',
+      icon: row.payment_method || '🎯',
+      targetAmount: parseFloat(row.amount) || 0,
+      currentAmount: parseFloat(meta.currentAmount) || 0,
+      deadline: meta.deadline !== undefined ? meta.deadline : (row.date || ''),
+      color: row.category || 'blue',
+      notes: meta.notes || '',
+      contributions: Array.isArray(meta.contributions) ? meta.contributions : [],
+      createdAt: row.created_at || new Date().toISOString()
+    };
+  }
+
+  async function pushGoalToCloud(goal) {
+    const client = getSupabaseClient();
+    if (!client || String(goal.id).startsWith('goal_seed_')) return;
+    try {
+      await client.from('finstack_transactions').upsert(mapGoalToCloud(goal, getCurrentUserId()), { onConflict: 'id' });
+    } catch (e) {
+      console.warn('Offline / sync goal notice:', e);
+    }
+  }
+
+  function mapDebtToCloud(debt, userId) {
+    return {
+      id: debt.id,
+      user_id: userId || getCurrentUserId(),
+      type: 'deuda',
+      concept: debt.personName,
+      amount: parseFloat(debt.totalAmount) || 0,
+      category: debt.direction || 'debo',
+      date: debt.dueDate || formatDateISO(new Date()),
+      payment_method: debt.status || 'Pendiente',
+      notes: JSON.stringify({
+        __finstack_debt: true,
+        debtConcept: debt.concept || '',
+        paidAmount: parseFloat(debt.paidAmount) || 0,
+        dueDate: debt.dueDate || '',
+        icon: debt.icon || '🤝',
+        notes: debt.notes || '',
+        payments: Array.isArray(debt.payments) ? debt.payments.slice(-30) : []
+      }),
+      created_at: debt.createdAt || new Date().toISOString()
+    };
+  }
+
+  function mapDebtFromCloud(row) {
+    let meta = {};
+    try {
+      if (row.notes && row.notes.trim().startsWith('{')) meta = JSON.parse(row.notes);
+    } catch (e) {}
+    return {
+      id: row.id,
+      direction: row.category === 'me_deben' ? 'me_deben' : 'debo',
+      personName: row.concept || 'Contacto',
+      concept: meta.debtConcept || 'Préstamo',
+      totalAmount: parseFloat(row.amount) || 0,
+      paidAmount: parseFloat(meta.paidAmount) || 0,
+      dueDate: meta.dueDate !== undefined ? meta.dueDate : (row.date || ''),
+      icon: meta.icon || '🤝',
+      status: row.payment_method || 'Pendiente',
+      payments: Array.isArray(meta.payments) ? meta.payments : [],
+      notes: meta.notes || '',
+      createdAt: row.created_at || new Date().toISOString()
+    };
+  }
+
+  async function pushDebtToCloud(debt) {
+    const client = getSupabaseClient();
+    if (!client || String(debt.id).startsWith('debt_seed_')) return;
+    try {
+      await client.from('finstack_transactions').upsert(mapDebtToCloud(debt, getCurrentUserId()), { onConflict: 'id' });
+    } catch (e) {
+      console.warn('Offline / sync debt notice:', e);
+    }
+  }
+
+  function mapCatBudgetsToCloud(limits, userId) {
+    const uid = userId || getCurrentUserId();
+    return {
+      id: `catbudget_${uid}`,
+      user_id: uid,
+      type: 'presupuesto_cat',
+      concept: 'Límites por Categoría',
+      amount: 0,
+      category: 'Config',
+      date: formatDateISO(new Date()),
+      payment_method: 'Sistema',
+      notes: JSON.stringify({ __finstack_catbudget: true, limits: limits || {} }),
+      created_at: new Date().toISOString()
+    };
+  }
+
+  function mapCatBudgetsFromCloud(row) {
+    try {
+      if (row.notes && row.notes.trim().startsWith('{')) {
+        const parsed = JSON.parse(row.notes);
+        if (parsed && parsed.limits && typeof parsed.limits === 'object') {
+          return parsed.limits;
+        }
+      }
+    } catch (e) {}
+    return {};
+  }
+
+  async function pushCatBudgetsToCloud(limits) {
+    const client = getSupabaseClient();
+    if (!client) return;
+    try {
+      await client.from('finstack_transactions').upsert(mapCatBudgetsToCloud(limits, getCurrentUserId()), { onConflict: 'id' });
+    } catch (e) {
+      console.warn('Offline / sync catbudget notice:', e);
+    }
+  }
+
   async function pushUserToCloud(user) {
     const client = getSupabaseClient();
     if (!client) return;
@@ -1051,10 +1480,10 @@ const Store = (function () {
 
         if (m === currentMonth && y === currentYear) {
           if (tx.type === 'ingreso') totalIncome += tx.amount;
-          else totalExpense += tx.amount;
+          else if (tx.type === 'gasto') totalExpense += tx.amount;
         } else if (m === prevMonth && y === prevYear) {
           if (tx.type === 'ingreso') prevTotalIncome += tx.amount;
-          else prevTotalExpense += tx.amount;
+          else if (tx.type === 'gasto') prevTotalExpense += tx.amount;
         }
       });
 
@@ -1068,14 +1497,15 @@ const Store = (function () {
         ? (((totalExpense - prevTotalExpense) / prevTotalExpense) * 100).toFixed(1) 
         : '+0.0';
 
-      let allTimeBalance = 0;
+      const walletsInitial = loadWallets().reduce((sum, w) => sum + (parseFloat(w.initialBalance) || 0), 0);
+      let allTimeBalance = walletsInitial;
       let allTimeIncome = 0;
       let allTimeExpense = 0;
       list.forEach(tx => {
         if (tx.type === 'ingreso') {
           allTimeBalance += tx.amount;
           allTimeIncome += tx.amount;
-        } else {
+        } else if (tx.type === 'gasto') {
           allTimeBalance -= tx.amount;
           allTimeExpense += tx.amount;
         }
@@ -1164,7 +1594,7 @@ const Store = (function () {
           const txd = new Date(tx.date + 'T00:00:00');
           if (txd.getMonth() === m && txd.getFullYear() === y) {
             if (tx.type === 'ingreso') inc += tx.amount;
-            else exp += tx.amount;
+            else if (tx.type === 'gasto') exp += tx.amount;
           }
         });
 
@@ -1677,9 +2107,13 @@ const Store = (function () {
           }
         }
 
-        // 4. Merge transactions & subscriptions cleanly
-        const cloudNormalRows = (cloudTxs || []).filter(r => r.type !== 'suscripcion');
+        // 4. Merge transactions, subscriptions, wallets, goals, debts & category budgets cleanly
+        const cloudNormalRows = (cloudTxs || []).filter(r => isNormalTransactionType(r.type));
         const cloudSubRows = (cloudTxs || []).filter(r => r.type === 'suscripcion');
+        const cloudWalletRows = (cloudTxs || []).filter(r => r.type === 'cuenta');
+        const cloudGoalRows = (cloudTxs || []).filter(r => r.type === 'meta');
+        const cloudDebtRows = (cloudTxs || []).filter(r => r.type === 'deuda');
+        const cloudCatBudgetRow = (cloudTxs || []).find(r => r.type === 'presupuesto_cat');
 
         const localKey = getCurrentStorageKey();
         let localTxs = [];
@@ -1687,7 +2121,7 @@ const Store = (function () {
           const raw = localStorage.getItem(localKey);
           if (raw) {
             const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) localTxs = parsed.filter(t => t && t.type !== 'suscripcion');
+            if (Array.isArray(parsed)) localTxs = parsed.filter(t => t && isNormalTransactionType(t.type));
           }
         } catch (e) {}
 
@@ -1708,25 +2142,80 @@ const Store = (function () {
         const localSubs = loadSubscriptions();
         const subMap = new Map();
         localSubs.forEach(s => subMap.set(s.id, s));
-
         if (cloudSubRows.length > 0) {
           cloudSubRows.forEach(cs => {
             const mappedSub = mapSubFromCloud(cs);
             subMap.set(mappedSub.id, mappedSub);
           });
         }
-
         const mergedSubs = Array.from(subMap.values());
         saveSubscriptions(mergedSubs);
 
-        // 5. Bidirectional: upload local-only transactions & subscriptions to Supabase
+        // Merge wallets
+        const localWallets = loadWallets();
+        const walletMap = new Map();
+        localWallets.forEach(w => walletMap.set(w.id, w));
+        if (cloudWalletRows.length > 0) {
+          cloudWalletRows.forEach(cw => {
+            const mappedW = mapWalletFromCloud(cw);
+            walletMap.set(mappedW.id, mappedW);
+          });
+        }
+        const mergedWallets = Array.from(walletMap.values());
+        saveWallets(mergedWallets);
+
+        // Merge goals
+        const localGoals = loadGoals();
+        const goalMap = new Map();
+        localGoals.forEach(g => goalMap.set(g.id, g));
+        if (cloudGoalRows.length > 0) {
+          cloudGoalRows.forEach(cg => {
+            const mappedG = mapGoalFromCloud(cg);
+            goalMap.set(mappedG.id, mappedG);
+          });
+        }
+        saveGoals(Array.from(goalMap.values()));
+
+        // Merge debts
+        const localDebts = loadDebts();
+        const debtMap = new Map();
+        localDebts.forEach(d => debtMap.set(d.id, d));
+        if (cloudDebtRows.length > 0) {
+          cloudDebtRows.forEach(cd => {
+            const mappedD = mapDebtFromCloud(cd);
+            debtMap.set(mappedD.id, mappedD);
+          });
+        }
+        saveDebts(Array.from(debtMap.values()));
+
+        // Merge category budgets
+        const localCatBudgets = loadCatBudgets();
+        if (cloudCatBudgetRow) {
+          const cloudLimits = mapCatBudgetsFromCloud(cloudCatBudgetRow);
+          saveCatBudgets({ ...localCatBudgets, ...cloudLimits });
+        }
+
+        // 5. Bidirectional: upload local-only records to Supabase
         const cloudIds = new Set((cloudTxs || []).map(t => t.id));
-        const localOnlyTxs = localTxs.filter(t => !cloudIds.has(t.id)).map(t => mapTxToCloud(t, userId));
+        const localOnlyTxs = localTxs.filter(t => !String(t.id).startsWith('tx_seed_') && !cloudIds.has(t.id)).map(t => mapTxToCloud(t, userId));
         const localOnlySubs = localSubs
           .filter(s => !String(s.id).startsWith('sub_seed_') && !cloudIds.has(s.id))
           .map(s => mapSubToCloud(s, userId));
+        const localOnlyWallets = localWallets
+          .filter(w => (!w.isDefault || parseFloat(w.initialBalance) !== 0) && !cloudIds.has(toCloudWalletId(w.id, userId)))
+          .map(w => mapWalletToCloud(w, userId));
+        const localOnlyGoals = localGoals
+          .filter(g => !String(g.id).startsWith('goal_seed_') && !cloudIds.has(g.id))
+          .map(g => mapGoalToCloud(g, userId));
+        const localOnlyDebts = localDebts
+          .filter(d => !String(d.id).startsWith('debt_seed_') && !cloudIds.has(d.id))
+          .map(d => mapDebtToCloud(d, userId));
 
-        const toUpload = [...localOnlyTxs, ...localOnlySubs];
+        const toUpload = [...localOnlyTxs, ...localOnlySubs, ...localOnlyWallets, ...localOnlyGoals, ...localOnlyDebts];
+        if (!cloudCatBudgetRow && Object.keys(localCatBudgets).length > 0 && userId !== 'usr_1' && userId !== 'usr_4') {
+          toUpload.push(mapCatBudgetsToCloud(localCatBudgets, userId));
+        }
+
         if (toUpload.length > 0) {
           await client.from('finstack_transactions').upsert(toUpload, { onConflict: 'id' });
         }
@@ -1759,17 +2248,42 @@ const Store = (function () {
           .select('*')
           .eq('user_id', userId);
         if (!error && cloudTxs) {
-          const normalRows = cloudTxs.filter(r => r.type !== 'suscripcion');
+          const normalRows = cloudTxs.filter(r => isNormalTransactionType(r.type));
           const subRows = cloudTxs.filter(r => r.type === 'suscripcion');
+          const walletRows = cloudTxs.filter(r => r.type === 'cuenta');
+          const goalRows = cloudTxs.filter(r => r.type === 'meta');
+          const debtRows = cloudTxs.filter(r => r.type === 'deuda');
+          const catBudgetRow = cloudTxs.find(r => r.type === 'presupuesto_cat');
 
           const mapped = normalRows.map(mapTxFromCloud).sort((a, b) => new Date(b.date) - new Date(a.date));
           saveTransactions(mapped);
 
           if (subRows.length > 0 || (userId !== 'usr_1' && userId !== 'usr_4')) {
             const mappedSubs = subRows.map(mapSubFromCloud);
-            if (mappedSubs.length > 0) {
-              saveSubscriptions(mappedSubs);
-            }
+            if (mappedSubs.length > 0) saveSubscriptions(mappedSubs);
+          }
+
+          if (walletRows.length > 0) {
+            const localWallets = loadWallets();
+            const wMap = new Map();
+            localWallets.forEach(w => wMap.set(w.id, w));
+            walletRows.forEach(cw => {
+              const mw = mapWalletFromCloud(cw);
+              wMap.set(mw.id, mw);
+            });
+            saveWallets(Array.from(wMap.values()));
+          }
+
+          if (goalRows.length > 0) {
+            saveGoals(goalRows.map(mapGoalFromCloud));
+          }
+
+          if (debtRows.length > 0) {
+            saveDebts(debtRows.map(mapDebtFromCloud));
+          }
+
+          if (catBudgetRow) {
+            saveCatBudgets(mapCatBudgetsFromCloud(catBudgetRow));
           }
         }
       } catch (e) {
@@ -2018,6 +2532,495 @@ const Store = (function () {
       }
     },
 
+    // --- MÚLTIPLES BILLETERAS / CUENTAS & TRANSFERENCIAS ---
+    getWallets: function () {
+      return loadWallets();
+    },
+
+    getWalletsWithBalances: function () {
+      const wallets = loadWallets().map(w => ({
+        ...w,
+        initialBalance: parseFloat(w.initialBalance) || 0,
+        currentBalance: parseFloat(w.initialBalance) || 0,
+        incomeTotal: 0,
+        expenseTotal: 0,
+        txCount: 0
+      }));
+      if (wallets.length === 0) return [];
+
+      const findWallet = (nameOrAlias) => {
+        const term = String(nameOrAlias || '').trim().toLowerCase();
+        if (!term) return wallets[0];
+        const exact = wallets.find(w => w.name.toLowerCase() === term || w.id.toLowerCase() === term);
+        if (exact) return exact;
+        if (term === 'efectivo') return wallets.find(w => w.id === 'wallet_cash' || w.type === 'efectivo') || wallets[0];
+        if (term === 'transferencia' || term === 'tarjeta débito' || term === 'tarjeta debito') {
+          return wallets.find(w => w.id === 'wallet_bank' || w.type === 'banco') || wallets[0];
+        }
+        if (term === 'tarjeta crédito' || term === 'tarjeta credito') {
+          return wallets.find(w => w.id === 'wallet_credit' || w.type === 'credito') || wallets[0];
+        }
+        return wallets[0];
+      };
+
+      const txs = loadTransactions();
+      txs.forEach(tx => {
+        const amt = parseFloat(tx.amount) || 0;
+        if (tx.type === 'transferencia') {
+          const parts = String(tx.paymentMethod || '').split('→').map(s => s.trim());
+          if (parts.length === 2) {
+            const wFrom = findWallet(parts[0]);
+            const wTo = findWallet(parts[1]);
+            if (wFrom) {
+              wFrom.currentBalance -= amt;
+              wFrom.txCount++;
+            }
+            if (wTo) {
+              wTo.currentBalance += amt;
+              wTo.txCount++;
+            }
+          }
+        } else if (tx.type === 'ingreso') {
+          const w = findWallet(tx.paymentMethod);
+          if (w) {
+            w.currentBalance += amt;
+            w.incomeTotal += amt;
+            w.txCount++;
+          }
+        } else if (tx.type === 'gasto') {
+          const w = findWallet(tx.paymentMethod);
+          if (w) {
+            w.currentBalance -= amt;
+            w.expenseTotal += amt;
+            w.txCount++;
+          }
+        }
+      });
+
+      return wallets;
+    },
+
+    saveWallet: function (walletData) {
+      const wallets = loadWallets();
+      const id = walletData.id || ('wallet_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+      const idx = wallets.findIndex(w => w.id === id);
+
+      const record = {
+        id,
+        name: (walletData.name || 'Cuenta').trim(),
+        type: walletData.type || 'banco',
+        icon: walletData.icon || '🏦',
+        color: walletData.color || 'blue',
+        initialBalance: parseFloat(walletData.initialBalance) || 0,
+        isDefault: idx !== -1 ? !!wallets[idx].isDefault : false,
+        createdAt: idx !== -1 ? (wallets[idx].createdAt || new Date().toISOString()) : new Date().toISOString()
+      };
+
+      if (idx !== -1) {
+        wallets[idx] = record;
+      } else {
+        wallets.push(record);
+      }
+
+      saveWallets(wallets);
+      pushWalletToCloud(record);
+      return record;
+    },
+
+    deleteWallet: function (id) {
+      let wallets = loadWallets();
+      const target = wallets.find(w => w.id === id);
+      if (!target || target.isDefault) return false;
+      wallets = wallets.filter(w => w.id !== id);
+      saveWallets(wallets);
+      deleteTransactionFromCloud(toCloudWalletId(id, getCurrentUserId()));
+      return true;
+    },
+
+    addTransfer: function (transferData) {
+      const fromName = (transferData.fromWallet || '').trim();
+      const toName = (transferData.toWallet || '').trim();
+      const amount = parseFloat(transferData.amount) || 0;
+      if (!fromName || !toName || fromName === toName || amount <= 0) return null;
+
+      return this.add({
+        type: 'transferencia',
+        concept: (transferData.concept || `Transferencia: ${fromName} a ${toName}`).trim(),
+        amount,
+        category: 'Transferencia',
+        date: transferData.date || formatDateISO(new Date()),
+        paymentMethod: `${fromName} → ${toName}`,
+        notes: (transferData.notes || '').trim()
+      });
+    },
+
+    // --- METAS DE AHORRO ("ALCANCÍAS") ---
+    getGoals: function () {
+      const now = new Date();
+      return loadGoals().map(g => {
+        const target = Math.max(0.01, parseFloat(g.targetAmount) || 0);
+        const current = Math.max(0, parseFloat(g.currentAmount) || 0);
+        const remaining = Math.max(0, target - current);
+        const percent = Math.min(100, Math.round((current / target) * 100));
+        let monthsLeft = null;
+        let suggestedMonthly = 0;
+
+        if (g.deadline) {
+          const d = new Date(g.deadline + 'T00:00:00');
+          const diffDays = Math.ceil((d.getTime() - now.getTime()) / 86400000);
+          monthsLeft = Math.max(1, Math.ceil(diffDays / 30));
+          suggestedMonthly = remaining > 0 ? (remaining / monthsLeft) : 0;
+        }
+
+        return {
+          ...g,
+          targetAmount: target,
+          currentAmount: current,
+          remaining,
+          percent,
+          isCompleted: current >= target,
+          monthsLeft,
+          suggestedMonthly
+        };
+      });
+    },
+
+    getGoalById: function (id) {
+      return this.getGoals().find(g => g.id === id) || null;
+    },
+
+    getGoalsSummary: function () {
+      const list = this.getGoals();
+      let totalTarget = 0;
+      let totalSaved = 0;
+      let completedCount = 0;
+      list.forEach(g => {
+        totalTarget += g.targetAmount;
+        totalSaved += g.currentAmount;
+        if (g.isCompleted) completedCount++;
+      });
+      return {
+        count: list.length,
+        completedCount,
+        totalTarget,
+        totalSaved,
+        totalRemaining: Math.max(0, totalTarget - totalSaved),
+        overallPercent: totalTarget > 0 ? Math.min(100, Math.round((totalSaved / totalTarget) * 100)) : 0
+      };
+    },
+
+    addGoal: function (goalData) {
+      const list = loadGoals();
+      const newGoal = {
+        id: 'goal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: (goalData.name || 'Meta de Ahorro').trim(),
+        icon: goalData.icon || '🎯',
+        targetAmount: Math.max(1, parseFloat(goalData.targetAmount) || 0),
+        currentAmount: Math.max(0, parseFloat(goalData.currentAmount) || 0),
+        deadline: goalData.deadline || '',
+        color: goalData.color || 'blue',
+        notes: (goalData.notes || '').trim(),
+        contributions: [],
+        createdAt: new Date().toISOString()
+      };
+      if (newGoal.currentAmount > 0) {
+        newGoal.contributions.push({ date: formatDateISO(new Date()), amount: newGoal.currentAmount });
+      }
+      list.unshift(newGoal);
+      saveGoals(list);
+      pushGoalToCloud(newGoal);
+      return this.getGoalById(newGoal.id);
+    },
+
+    updateGoal: function (id, updatedData) {
+      const list = loadGoals();
+      const idx = list.findIndex(g => g.id === id);
+      if (idx === -1) return null;
+
+      const updatedId = String(id).startsWith('goal_seed_')
+        ? 'goal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)
+        : id;
+
+      list[idx] = {
+        ...list[idx],
+        id: updatedId,
+        name: updatedData.name !== undefined ? updatedData.name.trim() : list[idx].name,
+        icon: updatedData.icon || list[idx].icon,
+        targetAmount: updatedData.targetAmount !== undefined ? Math.max(1, parseFloat(updatedData.targetAmount) || 1) : list[idx].targetAmount,
+        currentAmount: updatedData.currentAmount !== undefined ? Math.max(0, parseFloat(updatedData.currentAmount) || 0) : list[idx].currentAmount,
+        deadline: updatedData.deadline !== undefined ? updatedData.deadline : list[idx].deadline,
+        color: updatedData.color || list[idx].color,
+        notes: updatedData.notes !== undefined ? updatedData.notes.trim() : list[idx].notes
+      };
+      saveGoals(list);
+      pushGoalToCloud(list[idx]);
+      return this.getGoalById(updatedId);
+    },
+
+    deleteGoal: function (id) {
+      let list = loadGoals();
+      const before = list.length;
+      list = list.filter(g => g.id !== id);
+      saveGoals(list);
+      if (!String(id).startsWith('goal_seed_')) {
+        deleteTransactionFromCloud(id);
+      }
+      return list.length < before;
+    },
+
+    contributeToGoal: function (id, amount, options = {}) {
+      const list = loadGoals();
+      const idx = list.findIndex(g => g.id === id);
+      if (idx === -1) return null;
+
+      const val = parseFloat(amount) || 0;
+      if (val <= 0) return null;
+
+      const updatedId = String(id).startsWith('goal_seed_')
+        ? 'goal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)
+        : id;
+
+      const todayISO = formatDateISO(new Date());
+      const contributions = Array.isArray(list[idx].contributions) ? [...list[idx].contributions] : [];
+      contributions.push({ date: todayISO, amount: val, wallet: options.walletName || '' });
+
+      list[idx] = {
+        ...list[idx],
+        id: updatedId,
+        currentAmount: (parseFloat(list[idx].currentAmount) || 0) + val,
+        contributions
+      };
+
+      saveGoals(list);
+      pushGoalToCloud(list[idx]);
+
+      if (options.recordExpense && options.walletName) {
+        this.add({
+          type: 'gasto',
+          concept: `Abono a meta: ${list[idx].name}`,
+          amount: val,
+          category: 'Otros',
+          date: todayISO,
+          paymentMethod: options.walletName,
+          notes: 'Apartado automático hacia alcancía / meta de ahorro'
+        });
+      }
+
+      return this.getGoalById(updatedId);
+    },
+
+    // --- CONTROL DE DEUDAS Y PRÉSTAMOS ("ME DEBEN" vs "DEBO") ---
+    getDebts: function () {
+      return loadDebts().map(d => {
+        const total = Math.max(0.01, parseFloat(d.totalAmount) || 0);
+        const paid = Math.max(0, parseFloat(d.paidAmount) || 0);
+        const remaining = Math.max(0, total - paid);
+        const percent = Math.min(100, Math.round((paid / total) * 100));
+        const isSettled = remaining <= 0.009 || d.status === 'Saldada';
+        return {
+          ...d,
+          totalAmount: total,
+          paidAmount: paid,
+          remaining: isSettled ? 0 : remaining,
+          percent: isSettled ? 100 : percent,
+          status: isSettled ? 'Saldada' : 'Pendiente'
+        };
+      });
+    },
+
+    getDebtById: function (id) {
+      return this.getDebts().find(d => d.id === id) || null;
+    },
+
+    getDebtsSummary: function () {
+      const list = this.getDebts();
+      let owedToMe = 0;
+      let iOwe = 0;
+      let pendingCount = 0;
+      let settledCount = 0;
+
+      list.forEach(d => {
+        if (d.status === 'Saldada') {
+          settledCount++;
+          return;
+        }
+        pendingCount++;
+        if (d.direction === 'me_deben') owedToMe += d.remaining;
+        else iOwe += d.remaining;
+      });
+
+      return {
+        owedToMe,
+        iOwe,
+        netPosition: owedToMe - iOwe,
+        pendingCount,
+        settledCount,
+        totalCount: list.length
+      };
+    },
+
+    addDebt: function (debtData) {
+      const list = loadDebts();
+      const total = Math.max(0.01, parseFloat(debtData.totalAmount) || 0);
+      const paid = Math.min(total, Math.max(0, parseFloat(debtData.paidAmount) || 0));
+      const newDebt = {
+        id: 'debt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        direction: debtData.direction === 'me_deben' ? 'me_deben' : 'debo',
+        personName: (debtData.personName || 'Contacto').trim(),
+        concept: (debtData.concept || 'Préstamo').trim(),
+        totalAmount: total,
+        paidAmount: paid,
+        dueDate: debtData.dueDate || '',
+        icon: debtData.icon || (debtData.direction === 'me_deben' ? '🤝' : '💳'),
+        status: paid >= total ? 'Saldada' : 'Pendiente',
+        payments: paid > 0 ? [{ date: formatDateISO(new Date()), amount: paid }] : [],
+        notes: (debtData.notes || '').trim(),
+        createdAt: new Date().toISOString()
+      };
+      list.unshift(newDebt);
+      saveDebts(list);
+      pushDebtToCloud(newDebt);
+      return this.getDebtById(newDebt.id);
+    },
+
+    updateDebt: function (id, updatedData) {
+      const list = loadDebts();
+      const idx = list.findIndex(d => d.id === id);
+      if (idx === -1) return null;
+
+      const updatedId = String(id).startsWith('debt_seed_')
+        ? 'debt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)
+        : id;
+
+      const total = updatedData.totalAmount !== undefined ? Math.max(0.01, parseFloat(updatedData.totalAmount) || 0.01) : list[idx].totalAmount;
+      const paid = updatedData.paidAmount !== undefined ? Math.min(total, Math.max(0, parseFloat(updatedData.paidAmount) || 0)) : list[idx].paidAmount;
+
+      list[idx] = {
+        ...list[idx],
+        id: updatedId,
+        direction: updatedData.direction || list[idx].direction,
+        personName: updatedData.personName !== undefined ? updatedData.personName.trim() : list[idx].personName,
+        concept: updatedData.concept !== undefined ? updatedData.concept.trim() : list[idx].concept,
+        totalAmount: total,
+        paidAmount: paid,
+        dueDate: updatedData.dueDate !== undefined ? updatedData.dueDate : list[idx].dueDate,
+        icon: updatedData.icon || list[idx].icon,
+        status: paid >= total - 0.009 ? 'Saldada' : 'Pendiente',
+        notes: updatedData.notes !== undefined ? updatedData.notes.trim() : list[idx].notes
+      };
+      saveDebts(list);
+      pushDebtToCloud(list[idx]);
+      return this.getDebtById(updatedId);
+    },
+
+    deleteDebt: function (id) {
+      let list = loadDebts();
+      const before = list.length;
+      list = list.filter(d => d.id !== id);
+      saveDebts(list);
+      if (!String(id).startsWith('debt_seed_')) {
+        deleteTransactionFromCloud(id);
+      }
+      return list.length < before;
+    },
+
+    registerDebtPayment: function (id, amount, options = {}) {
+      const list = loadDebts();
+      const idx = list.findIndex(d => d.id === id);
+      if (idx === -1) return null;
+
+      const val = parseFloat(amount) || 0;
+      if (val <= 0) return null;
+
+      const updatedId = String(id).startsWith('debt_seed_')
+        ? 'debt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)
+        : id;
+
+      const todayISO = formatDateISO(new Date());
+      const newPaid = Math.min(list[idx].totalAmount, (parseFloat(list[idx].paidAmount) || 0) + val);
+      const payments = Array.isArray(list[idx].payments) ? [...list[idx].payments] : [];
+      payments.push({ date: todayISO, amount: val, wallet: options.walletName || '' });
+
+      list[idx] = {
+        ...list[idx],
+        id: updatedId,
+        paidAmount: newPaid,
+        status: newPaid >= list[idx].totalAmount - 0.009 ? 'Saldada' : 'Pendiente',
+        payments
+      };
+
+      saveDebts(list);
+      pushDebtToCloud(list[idx]);
+
+      if (options.recordTransaction) {
+        const isIncoming = list[idx].direction === 'me_deben';
+        this.add({
+          type: isIncoming ? 'ingreso' : 'gasto',
+          concept: `${isIncoming ? 'Cobro préstamo' : 'Abono deuda'}: ${list[idx].personName} (${list[idx].concept})`,
+          amount: val,
+          category: 'Otros',
+          date: todayISO,
+          paymentMethod: options.walletName || (isIncoming ? 'Efectivo' : 'Cuenta Bancaria'),
+          notes: `Registro automático desde módulo de Préstamos y Deudas`
+        });
+      }
+
+      return this.getDebtById(updatedId);
+    },
+
+    // --- PRESUPUESTO SEMÁFORO POR CATEGORÍA ---
+    getCategoryBudgets: function () {
+      return loadCatBudgets();
+    },
+
+    setCategoryBudgets: function (limitsObj) {
+      const cleaned = {};
+      Object.entries(limitsObj || {}).forEach(([cat, val]) => {
+        const num = parseFloat(val);
+        if (!isNaN(num) && num > 0) {
+          cleaned[cat] = num;
+        }
+      });
+      saveCatBudgets(cleaned);
+      pushCatBudgetsToCloud(cleaned);
+      return cleaned;
+    },
+
+    getCategoryTrafficLights: function (targetMonth = null, targetYear = null) {
+      const now = new Date();
+      const m = targetMonth !== null ? targetMonth : now.getMonth();
+      const y = targetYear !== null ? targetYear : now.getFullYear();
+      const limits = loadCatBudgets();
+      const spentMap = this.getCategoryTotals('gasto', m, y);
+
+      const allCats = new Set([...Object.keys(limits), ...Object.keys(spentMap)]);
+      const results = [];
+
+      allCats.forEach(cat => {
+        const limit = parseFloat(limits[cat]) || 0;
+        if (limit <= 0) return;
+        const spent = parseFloat(spentMap[cat]) || 0;
+        const rawPercent = Math.round((spent / limit) * 100);
+        const barPercent = Math.min(100, rawPercent);
+        let status = 'green';
+        if (rawPercent >= 100) status = 'red';
+        else if (rawPercent >= 75) status = 'yellow';
+
+        results.push({
+          category: cat,
+          limit,
+          spent,
+          remaining: Math.max(0, limit - spent),
+          exceededBy: Math.max(0, spent - limit),
+          percent: rawPercent,
+          barPercent,
+          status
+        });
+      });
+
+      return results.sort((a, b) => b.percent - a.percent);
+    },
+
     // --- CHANGELOG / VERSIONS ---
     getChangelog: function () {
       return changelogData;
@@ -2059,6 +3062,10 @@ const Store = (function () {
         role: this.getActiveRole(),
         transactions: loadTransactions(),
         subscriptions: loadSubscriptions(),
+        wallets: loadWallets(),
+        goals: loadGoals(),
+        debts: loadDebts(),
+        categoryBudgets: loadCatBudgets(),
         users: loadUsers(),
         settings: loadSettings(),
         exportedAt: new Date().toISOString()
@@ -2071,6 +3078,10 @@ const Store = (function () {
         if (Array.isArray(data.transactions)) {
           saveTransactions(data.transactions);
           if (Array.isArray(data.subscriptions)) saveSubscriptions(data.subscriptions);
+          if (Array.isArray(data.wallets)) saveWallets(data.wallets);
+          if (Array.isArray(data.goals)) saveGoals(data.goals);
+          if (Array.isArray(data.debts)) saveDebts(data.debts);
+          if (data.categoryBudgets && typeof data.categoryBudgets === 'object') saveCatBudgets(data.categoryBudgets);
           if (Array.isArray(data.users)) saveUsers(data.users);
           if (data.settings) saveSettings(data.settings);
           return true;
@@ -2087,19 +3098,28 @@ const Store = (function () {
       const userId = this.getCurrentUserId();
       let seed = [];
       let subSeed = [];
+      let goalSeed = [];
+      let debtSeed = [];
+      let catBudgetSeed = {};
       if (userId === 'usr_1' || role === 'admin') {
         seed = generateSeedData(true);
         subSeed = generateSubscriptionSeedData();
+        goalSeed = generateGoalSeedData();
+        debtSeed = generateDebtSeedData();
+        catBudgetSeed = generateCategoryBudgetSeedData();
       } else if (userId === 'usr_4' || role === 'visita') {
         seed = generateSeedData(false);
         subSeed = generateSubscriptionSeedData();
-      } else {
-        // Clean start from 0 for personal / standard clients
-        seed = [];
-        subSeed = [];
+        goalSeed = generateGoalSeedData();
+        debtSeed = generateDebtSeedData();
+        catBudgetSeed = generateCategoryBudgetSeedData();
       }
       saveTransactions(seed);
       saveSubscriptions(subSeed);
+      saveWallets(generateDefaultWallets());
+      saveGoals(goalSeed);
+      saveDebts(debtSeed);
+      saveCatBudgets(catBudgetSeed);
       return seed;
     }
   };

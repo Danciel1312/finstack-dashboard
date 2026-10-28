@@ -8,7 +8,9 @@
 
   <!-- Progressive Web App (PWA) configuration -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#4880FF">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="theme-color" content="#2563EB">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -147,6 +149,17 @@
           </button>
 
           <button 
+            onclick="App.switchView('patrimonio')" 
+            data-view="patrimonio" 
+            class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+            title="Metas de Ahorro, Cuentas y Préstamos"
+          >
+            <i class="fa-solid fa-piggy-bank text-base w-5 text-center text-emerald-500 shrink-0"></i>
+            <span class="sidebar-text">Metas & Préstamos</span>
+            <span class="sidebar-text ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">2.0</span>
+          </button>
+
+          <button 
             onclick="App.switchView('calendario')" 
             data-view="calendario" 
             class="sidebar-nav-btn w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
@@ -174,7 +187,7 @@
           >
             <i class="fa-solid fa-code-branch text-base w-5 text-center text-indigo-500 shrink-0"></i>
             <span class="sidebar-text">Novedades & Versiones</span>
-            <span class="sidebar-text ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v1.5</span>
+            <span class="sidebar-text ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v2.0</span>
           </button>
 
           <!-- Admin Only: Gestión de Usuarios -->
@@ -200,6 +213,17 @@
             <i class="fa-solid fa-cloud text-base w-5 text-center text-sky-500 shrink-0"></i>
             <span class="sidebar-text">Sincronización Nube</span>
             <span id="cloudSidebarBadge" class="sidebar-text ml-auto text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">ADMIN</span>
+          </button>
+
+          <!-- Botón Instalar App PWA (se muestra automáticamente cuando está disponible) -->
+          <button 
+            id="pwaInstallSidebarBtn"
+            onclick="WealthManager.triggerInstallApp()" 
+            class="sidebar-nav-btn hidden w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 transition-all text-left"
+            title="Instalar aplicación en tu dispositivo"
+          >
+            <i class="fa-solid fa-download text-base w-5 text-center text-emerald-500 shrink-0"></i>
+            <span class="sidebar-text">Instalar App</span>
           </button>
 
           <!-- Cerrar Sesión / Bloquear -->
@@ -267,6 +291,28 @@
 
         <!-- Right: Actions, Currency, Theme, Notifications, User Profile & Settings -->
         <div class="flex items-center gap-2 md:gap-3 ml-3">
+
+          <!-- Offline Status Pill -->
+          <span 
+            id="offlineStatusPill" 
+            class="hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[11px] font-bold border border-amber-300 dark:border-amber-800"
+            title="Sin conexión a internet: tus registros se guardan localmente y se subirán solos al reconectar"
+          >
+            <i class="fa-solid fa-bolt text-[10px]"></i>
+            <span class="hidden md:inline">Sin Internet (Local)</span>
+          </span>
+
+          <!-- PWA Install Header Button -->
+          <button 
+            id="pwaInstallHeaderBtn"
+            type="button"
+            onclick="WealthManager.triggerInstallApp()" 
+            title="Instalar FinStack Pro en tu celular o computadora"
+            class="hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition-all"
+          >
+            <i class="fa-solid fa-mobile-screen-button text-xs"></i>
+            <span class="hidden lg:inline">Instalar App</span>
+          </button>
           
           <!-- Cloud Sync Multi-Dispositivo Pill (Admin Only) -->
           <button 
@@ -492,9 +538,11 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- SMART BANNER: ALERTAS DE GASTOS FIJOS / SUSCRIPCIONES -->
+        <!-- WALLETS / ACCOUNTS STRIP & ALERTS BANNERS  -->
         <!-- ========================================== -->
+        <div id="dashboardWalletsStrip"></div>
         <div id="dashboardUpcomingBillsBanner" class="hidden"></div>
+        <div id="dashboardCategoryTrafficSummary" class="hidden"></div>
 
         <!-- ========================================== -->
         <!-- CHARTS SECTION: CASH FLOW & CATEGORIES -->
@@ -589,6 +637,13 @@
                 >
                   Gastos
                 </button>
+                <button 
+                  onclick="App.setTableFilter('transferencia')" 
+                  data-filter="transferencia" 
+                  class="table-filter-btn px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 transition-all"
+                >
+                  Traspasos
+                </button>
               </div>
 
               <!-- Export CSV shortcut -->
@@ -667,6 +722,27 @@
           </div>
           <div class="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-xl shadow-md shadow-rose-500/20">
             <i class="fa-solid fa-receipt"></i>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100 dark:border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>🚦 Semáforo de Presupuestos por Categoría (Mes Actual)</span>
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Verde (&lt;75%) • Amarillo (75%–99%) • Rojo (100% o más)</p>
+            </div>
+            <button 
+              type="button" 
+              onclick="WealthManager.openCategoryBudgetsModal()" 
+              class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold inline-flex items-center gap-1.5 transition-colors self-start sm:self-auto"
+            >
+              <i class="fa-solid fa-sliders text-xs"></i> Configurar Límites
+            </button>
+          </div>
+          <div id="categoryBudgetsTrafficContainer">
+            <!-- Dynamically populated by WealthManager -->
           </div>
         </div>
 
@@ -869,6 +945,120 @@
       </main>
 
       <!-- ======================================================== -->
+      <!-- VIEW 3.8: METAS DE AHORRO, BILLETERAS & PRÉSTAMOS (v2.0) -->
+      <!-- ======================================================== -->
+      <main id="view-patrimonio" class="view-section hidden p-4 md:p-8 space-y-6">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+              <span>Metas, Billeteras & Préstamos</span>
+              <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">FinStack 2.0</span>
+            </h1>
+            <p class="text-xs md:text-sm text-slate-600 dark:text-slate-300 mt-0.5">
+              Administra tus alcancías de ahorro, saldos por cuenta bancaria/efectivo y control de quién te debe o a quién le debes.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="WealthManager.openTransferModal()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold inline-flex items-center gap-1.5 transition-colors">
+              <i class="fa-solid fa-right-left"></i> Transferir
+            </button>
+            <button type="button" onclick="WealthManager.openGoalModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm inline-flex items-center gap-1.5 transition-all">
+              <i class="fa-solid fa-plus"></i> Nueva Meta
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total en Billeteras</span>
+            <h3 id="patKpiWalletsTotal" class="text-2xl font-black text-slate-900 dark:text-white mt-1.5">$0.00</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">Suma neta de efectivo y bancos</p>
+          </div>
+
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Ahorrado en Metas</span>
+            <h3 id="patKpiGoalsSaved" class="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1.5">$0.00</h3>
+            <p id="patKpiGoalsSubtitle" class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">0% completado</p>
+          </div>
+
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Me Deben (Por Cobrar)</span>
+            <h3 id="patKpiOwedToMe" class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1.5">$0.00</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">Préstamos activos a tu favor</p>
+          </div>
+
+          <div class="dash-card bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-gray-100 dark:border-slate-800/80 shadow-sm">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Debo (Por Pagar)</span>
+            <h3 id="patKpiIOwe" class="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1.5">$0.00</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">Deudas o compras en cuotas</p>
+          </div>
+        </div>
+
+        <!-- Sub-Navigation Tabs -->
+        <div class="inline-flex flex-wrap items-center gap-1.5 p-1.5 rounded-2xl bg-slate-200/70 dark:bg-slate-800/90">
+          <button type="button" id="patrimonioTabBtn_metas" onclick="WealthManager.switchTab('metas')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 text-white shadow-sm flex items-center gap-2 transition-all">
+            <span>🎯 Metas de Ahorro</span>
+          </button>
+          <button type="button" id="patrimonioTabBtn_billeteras" onclick="WealthManager.switchTab('billeteras')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 flex items-center gap-2 transition-all">
+            <span>🏦 Mis Billeteras y Cuentas</span>
+          </button>
+          <button type="button" id="patrimonioTabBtn_deudas" onclick="WealthManager.switchTab('deudas')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 flex items-center gap-2 transition-all">
+            <span>🤝 Deudas y Préstamos</span>
+          </button>
+        </div>
+
+        <!-- TAB 1: METAS DE AHORRO -->
+        <div id="patrimonioPanel_metas" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" id="goalsGridContainer"></div>
+        </div>
+
+        <!-- TAB 2: MIS BILLETERAS Y CUENTAS -->
+        <div id="patrimonioPanel_billeteras" class="hidden space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-[#1E293B] p-4 rounded-2xl border border-gray-100 dark:border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Distribución de Dinero por Cuenta</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Puedes renombrar cuentas (ej. Banrural, BI, BAC), ajustar su saldo inicial o crear nuevas.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="WealthManager.openTransferModal()" class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold inline-flex items-center gap-1.5">
+                <i class="fa-solid fa-right-left"></i> Transferir entre Cuentas
+              </button>
+              <button type="button" onclick="WealthManager.openWalletModal()" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold inline-flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i> Agregar Cuenta
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="walletsDetailContainer"></div>
+        </div>
+
+        <!-- TAB 3: DEUDAS Y PRÉSTAMOS -->
+        <div id="patrimonioPanel_deudas" class="hidden space-y-4">
+          <div class="bg-white dark:bg-[#1E293B] rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="p-4 md:p-5 border-b border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
+                <button type="button" onclick="WealthManager.setDebtFilter('todos')" data-debt-filter="todos" class="debt-filter-btn px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold transition-all">Todos</button>
+                <button type="button" onclick="WealthManager.setDebtFilter('me_deben')" data-debt-filter="me_deben" class="debt-filter-btn px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-semibold transition-all">Me deben</button>
+                <button type="button" onclick="WealthManager.setDebtFilter('debo')" data-debt-filter="debo" class="debt-filter-btn px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-semibold transition-all">Debo</button>
+                <button type="button" onclick="WealthManager.setDebtFilter('saldadas')" data-debt-filter="saldadas" class="debt-filter-btn px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-semibold transition-all">Saldadas</button>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="WealthManager.openDebtModal(null, 'me_deben')" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5">
+                  <i class="fa-solid fa-plus"></i> Me Deben
+                </button>
+                <button type="button" onclick="WealthManager.openDebtModal(null, 'debo')" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1.5">
+                  <i class="fa-solid fa-plus"></i> Registrar Deuda
+                </button>
+              </div>
+            </div>
+            <div id="debtsListContainer" class="divide-y divide-gray-100 dark:divide-slate-800"></div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ======================================================== -->
       <!-- VIEW 4: CALENDARIO HISTÓRICO INTERACTIVO -->
       <!-- ======================================================== -->
       <main id="view-calendario" class="view-section hidden p-4 md:p-8 space-y-6">
@@ -987,6 +1177,35 @@
           </div>
           <div class="relative h-72 w-full">
             <canvas id="monthlyBarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Executive PDF Statement Banner -->
+        <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-5 md:p-6 text-white shadow-lg shadow-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-extrabold uppercase tracking-wider">
+              <i class="fa-solid fa-file-pdf"></i> Nuevo en v2.0
+            </div>
+            <h3 class="text-base md:text-lg font-black">Estado de Cuenta Mensual en PDF</h3>
+            <p class="text-xs text-blue-100 max-w-xl">
+              Genera un reporte ejecutivo membretado con tus KPIs del mes, saldos por cuenta bancaria, semáforo de categorías y tabla completa de movimientos listo para guardar en PDF, imprimir o compartir por WhatsApp.
+            </p>
+          </div>
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+            <input 
+              type="month" 
+              id="pdfReportMonthInput" 
+              aria-label="Mes del estado de cuenta"
+              class="px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-white/60"
+            />
+            <button 
+              type="button"
+              onclick="WealthManager.exportMonthlyPDF()" 
+              class="px-5 py-3 rounded-xl bg-white text-blue-700 hover:bg-blue-50 text-xs sm:text-sm font-extrabold shadow-md inline-flex items-center justify-center gap-2 shrink-0 transition-transform active:scale-95"
+            >
+              <i class="fa-solid fa-file-pdf text-rose-500 text-base"></i>
+              <span>Descargar Estado PDF</span>
+            </button>
           </div>
         </div>
 
@@ -2556,6 +2775,322 @@
     </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- MODALES v2.0: BILLETERAS, TRANSFERENCIAS, METAS, DEUDAS  -->
+  <!-- ======================================================== -->
+
+  <!-- Modal: Crear / Editar Cuenta o Billetera -->
+  <div id="walletModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 space-y-4 my-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
+        <h3 id="walletModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Nueva Cuenta o Billetera</h3>
+        <button type="button" onclick="WealthManager.closeWalletModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="walletForm" onsubmit="event.preventDefault(); WealthManager.handleWalletSubmit(event); return false;" class="space-y-3.5">
+        <input type="hidden" id="walletIconInput" value="🏦" />
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Ícono</label>
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <button type="button" onclick="WealthManager.selectWalletIcon(this, '💵')" class="wallet-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">💵</button>
+            <button type="button" onclick="WealthManager.selectWalletIcon(this, '🏦')" class="wallet-icon-btn w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 text-base flex items-center justify-center shrink-0">🏦</button>
+            <button type="button" onclick="WealthManager.selectWalletIcon(this, '🐷')" class="wallet-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🐷</button>
+            <button type="button" onclick="WealthManager.selectWalletIcon(this, '💳')" class="wallet-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">💳</button>
+            <button type="button" onclick="WealthManager.selectWalletIcon(this, '🪙')" class="wallet-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🪙</button>
+            <button type="button" onclick="WealthManager.selectWalletIcon(this, '💼')" class="wallet-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">💼</button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre de la Cuenta *</label>
+          <input type="text" id="walletNameInput" required placeholder="Ej. Banco Industrial, Banrural, Efectivo..." class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tipo</label>
+            <select id="walletTypeSelect" class="w-full px-3 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100">
+              <option value="efectivo">Efectivo</option>
+              <option value="banco">Cuenta Bancaria</option>
+              <option value="ahorro">Ahorros</option>
+              <option value="credito">Tarjeta Crédito</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Color</label>
+            <select id="walletColorSelect" class="w-full px-3 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100">
+              <option value="blue">Azul</option>
+              <option value="emerald">Verde</option>
+              <option value="purple">Morado</option>
+              <option value="amber">Ámbar</option>
+              <option value="rose">Coral</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Saldo Inicial de Apertura</label>
+          <div class="relative">
+            <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+            <input type="number" step="0.01" id="walletInitialBalanceInput" value="0" class="w-full pl-8 pr-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1">Dinero con el que inicia esta cuenta antes de tus ingresos y gastos registrados.</p>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="WealthManager.closeWalletModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Guardar Cuenta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Transferencia entre Cuentas -->
+  <div id="transferModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 space-y-4 my-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">⇄ Transferencia entre Cuentas</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Mueve saldo entre tus billeteras sin contarlo como gasto</p>
+        </div>
+        <button type="button" onclick="WealthManager.closeTransferModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="transferForm" onsubmit="event.preventDefault(); WealthManager.handleTransferSubmit(event); return false;" class="space-y-3.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Desde (Origen) *</label>
+            <select id="transferFromWallet" class="w-full px-3 py-2.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Hacia (Destino) *</label>
+            <select id="transferToWallet" class="w-full px-3 py-2.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto *</label>
+            <div class="relative">
+              <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+              <input type="number" step="0.01" min="0.01" id="transferAmountInput" required placeholder="0.00" class="w-full pl-8 pr-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Fecha *</label>
+            <input type="date" id="transferDateInput" required class="w-full px-3 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nota o motivo (Opcional)</label>
+          <input type="text" id="transferConceptInput" placeholder="Ej. Retiro de cajero automático, ahorro mensual..." class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="WealthManager.closeTransferModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Realizar Traspaso</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Crear / Editar Meta de Ahorro -->
+  <div id="goalModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 space-y-4 my-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
+        <h3 id="goalModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Nueva Meta de Ahorro</h3>
+        <button type="button" onclick="WealthManager.closeGoalModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="goalForm" onsubmit="event.preventDefault(); WealthManager.handleGoalSubmit(event); return false;" class="space-y-3.5">
+        <input type="hidden" id="goalIconInput" value="🎯" />
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Ícono de tu Meta</label>
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <button type="button" onclick="WealthManager.selectGoalIcon(this, '🎯')" class="goal-icon-btn w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-500 text-base flex items-center justify-center shrink-0">🎯</button>
+            <button type="button" onclick="WealthManager.selectGoalIcon(this, '🛡️')" class="goal-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🛡️</button>
+            <button type="button" onclick="WealthManager.selectGoalIcon(this, '🏖️')" class="goal-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🏖️</button>
+            <button type="button" onclick="WealthManager.selectGoalIcon(this, '🚗')" class="goal-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🚗</button>
+            <button type="button" onclick="WealthManager.selectGoalIcon(this, '🏠')" class="goal-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🏠</button>
+            <button type="button" onclick="WealthManager.selectGoalIcon(this, '💻')" class="goal-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">💻</button>
+            <button type="button" onclick="WealthManager.selectGoalIcon(this, '🎓')" class="goal-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">🎓</button>
+            <button type="button" onclick="WealthManager.selectGoalIcon(this, '💍')" class="goal-icon-btn w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-transparent text-base flex items-center justify-center shrink-0">💍</button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre del Objetivo *</label>
+          <input type="text" id="goalNameInput" required placeholder="Ej. Fondo de Emergencia, Enganche Moto, Viaje..." class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto Objetivo *</label>
+            <div class="relative">
+              <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+              <input type="number" step="0.01" min="1" id="goalTargetInput" required placeholder="10000" class="w-full pl-8 pr-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Ya Ahorrado</label>
+            <div class="relative">
+              <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+              <input type="number" step="0.01" min="0" id="goalCurrentInput" value="0" class="w-full pl-8 pr-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Fecha Meta (Opcional)</label>
+            <input type="date" id="goalDeadlineInput" class="w-full px-3 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Color</label>
+            <select id="goalColorSelect" class="w-full px-3 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100">
+              <option value="blue">Azul</option>
+              <option value="emerald">Esmeralda</option>
+              <option value="purple">Púrpura</option>
+              <option value="amber">Dorado</option>
+              <option value="rose">Coral</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Notas (Opcional)</label>
+          <input type="text" id="goalNotesInput" placeholder="Detalles o motivación..." class="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="WealthManager.closeGoalModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Guardar Meta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Abonar a Meta de Ahorro -->
+  <div id="goalContributeModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-sm rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+      <div>
+        <h3 id="goalContributeTitle" class="text-base font-bold text-slate-900 dark:text-white">Abonar a Meta</h3>
+        <p id="goalContributeSubtitle" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"></p>
+      </div>
+      <form onsubmit="event.preventDefault(); WealthManager.handleGoalContributeSubmit(event); return false;" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto a Abonar *</label>
+          <div class="relative">
+            <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+            <input type="number" step="0.01" min="0.01" id="goalContributeAmount" required placeholder="0.00" class="w-full pl-8 pr-3.5 py-2.5 rounded-xl text-sm font-black bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Cuenta Origen</label>
+          <select id="goalContributeWallet" class="w-full px-3 py-2.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"></select>
+        </div>
+        <label class="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+          <input type="checkbox" id="goalContributeDeductCheck" class="mt-0.5 accent-emerald-600" />
+          <span>Descontar este apartado del saldo disponible de la cuenta seleccionada</span>
+        </label>
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="WealthManager.closeGoalContributeModal()" class="flex-1 py-2.5 rounded-xl text-xs font-semibold border border-gray-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">Cancelar</button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Confirmar Abono</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Crear / Editar Préstamo o Deuda -->
+  <div id="debtModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 space-y-4 my-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
+        <h3 id="debtModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Nuevo Préstamo o Deuda</h3>
+        <button type="button" onclick="WealthManager.closeDebtModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="debtForm" onsubmit="event.preventDefault(); WealthManager.handleDebtSubmit(event); return false;" class="space-y-3.5">
+        <input type="hidden" id="debtDirectionInput" value="me_deben" />
+        <div class="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800">
+          <button type="button" id="debtTabMeDeben" onclick="WealthManager.setDebtDirectionTab('me_deben')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white shadow-sm transition-all">🟢 Me deben dinero</button>
+          <button type="button" id="debtTabDebo" onclick="WealthManager.setDebtDirectionTab('debo')" class="flex-1 py-2 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-300 transition-all">🔴 Yo debo dinero</button>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Persona, Cliente o Entidad *</label>
+          <input type="text" id="debtPersonInput" required placeholder="Ej. Juan Pérez, Tarjeta Visa Cuotas..." class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Concepto o Motivo *</label>
+          <input type="text" id="debtConceptInput" required placeholder="Ej. Préstamo personal, Compra celular a 6 cuotas..." class="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto Total *</label>
+            <div class="relative">
+              <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+              <input type="number" step="0.01" min="0.01" id="debtTotalInput" required placeholder="0.00" class="w-full pl-8 pr-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Abonado Inicial</label>
+            <div class="relative">
+              <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+              <input type="number" step="0.01" min="0" id="debtPaidInput" value="0" class="w-full pl-8 pr-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Fecha Acordada de Pago (Opcional)</label>
+          <input type="date" id="debtDueDateInput" class="w-full px-3 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Notas (Opcional)</label>
+          <input type="text" id="debtNotesInput" placeholder="Condiciones, número de cuotas..." class="w-full px-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="WealthManager.closeDebtModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Guardar Registro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Registrar Abono / Cobro de Deuda -->
+  <div id="debtPaymentModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-sm rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+      <div>
+        <h3 id="debtPayModalTitle" class="text-base font-bold text-slate-900 dark:text-white">Registrar Abono</h3>
+        <p id="debtPayModalSubtitle" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"></p>
+      </div>
+      <form onsubmit="event.preventDefault(); WealthManager.handleDebtPaymentSubmit(event); return false;" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Monto del Abono *</label>
+          <div class="relative">
+            <span class="currency-symbol-prefix absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+            <input type="number" step="0.01" min="0.01" id="debtPayAmountInput" required class="w-full pl-8 pr-3.5 py-2.5 rounded-xl text-sm font-black bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Cuenta donde entra / sale el dinero</label>
+          <select id="debtPayWallet" class="w-full px-3 py-2.5 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"></select>
+        </div>
+        <label class="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+          <input type="checkbox" id="debtPayRecordTxCheck" checked class="mt-0.5 accent-blue-600" />
+          <span>Registrar automáticamente este ingreso/gasto en mi historial de movimientos</span>
+        </label>
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="WealthManager.closeDebtPaymentModal()" class="flex-1 py-2.5 rounded-xl text-xs font-semibold border border-gray-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">Cancelar</button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Configurar Semáforo de Presupuestos por Categoría -->
+  <div id="categoryBudgetsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 modal-backdrop p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-[#1E293B] w-full max-w-md rounded-2xl border border-gray-100 dark:border-slate-800 shadow-2xl p-6 space-y-4 my-auto max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">🚦 Límites Mensuales por Categoría</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Deja en blanco o en 0 las categorías que no desees limitar</p>
+        </div>
+        <button type="button" onclick="WealthManager.closeCategoryBudgetsModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="event.preventDefault(); WealthManager.handleCategoryBudgetsSubmit(event); return false;" class="space-y-3">
+        <div id="categoryBudgetsInputsList" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-gray-100 dark:border-slate-800">
+          <button type="button" onclick="WealthManager.closeCategoryBudgetsModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Guardar Semáforo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Supabase CDN Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -2564,6 +3099,7 @@
   <script src="js/charts.js"></script>
   <script src="js/calendar.js"></script>
   <script src="js/ai-assistant.js"></script>
+  <script src="js/wealth.js"></script>
   <script src="js/app.js"></script>
 
 </body>
